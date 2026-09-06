@@ -1,0 +1,2498 @@
+{
+  "openapi": "3.0.3",
+  "info": {
+    "title": "Tutoring people and scheduling API",
+    "version": "0.2.0",
+    "description": "Контракт обновлён под User, Teacher и LessonOccurrence. User — человек, не аккаунт; Teacher идентифицируется его UserId. Отдельных TeacherProfile, StudentProfile, StudentId и глобальной записываемой роли STUDENT нет. DTO для режима ученика не создаёт новую доменную сущность. people и scheduling — предлагаемые границы backend. Без LessonSeries. Bearer — предварительное соглашение транспорта, выдача токенов вне контракта."
+  },
+  "servers": [
+    {
+      "url": "/api/v1"
+    }
+  ],
+  "security": [
+    {
+      "bearerAuth": []
+    }
+  ],
+  "tags": [
+    {
+      "name": "People"
+    },
+    {
+      "name": "Scheduling"
+    }
+  ],
+  "paths": {
+    "/users": {
+      "post": {
+        "operationId": "createUser",
+        "tags": [
+          "People"
+        ],
+        "summary": "Создать человека",
+        "description": "Создаёт бизнес-запись User без аккаунта. Создатель получает право управления созданным User. Пропущенные lastName/email становятся \"\"/null. Имя и email не используются для автоматического объединения людей.",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateUserRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Created",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UserResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Ошибка формата, полей, интервала или инвариантов",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Не аутентифицирован",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Действие запрещено",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Ресурс не найден или его существование не раскрывается",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Конфликт состояния занятия или отсутствует требуемая связь с учеником",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Внутренняя ошибка",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/users/{userId}": {
+      "get": {
+        "operationId": "getUser",
+        "tags": [
+          "People"
+        ],
+        "summary": "Получить общий профиль",
+        "description": "Только собственный или явно доступный профиль. Это не endpoint чтения аккаунта или пароля.",
+        "parameters": [
+          {
+            "name": "userId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "minLength": 1,
+              "description": "UserId: непрозрачная строка. Teacher определяется тем же UserId; отдельного TeacherId/StudentId нет."
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UserResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Ошибка формата, полей, интервала или инвариантов",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Не аутентифицирован",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Действие запрещено",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Ресурс не найден или его существование не раскрывается",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Внутренняя ошибка",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          }
+        }
+      },
+      "patch": {
+        "operationId": "updateUser",
+        "tags": [
+          "People"
+        ],
+        "summary": "Изменить общий профиль",
+        "description": "Требуется право редактирования этого User. Обновляет общие данные одновременно для его участия как преподавателя и ученика. Нельзя менять произвольные чужие профили по известному ID.",
+        "parameters": [
+          {
+            "name": "userId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "minLength": 1,
+              "description": "UserId: непрозрачная строка. Teacher определяется тем же UserId; отдельного TeacherId/StudentId нет."
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateUserRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UserResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Ошибка формата, полей, интервала или инвариантов",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Не аутентифицирован",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Действие запрещено",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Ресурс не найден или его существование не раскрывается",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Конфликт состояния занятия или отсутствует требуемая связь с учеником",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Внутренняя ошибка",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/teachers/{teacherUserId}": {
+      "get": {
+        "operationId": "getTeacher",
+        "tags": [
+          "People"
+        ],
+        "summary": "Получить преподавателя",
+        "description": "teacherUserId равен User.id. Нет Teacher для существующего User — 404. Наличие Teacher выражает бизнес-роль преподавателя, а не право доступа к чужим данным.",
+        "parameters": [
+          {
+            "name": "teacherUserId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "minLength": 1,
+              "description": "UserId: непрозрачная строка. Teacher определяется тем же UserId; отдельного TeacherId/StudentId нет."
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TeacherResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Ошибка формата, полей, интервала или инвариантов",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Не аутентифицирован",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Действие запрещено",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Ресурс не найден или его существование не раскрывается",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Внутренняя ошибка",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          }
+        }
+      },
+      "put": {
+        "operationId": "enableTeacher",
+        "tags": [
+          "People"
+        ],
+        "summary": "Сделать существующего пользователя преподавателем",
+        "description": "Без тела. Требуется сам пользователь или явно уполномоченный управляющий; право редактировать контактные поля чужого User само по себе недостаточно. Создаёт Teacher для этого User, список учеников изначально пуст. Повтор возвращает существующего Teacher, не сбрасывая список. 201 при создании, 200 при повторе.",
+        "parameters": [
+          {
+            "name": "teacherUserId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "minLength": 1,
+              "description": "UserId: непрозрачная строка. Teacher определяется тем же UserId; отдельного TeacherId/StudentId нет."
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Teacher уже существует; состояние сохранено",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TeacherResponse"
+                }
+              }
+            }
+          },
+          "201": {
+            "description": "Created",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TeacherResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Ошибка формата, полей, интервала или инвариантов",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Не аутентифицирован",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Действие запрещено",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Ресурс не найден или его существование не раскрывается",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Конфликт состояния занятия или отсутствует требуемая связь с учеником",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Внутренняя ошибка",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/teachers/{teacherUserId}/students": {
+      "get": {
+        "operationId": "listTeacherStudents",
+        "tags": [
+          "People"
+        ],
+        "summary": "Мои ученики",
+        "description": "Только этот преподаватель/редактор. Сортировка User.id ASC. Список людей, а не StudentProfile.",
+        "parameters": [
+          {
+            "name": "teacherUserId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "minLength": 1,
+              "description": "UserId: непрозрачная строка. Teacher определяется тем же UserId; отдельного TeacherId/StudentId нет."
+            }
+          },
+          {
+            "name": "cursor",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            },
+            "description": "Непрозрачный курсор следующей страницы."
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 100,
+              "default": 50
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UserPage"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Ошибка формата, полей, интервала или инвариантов",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Не аутентифицирован",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Действие запрещено",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Ресурс не найден или его существование не раскрывается",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Внутренняя ошибка",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "operationId": "createAndLinkStudent",
+        "tags": [
+          "People"
+        ],
+        "summary": "Создать User и добавить в ученики",
+        "description": "Удобная атомарная операция: новый User плюс связь Teacher.students. Teacher должен существовать и быть доступен для изменения. Аккаунт и StudentProfile не создаются. Начальные значения как POST /users. Создатель получает право редактировать созданный User.",
+        "parameters": [
+          {
+            "name": "teacherUserId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "minLength": 1,
+              "description": "UserId: непрозрачная строка. Teacher определяется тем же UserId; отдельного TeacherId/StudentId нет."
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateUserRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Created",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UserResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Ошибка формата, полей, интервала или инвариантов",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Не аутентифицирован",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Действие запрещено",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Ресурс не найден или его существование не раскрывается",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Конфликт состояния занятия или отсутствует требуемая связь с учеником",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Внутренняя ошибка",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/users/{userId}/teachers": {
+      "get": {
+        "operationId": "listUserTeachers",
+        "tags": [
+          "People"
+        ],
+        "summary": "Мои преподаватели",
+        "description": "Список Teacher, у которых этот User входит в students. Включает только текущие связи, независимо от наличия занятий. Сортировка teacher.user.id ASC. Только сам пользователь или явно уполномоченный читатель всего списка.",
+        "parameters": [
+          {
+            "name": "userId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "minLength": 1,
+              "description": "UserId: непрозрачная строка. Teacher определяется тем же UserId; отдельного TeacherId/StudentId нет."
+            }
+          },
+          {
+            "name": "cursor",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            },
+            "description": "Непрозрачный курсор следующей страницы."
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 100,
+              "default": 50
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TeacherPage"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Ошибка формата, полей, интервала или инвариантов",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Не аутентифицирован",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Действие запрещено",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Ресурс не найден или его существование не раскрывается",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Внутренняя ошибка",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/teachers/{teacherUserId}/students/{studentUserId}": {
+      "put": {
+        "operationId": "linkStudent",
+        "tags": [
+          "People"
+        ],
+        "summary": "Добавить существующего User в ученики",
+        "description": "Без тела. Идемпотентно. Требуется управление списком Teacher и разрешение на связь с конкретным User. Самого преподавателя добавлять нельзя (400 SELF_TEACHING_NOT_ALLOWED). Ученик может сам быть Teacher.",
+        "parameters": [
+          {
+            "name": "teacherUserId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "minLength": 1,
+              "description": "UserId: непрозрачная строка. Teacher определяется тем же UserId; отдельного TeacherId/StudentId нет."
+            }
+          },
+          {
+            "name": "studentUserId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "minLength": 1,
+              "description": "UserId: непрозрачная строка. Teacher определяется тем же UserId; отдельного TeacherId/StudentId нет."
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "No content"
+          },
+          "400": {
+            "description": "Ошибка формата, полей, интервала или инвариантов",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Не аутентифицирован",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Действие запрещено",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Ресурс не найден или его существование не раскрывается",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Конфликт состояния занятия или отсутствует требуемая связь с учеником",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Внутренняя ошибка",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          }
+        }
+      },
+      "delete": {
+        "operationId": "unlinkStudent",
+        "tags": [
+          "People"
+        ],
+        "summary": "Убрать User из списка учеников",
+        "description": "Без тела. Повтор успешен для доступных существующих ресурсов. Не удаляет User или Teacher этого человека; не меняет состав, время и статус существующих занятий, в том числе будущих.",
+        "parameters": [
+          {
+            "name": "teacherUserId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "minLength": 1,
+              "description": "UserId: непрозрачная строка. Teacher определяется тем же UserId; отдельного TeacherId/StudentId нет."
+            }
+          },
+          {
+            "name": "studentUserId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "minLength": 1,
+              "description": "UserId: непрозрачная строка. Teacher определяется тем же UserId; отдельного TeacherId/StudentId нет."
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "No content"
+          },
+          "400": {
+            "description": "Ошибка формата, полей, интервала или инвариантов",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Не аутентифицирован",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Действие запрещено",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Ресурс не найден или его существование не раскрывается",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Конфликт состояния занятия или отсутствует требуемая связь с учеником",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Внутренняя ошибка",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/teachers/{teacherUserId}/lessons": {
+      "get": {
+        "operationId": "getTeachingCalendar",
+        "tags": [
+          "Scheduling"
+        ],
+        "summary": "Календарь: я преподаю",
+        "description": "Полный список без пагинации за [from,to), from < to, не более 93 суток. Включить startAt < to AND endAt > from; сортировать startAt ASC, id ASC. Без status — все статусы. Время ответа UTC. Не усекать результат. Только этот преподаватель/редактор. Связанные ученики не получают весь его календарь.",
+        "parameters": [
+          {
+            "name": "teacherUserId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "minLength": 1,
+              "description": "UserId: непрозрачная строка. Teacher определяется тем же UserId; отдельного TeacherId/StudentId нет."
+            }
+          },
+          {
+            "name": "from",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "date-time",
+              "description": "RFC 3339: дата, время и Z/offset обязательны. Ответ сервера — UTC с Z."
+            }
+          },
+          {
+            "name": "to",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "date-time",
+              "description": "RFC 3339: дата, время и Z/offset обязательны. Ответ сервера — UTC с Z."
+            }
+          },
+          {
+            "name": "status",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "$ref": "#/components/schemas/LessonStatus"
+            },
+            "description": "Без фильтра возвращаются все статусы, в том числе CANCELLED."
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TeacherCalendarResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Ошибка формата, полей, интервала или инвариантов",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Не аутентифицирован",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Действие запрещено",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Ресурс не найден или его существование не раскрывается",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Внутренняя ошибка",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "operationId": "createLesson",
+        "tags": [
+          "Scheduling"
+        ],
+        "summary": "Создать разовое занятие",
+        "description": "Teacher берётся из URL и должен существовать. studentUserIds — существующие разрешённые User из его списка. Преподаватель не входит в состав. Формат обязателен; INDIVIDUAL ровно один, GROUP минимум один. endAt > startAt. Статус SCHEDULED. Прошедшее время и пересечения разрешены. Отсутствие связи для доступного User — 409 STUDENT_NOT_LINKED.",
+        "parameters": [
+          {
+            "name": "teacherUserId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "minLength": 1,
+              "description": "UserId: непрозрачная строка. Teacher определяется тем же UserId; отдельного TeacherId/StudentId нет."
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateLessonRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Created",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TeacherLessonResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Ошибка формата, полей, интервала или инвариантов",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Не аутентифицирован",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Действие запрещено",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Ресурс не найден или его существование не раскрывается",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Конфликт состояния занятия или отсутствует требуемая связь с учеником",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Внутренняя ошибка",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/users/{userId}/learning-lessons": {
+      "get": {
+        "operationId": "getLearningCalendar",
+        "tags": [
+          "Scheduling"
+        ],
+        "summary": "Календарь: я учусь",
+        "description": "Полный список без пагинации за [from,to), from < to, не более 93 суток. Включить startAt < to AND endAt > from; сортировать startAt ASC, id ASC. Без status — все статусы. Время ответа UTC. Не усекать результат. Выборка по User в составе студентов, даже если у него есть Teacher. Существующий доступный User без занятий получает пустой список. Только сам User или читатель всего календаря; преподавателю связь с User не открывает его чужие занятия.",
+        "parameters": [
+          {
+            "name": "userId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "minLength": 1,
+              "description": "UserId: непрозрачная строка. Teacher определяется тем же UserId; отдельного TeacherId/StudentId нет."
+            }
+          },
+          {
+            "name": "from",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "date-time",
+              "description": "RFC 3339: дата, время и Z/offset обязательны. Ответ сервера — UTC с Z."
+            }
+          },
+          {
+            "name": "to",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "date-time",
+              "description": "RFC 3339: дата, время и Z/offset обязательны. Ответ сервера — UTC с Z."
+            }
+          },
+          {
+            "name": "status",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "$ref": "#/components/schemas/LessonStatus"
+            },
+            "description": "Без фильтра возвращаются все статусы, в том числе CANCELLED."
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/StudentCalendarResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Ошибка формата, полей, интервала или инвариантов",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Не аутентифицирован",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Действие запрещено",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Ресурс не найден или его существование не раскрывается",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Внутренняя ошибка",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/teachers/{teacherUserId}/lessons/{lessonId}": {
+      "get": {
+        "operationId": "getTeachingLesson",
+        "tags": [
+          "Scheduling"
+        ],
+        "summary": "Карточка занятия для преподавателя",
+        "description": "Teacher занятия должен принадлежать teacherUserId. Иначе 404. Только преподаватель/редактор.",
+        "parameters": [
+          {
+            "name": "teacherUserId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "minLength": 1,
+              "description": "UserId: непрозрачная строка. Teacher определяется тем же UserId; отдельного TeacherId/StudentId нет."
+            }
+          },
+          {
+            "name": "lessonId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "minLength": 1,
+              "description": "Идентификатор конкретного занятия; сохраняется при переносе."
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TeacherLessonResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Ошибка формата, полей, интервала или инвариантов",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Не аутентифицирован",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Действие запрещено",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Ресурс не найден или его существование не раскрывается",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Внутренняя ошибка",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          }
+        }
+      },
+      "patch": {
+        "operationId": "updateLesson",
+        "tags": [
+          "Scheduling"
+        ],
+        "summary": "Изменить состав, формат или время занятия",
+        "description": "Только SCHEDULED и свой Teacher. Пропуск сохраняет поле; null запрещён. Время передаётся парой. Новые участники должны входить в Teacher.students, уже присутствующие могут остаться после удаления связи. Конечное состояние должно соответствовать формату и endAt > startAt. Формат не меняется автоматически: для второго ученика INDIVIDUAL передать format:GROUP. Смена GROUP на INDIVIDUAL возможна только с конечным составом из одного. Изменение атомарно, ID/статус/Teacher сохраняются.",
+        "parameters": [
+          {
+            "name": "teacherUserId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "minLength": 1,
+              "description": "UserId: непрозрачная строка. Teacher определяется тем же UserId; отдельного TeacherId/StudentId нет."
+            }
+          },
+          {
+            "name": "lessonId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "minLength": 1,
+              "description": "Идентификатор конкретного занятия; сохраняется при переносе."
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateLessonRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TeacherLessonResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Ошибка формата, полей, интервала или инвариантов",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Не аутентифицирован",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Действие запрещено",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Ресурс не найден или его существование не раскрывается",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Конфликт состояния занятия или отсутствует требуемая связь с учеником",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Внутренняя ошибка",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/users/{userId}/learning-lessons/{lessonId}": {
+      "get": {
+        "operationId": "getLearningLesson",
+        "tags": [
+          "Scheduling"
+        ],
+        "summary": "Карточка занятия для ученика",
+        "description": "User должен быть участником занятия. Иначе 404. Чужие участники группы не раскрываются.",
+        "parameters": [
+          {
+            "name": "userId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "minLength": 1,
+              "description": "UserId: непрозрачная строка. Teacher определяется тем же UserId; отдельного TeacherId/StudentId нет."
+            }
+          },
+          {
+            "name": "lessonId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "minLength": 1,
+              "description": "Идентификатор конкретного занятия; сохраняется при переносе."
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/StudentLessonResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Ошибка формата, полей, интервала или инвариантов",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Не аутентифицирован",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Действие запрещено",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Ресурс не найден или его существование не раскрывается",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Внутренняя ошибка",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/teachers/{teacherUserId}/lessons/{lessonId}/status": {
+      "put": {
+        "operationId": "setLessonStatus",
+        "tags": [
+          "Scheduling"
+        ],
+        "summary": "Отменить или завершить занятие",
+        "description": "SCHEDULED → CANCELLED или COMPLETED. COMPLETED только после endAt по часам сервера. Повтор текущего целевого статуса успешен. Иные переходы — 409. Отмена сохраняет запись.",
+        "parameters": [
+          {
+            "name": "teacherUserId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "minLength": 1,
+              "description": "UserId: непрозрачная строка. Teacher определяется тем же UserId; отдельного TeacherId/StudentId нет."
+            }
+          },
+          {
+            "name": "lessonId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "minLength": 1,
+              "description": "Идентификатор конкретного занятия; сохраняется при переносе."
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SetLessonStatusRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TeacherLessonResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Ошибка формата, полей, интервала или инвариантов",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Не аутентифицирован",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Действие запрещено",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Ресурс не найден или его существование не раскрывается",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Конфликт состояния занятия или отсутствует требуемая связь с учеником",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Внутренняя ошибка",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "components": {
+    "securitySchemes": {
+      "bearerAuth": {
+        "type": "http",
+        "scheme": "bearer"
+      }
+    },
+    "schemas": {
+      "UserSummary": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "id": {
+            "type": "string",
+            "minLength": 1,
+            "description": "UserId: непрозрачная строка. Teacher определяется тем же UserId; отдельного TeacherId/StudentId нет."
+          },
+          "firstName": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 100,
+            "description": "Непустое значение после trim."
+          },
+          "lastName": {
+            "type": "string",
+            "maxLength": 100
+          }
+        },
+        "required": [
+          "id",
+          "firstName",
+          "lastName"
+        ],
+        "example": {
+          "id": "u_001",
+          "firstName": "Алексей",
+          "lastName": "Иванов"
+        }
+      },
+      "UserResponse": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "id": {
+            "type": "string",
+            "minLength": 1,
+            "description": "UserId: непрозрачная строка. Teacher определяется тем же UserId; отдельного TeacherId/StudentId нет."
+          },
+          "firstName": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 100,
+            "description": "Непустое значение после trim."
+          },
+          "lastName": {
+            "type": "string",
+            "maxLength": 100
+          },
+          "email": {
+            "type": "string",
+            "format": "email",
+            "maxLength": 254,
+            "nullable": true
+          }
+        },
+        "required": [
+          "id",
+          "firstName",
+          "lastName",
+          "email"
+        ],
+        "example": {
+          "id": "u_001",
+          "firstName": "Алексей",
+          "lastName": "Иванов",
+          "email": "alex@example.com"
+        }
+      },
+      "TeacherResponse": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "user": {
+            "$ref": "#/components/schemas/UserSummary"
+          }
+        },
+        "required": [
+          "user"
+        ],
+        "description": "API-представление Teacher. user.id — идентификатор этого Teacher в URL. Общие данные редактируются через /users. Список учеников запрашивается отдельно.",
+        "example": {
+          "user": {
+            "id": "u_001",
+            "firstName": "Алексей",
+            "lastName": "Иванов"
+          }
+        }
+      },
+      "CreateUserRequest": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "firstName": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 100,
+            "description": "Непустое значение после trim."
+          },
+          "lastName": {
+            "type": "string",
+            "maxLength": 100,
+            "default": ""
+          },
+          "email": {
+            "type": "string",
+            "format": "email",
+            "maxLength": 254,
+            "nullable": true
+          }
+        },
+        "required": [
+          "firstName"
+        ],
+        "example": {
+          "firstName": "Анна",
+          "lastName": "Петрова"
+        }
+      },
+      "UpdateUserRequest": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "firstName": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 100,
+            "description": "Непустое значение после trim."
+          },
+          "lastName": {
+            "type": "string",
+            "maxLength": 100
+          },
+          "email": {
+            "type": "string",
+            "format": "email",
+            "maxLength": 254,
+            "nullable": true
+          }
+        },
+        "minProperties": 1,
+        "description": "Пропуск сохраняет значение. email:null очищает контакт; lastName:\"\" очищает фамилию. Роли/пароли не принимаются.",
+        "example": {
+          "email": null
+        }
+      },
+      "UserPage": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "items": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/UserSummary"
+            }
+          },
+          "nextCursor": {
+            "type": "string",
+            "nullable": true
+          }
+        },
+        "required": [
+          "items",
+          "nextCursor"
+        ],
+        "example": {
+          "items": [
+            {
+              "id": "u_002",
+              "firstName": "Анна",
+              "lastName": "Петрова"
+            }
+          ],
+          "nextCursor": null
+        }
+      },
+      "TeacherPage": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "items": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/TeacherResponse"
+            }
+          },
+          "nextCursor": {
+            "type": "string",
+            "nullable": true
+          }
+        },
+        "required": [
+          "items",
+          "nextCursor"
+        ],
+        "example": {
+          "items": [
+            {
+              "user": {
+                "id": "u_003",
+                "firstName": "Мария",
+                "lastName": "Смирнова"
+              }
+            }
+          ],
+          "nextCursor": null
+        }
+      },
+      "LessonStatus": {
+        "type": "string",
+        "enum": [
+          "SCHEDULED",
+          "COMPLETED",
+          "CANCELLED"
+        ]
+      },
+      "LessonFormat": {
+        "type": "string",
+        "enum": [
+          "INDIVIDUAL",
+          "GROUP"
+        ],
+        "description": "Явный формат, не вычисляется из числа учеников. GROUP может содержать одного ученика."
+      },
+      "UpdateLessonRequest": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "studentUserIds": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "minLength": 1,
+              "description": "UserId: непрозрачная строка. Teacher определяется тем же UserId; отдельного TeacherId/StudentId нет."
+            },
+            "minItems": 1,
+            "uniqueItems": true,
+            "description": "UserId учеников, не StudentId. Преподаватель не может входить в собственный состав."
+          },
+          "startAt": {
+            "type": "string",
+            "format": "date-time",
+            "description": "RFC 3339: дата, время и Z/offset обязательны. Ответ сервера — UTC с Z."
+          },
+          "endAt": {
+            "type": "string",
+            "format": "date-time",
+            "description": "RFC 3339: дата, время и Z/offset обязательны. Ответ сервера — UTC с Z."
+          },
+          "format": {
+            "$ref": "#/components/schemas/LessonFormat"
+          }
+        },
+        "minProperties": 1,
+        "description": "Только SCHEDULED. Время передаётся парой. studentUserIds заменяет весь состав. Формат и состав проверяются вместе по конечному состоянию; неподходящее количество учеников — 400 VALIDATION_ERROR / FORMAT_PARTICIPANTS_MISMATCH. Все изменения атомарны.",
+        "anyOf": [
+          {
+            "required": [
+              "startAt",
+              "endAt"
+            ]
+          },
+          {
+            "not": {
+              "anyOf": [
+                {
+                  "required": [
+                    "startAt"
+                  ]
+                },
+                {
+                  "required": [
+                    "endAt"
+                  ]
+                }
+              ]
+            }
+          }
+        ],
+        "example": {
+          "format": "GROUP",
+          "studentUserIds": [
+            "u_002",
+            "u_003"
+          ]
+        }
+      },
+      "SetLessonStatusRequest": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "status": {
+            "type": "string",
+            "enum": [
+              "COMPLETED",
+              "CANCELLED"
+            ]
+          }
+        },
+        "required": [
+          "status"
+        ],
+        "example": {
+          "status": "CANCELLED"
+        }
+      },
+      "StudentLessonResponse": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "id": {
+            "type": "string",
+            "minLength": 1,
+            "description": "Идентификатор конкретного занятия; сохраняется при переносе."
+          },
+          "studentUserId": {
+            "type": "string",
+            "minLength": 1,
+            "description": "UserId: непрозрачная строка. Teacher определяется тем же UserId; отдельного TeacherId/StudentId нет."
+          },
+          "teacher": {
+            "$ref": "#/components/schemas/TeacherResponse"
+          },
+          "startAt": {
+            "type": "string",
+            "format": "date-time",
+            "description": "RFC 3339: дата, время и Z/offset обязательны. Ответ сервера — UTC с Z."
+          },
+          "endAt": {
+            "type": "string",
+            "format": "date-time",
+            "description": "RFC 3339: дата, время и Z/offset обязательны. Ответ сервера — UTC с Z."
+          },
+          "status": {
+            "$ref": "#/components/schemas/LessonStatus"
+          },
+          "format": {
+            "$ref": "#/components/schemas/LessonFormat"
+          }
+        },
+        "required": [
+          "id",
+          "studentUserId",
+          "teacher",
+          "startAt",
+          "endAt",
+          "status",
+          "format"
+        ],
+        "description": "Представление занятия для ученика. studentUserId совпадает с пользователем в URL. Другие участники и email не раскрываются. StudentLessonResponse — DTO, не новая domain entity.",
+        "example": {
+          "id": "l_002",
+          "studentUserId": "u_001",
+          "teacher": {
+            "user": {
+              "id": "u_003",
+              "firstName": "Мария",
+              "lastName": "Смирнова"
+            }
+          },
+          "startAt": "2026-09-08T09:00:00Z",
+          "endAt": "2026-09-08T10:00:00Z",
+          "status": "SCHEDULED",
+          "format": "GROUP"
+        }
+      },
+      "TeacherCalendarResponse": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "from": {
+            "type": "string",
+            "format": "date-time",
+            "description": "RFC 3339: дата, время и Z/offset обязательны. Ответ сервера — UTC с Z."
+          },
+          "to": {
+            "type": "string",
+            "format": "date-time",
+            "description": "RFC 3339: дата, время и Z/offset обязательны. Ответ сервера — UTC с Z."
+          },
+          "items": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/TeacherLessonResponse"
+            }
+          }
+        },
+        "required": [
+          "from",
+          "to",
+          "items"
+        ],
+        "example": {
+          "from": "2026-09-06T21:00:00Z",
+          "to": "2026-09-13T21:00:00Z",
+          "items": [
+            {
+              "id": "l_001",
+              "teacher": {
+                "user": {
+                  "id": "u_001",
+                  "firstName": "Алексей",
+                  "lastName": "Иванов"
+                }
+              },
+              "students": [
+                {
+                  "id": "u_002",
+                  "firstName": "Анна",
+                  "lastName": "Петрова"
+                }
+              ],
+              "startAt": "2026-09-07T15:00:00Z",
+              "endAt": "2026-09-07T16:00:00Z",
+              "status": "SCHEDULED",
+              "format": "INDIVIDUAL"
+            }
+          ]
+        }
+      },
+      "StudentCalendarResponse": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "from": {
+            "type": "string",
+            "format": "date-time",
+            "description": "RFC 3339: дата, время и Z/offset обязательны. Ответ сервера — UTC с Z."
+          },
+          "to": {
+            "type": "string",
+            "format": "date-time",
+            "description": "RFC 3339: дата, время и Z/offset обязательны. Ответ сервера — UTC с Z."
+          },
+          "items": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/StudentLessonResponse"
+            }
+          }
+        },
+        "required": [
+          "from",
+          "to",
+          "items"
+        ],
+        "example": {
+          "from": "2026-09-06T21:00:00Z",
+          "to": "2026-09-13T21:00:00Z",
+          "items": [
+            {
+              "id": "l_002",
+              "studentUserId": "u_001",
+              "teacher": {
+                "user": {
+                  "id": "u_003",
+                  "firstName": "Мария",
+                  "lastName": "Смирнова"
+                }
+              },
+              "startAt": "2026-09-08T09:00:00Z",
+              "endAt": "2026-09-08T10:00:00Z",
+              "status": "SCHEDULED",
+              "format": "GROUP"
+            }
+          ]
+        }
+      },
+      "FieldError": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "field": {
+            "type": "string"
+          },
+          "code": {
+            "type": "string"
+          },
+          "message": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "field",
+          "code",
+          "message"
+        ]
+      },
+      "ApiError": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "code": {
+            "type": "string",
+            "enum": [
+              "VALIDATION_ERROR",
+              "INVALID_INTERVAL",
+              "UNAUTHENTICATED",
+              "FORBIDDEN",
+              "NOT_FOUND",
+              "INVALID_LESSON_STATE",
+              "STUDENT_NOT_LINKED",
+              "LESSON_NOT_ENDED",
+              "INTERNAL_ERROR"
+            ]
+          },
+          "message": {
+            "type": "string"
+          },
+          "fieldErrors": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/FieldError"
+            }
+          }
+        },
+        "required": [
+          "code",
+          "message",
+          "fieldErrors"
+        ],
+        "example": {
+          "code": "VALIDATION_ERROR",
+          "message": "Для индивидуального занятия нужен ровно один ученик",
+          "fieldErrors": [
+            {
+              "field": "studentUserIds",
+              "code": "FORMAT_PARTICIPANTS_MISMATCH",
+              "message": "Измените состав или формат занятия"
+            }
+          ]
+        }
+      },
+      "CreateLessonRequest": {
+        "description": "Создать одно занятие. Все поля обязательны. INDIVIDUAL — один ученик, GROUP — минимум один.",
+        "oneOf": [
+          {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+              "studentUserIds": {
+                "type": "array",
+                "items": {
+                  "type": "string",
+                  "minLength": 1,
+                  "description": "UserId: непрозрачная строка. Teacher определяется тем же UserId; отдельного TeacherId/StudentId нет."
+                },
+                "minItems": 1,
+                "uniqueItems": true,
+                "description": "UserId учеников, не StudentId. Преподаватель не может входить в собственный состав.",
+                "maxItems": 1
+              },
+              "startAt": {
+                "type": "string",
+                "format": "date-time",
+                "description": "RFC 3339: дата, время и Z/offset обязательны. Ответ сервера — UTC с Z."
+              },
+              "endAt": {
+                "type": "string",
+                "format": "date-time",
+                "description": "RFC 3339: дата, время и Z/offset обязательны. Ответ сервера — UTC с Z."
+              },
+              "format": {
+                "type": "string",
+                "enum": [
+                  "INDIVIDUAL"
+                ]
+              }
+            },
+            "required": [
+              "studentUserIds",
+              "startAt",
+              "endAt",
+              "format"
+            ]
+          },
+          {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+              "studentUserIds": {
+                "type": "array",
+                "items": {
+                  "type": "string",
+                  "minLength": 1,
+                  "description": "UserId: непрозрачная строка. Teacher определяется тем же UserId; отдельного TeacherId/StudentId нет."
+                },
+                "minItems": 1,
+                "uniqueItems": true,
+                "description": "UserId учеников, не StudentId. Преподаватель не может входить в собственный состав."
+              },
+              "startAt": {
+                "type": "string",
+                "format": "date-time",
+                "description": "RFC 3339: дата, время и Z/offset обязательны. Ответ сервера — UTC с Z."
+              },
+              "endAt": {
+                "type": "string",
+                "format": "date-time",
+                "description": "RFC 3339: дата, время и Z/offset обязательны. Ответ сервера — UTC с Z."
+              },
+              "format": {
+                "type": "string",
+                "enum": [
+                  "GROUP"
+                ]
+              }
+            },
+            "required": [
+              "studentUserIds",
+              "startAt",
+              "endAt",
+              "format"
+            ]
+          }
+        ],
+        "example": {
+          "studentUserIds": [
+            "u_002"
+          ],
+          "startAt": "2026-09-07T18:00:00+03:00",
+          "endAt": "2026-09-07T19:00:00+03:00",
+          "format": "INDIVIDUAL"
+        }
+      },
+      "TeacherLessonResponse": {
+        "description": "Полный состав виден преподавателю; ссылки на User передаются как UserSummary. Имена актуальные.",
+        "oneOf": [
+          {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+              "id": {
+                "type": "string",
+                "minLength": 1,
+                "description": "Идентификатор конкретного занятия; сохраняется при переносе."
+              },
+              "teacher": {
+                "$ref": "#/components/schemas/TeacherResponse"
+              },
+              "students": {
+                "type": "array",
+                "items": {
+                  "$ref": "#/components/schemas/UserSummary"
+                },
+                "minItems": 1,
+                "maxItems": 1
+              },
+              "startAt": {
+                "type": "string",
+                "format": "date-time",
+                "description": "RFC 3339: дата, время и Z/offset обязательны. Ответ сервера — UTC с Z."
+              },
+              "endAt": {
+                "type": "string",
+                "format": "date-time",
+                "description": "RFC 3339: дата, время и Z/offset обязательны. Ответ сервера — UTC с Z."
+              },
+              "status": {
+                "$ref": "#/components/schemas/LessonStatus"
+              },
+              "format": {
+                "type": "string",
+                "enum": [
+                  "INDIVIDUAL"
+                ]
+              }
+            },
+            "required": [
+              "id",
+              "teacher",
+              "students",
+              "startAt",
+              "endAt",
+              "status",
+              "format"
+            ]
+          },
+          {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+              "id": {
+                "type": "string",
+                "minLength": 1,
+                "description": "Идентификатор конкретного занятия; сохраняется при переносе."
+              },
+              "teacher": {
+                "$ref": "#/components/schemas/TeacherResponse"
+              },
+              "students": {
+                "type": "array",
+                "items": {
+                  "$ref": "#/components/schemas/UserSummary"
+                },
+                "minItems": 1
+              },
+              "startAt": {
+                "type": "string",
+                "format": "date-time",
+                "description": "RFC 3339: дата, время и Z/offset обязательны. Ответ сервера — UTC с Z."
+              },
+              "endAt": {
+                "type": "string",
+                "format": "date-time",
+                "description": "RFC 3339: дата, время и Z/offset обязательны. Ответ сервера — UTC с Z."
+              },
+              "status": {
+                "$ref": "#/components/schemas/LessonStatus"
+              },
+              "format": {
+                "type": "string",
+                "enum": [
+                  "GROUP"
+                ]
+              }
+            },
+            "required": [
+              "id",
+              "teacher",
+              "students",
+              "startAt",
+              "endAt",
+              "status",
+              "format"
+            ]
+          }
+        ],
+        "example": {
+          "id": "l_001",
+          "teacher": {
+            "user": {
+              "id": "u_001",
+              "firstName": "Алексей",
+              "lastName": "Иванов"
+            }
+          },
+          "students": [
+            {
+              "id": "u_002",
+              "firstName": "Анна",
+              "lastName": "Петрова"
+            }
+          ],
+          "startAt": "2026-09-07T15:00:00Z",
+          "endAt": "2026-09-07T16:00:00Z",
+          "status": "SCHEDULED",
+          "format": "INDIVIDUAL"
+        }
+      }
+    }
+  }
+}
