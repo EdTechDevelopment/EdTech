@@ -1,0 +1,169 @@
+{
+  "RegisterRequest": {
+    "email": "anna@example.com",
+    "password": "example-password",
+    "firstName": "Анна",
+    "lastName": "Петрова",
+    "roles": [
+      "STUDENT"
+    ]
+  },
+  "VerificationPendingResponse": {
+    "email": "anna@example.com",
+    "verificationExpiresAt": "2026-09-07T12:00:00Z"
+  },
+  "ConfirmEmailRequest": {
+    "token": "vfy_12345678901234567890"
+  },
+  "ResendEmailVerificationRequest": {
+    "email": "anna@example.com"
+  },
+  "LoginRequest": {
+    "email": "anna@example.com",
+    "password": "example-password"
+  },
+  "UserResponse": {
+    "id": "u_002",
+    "email": "anna@example.com",
+    "firstName": "Анна",
+    "lastName": "Петрова",
+    "roles": [
+      "STUDENT"
+    ],
+    "status": "ACTIVE",
+    "pendingEmail": null,
+    "emailVerifiedAt": "2026-09-06T12:00:00Z"
+  },
+  "UpdateMeRequest": {
+    "firstName": "Анна-Мария"
+  },
+  "TeacherProfileUpsertRequest": {
+    "subjectCodes": [
+      "MATH"
+    ],
+    "description": "Готовлю к экзаменам",
+    "education": null,
+    "experienceYears": 5,
+    "city": "Москва",
+    "photoUrl": null
+  },
+  "StudentProfileUpsertRequest": {
+    "birthDate": "2010-05-14",
+    "subjectCodes": [
+      "MATH"
+    ],
+    "photoUrl": null
+  },
+  "SubjectListResponse": {
+    "items": [
+      {
+        "code": "MATH",
+        "name": "Математика"
+      }
+    ]
+  },
+  "CreateStudentInvitationRequest": {
+    "email": "anna@example.com"
+  },
+  "StudentInvitationResponse": {
+    "id": "inv_001",
+    "teacher": {
+      "id": "u_001",
+      "email": "alex@example.com",
+      "firstName": "Алексей",
+      "lastName": "Иванов"
+    },
+    "studentEmail": "anna@example.com",
+    "studentUserId": "u_002",
+    "status": "PENDING",
+    "createdAt": "2026-09-06T12:00:00Z",
+    "expiresAt": "2026-10-06T12:00:00Z",
+    "respondedAt": null
+  },
+  "CreateLessonRequest": {
+    "studentUserIds": [
+      "u_002"
+    ],
+    "subjectCode": "MATH",
+    "format": "INDIVIDUAL",
+    "locationType": "ONLINE",
+    "price": "1500.00",
+    "startAt": "2026-09-07T15:00:00Z",
+    "durationMinutes": 60,
+    "meetingUrl": "https://meet.example/lesson-1"
+  },
+  "UpdateLessonRequest": {
+    "startAt": "2026-09-07T16:00:00Z",
+    "durationMinutes": 90
+  },
+  "TeacherLessonResponse": {
+    "id": "l_001",
+    "teacher": {
+      "id": "u_001",
+      "firstName": "Алексей",
+      "lastName": "Иванов"
+    },
+    "participants": [
+      {
+        "id": "u_002",
+        "firstName": "Анна",
+        "lastName": "Петрова"
+      }
+    ],
+    "subjectCode": "MATH",
+    "format": "INDIVIDUAL",
+    "locationType": "ONLINE",
+    "meetingUrl": "https://meet.example/lesson-1",
+    "offlineAddress": null,
+    "price": "1500.00",
+    "startAt": "2026-09-07T15:00:00Z",
+    "endAt": "2026-09-07T16:00:00Z",
+    "durationMinutes": 60,
+    "status": "SCHEDULED",
+    "cancelReason": null,
+    "cancelComment": null,
+    "cancelledByUserId": null,
+    "cancelledAt": null
+  },
+  "StudentLessonResponse": {
+    "id": "l_001",
+    "teacher": {
+      "id": "u_001",
+      "email": "alex@example.com",
+      "firstName": "Алексей",
+      "lastName": "Иванов"
+    },
+    "participants": [
+      {
+        "id": "u_002",
+        "firstName": "Анна",
+        "lastName": "Петрова"
+      }
+    ],
+    "subjectCode": "MATH",
+    "format": "INDIVIDUAL",
+    "locationType": "ONLINE",
+    "meetingUrl": "https://meet.example/lesson-1",
+    "offlineAddress": null,
+    "startAt": "2026-09-07T15:00:00Z",
+    "endAt": "2026-09-07T16:00:00Z",
+    "durationMinutes": 60,
+    "status": "SCHEDULED",
+    "cancelReason": null,
+    "cancelComment": null,
+    "cancelledAt": null
+  },
+  "CancelLessonRequest": {
+    "reason": "OTHER",
+    "comment": "Не смогу провести занятие"
+  },
+  "SetLessonStatusRequest": {
+    "status": "COMPLETED"
+  },
+  "ApiError": {
+    "code": "LESSON_OVERLAP",
+    "message": "Участник уже занят в это время",
+    "fieldErrors": [],
+    "requestId": "req_001"
+  }
+}

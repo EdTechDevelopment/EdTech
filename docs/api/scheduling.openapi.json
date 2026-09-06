@@ -1,9 +1,9 @@
 {
   "openapi": "3.0.3",
   "info": {
-    "title": "Tutoring people and scheduling API",
-    "version": "0.3.0",
-    "description": "User — зарегистрированный аккаунт: email и password обязательны при создании. Password только write-only и не входит в ответы. Teacher идентифицируется UserId; отдельного Student нет. Новых учеников приглашают по email, преподаватель не создаёт им пароль. DTO режима ученика не является domain entity. Модули people, identity, scheduling и notifications разделены. Без LessonSeries."
+    "title": "EdTech tutoring API",
+    "version": "1.0.0",
+    "description": "Контракт регистрации, сессионной аутентификации, профилей, приглашений и расписания по утверждённому ТЗ."
   },
   "servers": [
     {
@@ -12,80 +12,58 @@
   ],
   "security": [
     {
-      "bearerAuth": []
+      "sessionCookie": []
     }
   ],
   "tags": [
     {
-      "name": "People"
+      "name": "Auth"
+    },
+    {
+      "name": "Profiles"
+    },
+    {
+      "name": "Catalog"
+    },
+    {
+      "name": "Invitations"
     },
     {
       "name": "Scheduling"
     }
   ],
   "paths": {
-    "/users": {
+    "/auth/register": {
       "post": {
-        "operationId": "createUser",
+        "operationId": "register",
         "tags": [
-          "People"
+          "Auth"
         ],
         "summary": "Зарегистрировать пользователя",
-        "description": "Создаёт User и аккаунт для входа. Email и пароль обязательны. Email уникален без учёта регистра. Пароль хешируется и никогда не возвращается. Пропущенный lastName становится \"\". Повтор email — 409 EMAIL_ALREADY_EXISTS.",
-        "parameters": [],
+        "security": [],
         "requestBody": {
           "required": true,
           "content": {
             "application/json": {
               "schema": {
-                "$ref": "#/components/schemas/CreateUserRequest"
+                "$ref": "#/components/schemas/RegisterRequest"
               }
             }
           }
         },
         "responses": {
-          "201": {
-            "description": "Created",
+          "202": {
+            "description": "Создан неподтверждённый аккаунт.",
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/UserResponse"
+                  "$ref": "#/components/schemas/VerificationPendingResponse"
                 }
               }
             }
           },
           "400": {
-            "description": "Ошибка формата, полей, интервала или инвариантов",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ApiError"
-                }
-              }
-            }
-          },
-          "401": {
-            "description": "Не аутентифицирован",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ApiError"
-                }
-              }
-            }
-          },
-          "403": {
-            "description": "Действие запрещено",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ApiError"
-                }
-              }
-            }
-          },
-          "404": {
-            "description": "Ресурс не найден или его существование не раскрывается",
+            "description": "Ошибка формата или валидации.",
             "content": {
               "application/json": {
                 "schema": {
@@ -95,7 +73,17 @@
             }
           },
           "409": {
-            "description": "Конфликт состояния занятия или отсутствует требуемая связь с учеником",
+            "description": "Конфликт состояния.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Слишком много запросов.",
             "content": {
               "application/json": {
                 "schema": {
@@ -105,7 +93,7 @@
             }
           },
           "500": {
-            "description": "Внутренняя ошибка",
+            "description": "Внутренняя ошибка.",
             "content": {
               "application/json": {
                 "schema": {
@@ -114,43 +102,173 @@
               }
             }
           }
-        },
-        "security": []
+        }
       }
     },
-    "/users/{userId}": {
-      "get": {
-        "operationId": "getUser",
+    "/auth/email-verification/confirm": {
+      "post": {
+        "operationId": "confirmEmail",
         "tags": [
-          "People"
+          "Auth"
         ],
-        "summary": "Получить общий профиль",
-        "description": "Только собственный или явно доступный профиль. Пароль и его хеш никогда не возвращаются.",
-        "parameters": [
-          {
-            "name": "userId",
-            "in": "path",
-            "required": true,
-            "schema": {
-              "type": "string",
-              "minLength": 1,
-              "description": "UserId: непрозрачная строка. Teacher определяется тем же UserId; отдельного TeacherId/StudentId нет."
+        "summary": "Подтвердить email",
+        "security": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ConfirmEmailRequest"
+              }
             }
           }
-        ],
+        },
         "responses": {
           "200": {
-            "description": "OK",
+            "description": "Email подтверждён, сессия создана.",
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/UserResponse"
+                  "$ref": "#/components/schemas/MeResponse"
+                }
+              }
+            },
+            "headers": {
+              "Set-Cookie": {
+                "description": "Создаёт или обновляет серверную сессию.",
+                "schema": {
+                  "type": "string"
                 }
               }
             }
           },
           "400": {
-            "description": "Ошибка формата, полей, интервала или инвариантов",
+            "description": "Ошибка формата или валидации.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Конфликт состояния.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Внутренняя ошибка.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/auth/email-verification/resend": {
+      "post": {
+        "operationId": "resendEmailVerification",
+        "tags": [
+          "Auth"
+        ],
+        "summary": "Повторно отправить подтверждение",
+        "security": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ResendEmailVerificationRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "202": {
+            "description": "Запрос принят независимо от существования аккаунта."
+          },
+          "400": {
+            "description": "Ошибка формата или валидации.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Слишком много запросов.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Внутренняя ошибка.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/auth/login": {
+      "post": {
+        "operationId": "login",
+        "tags": [
+          "Auth"
+        ],
+        "summary": "Войти",
+        "security": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/LoginRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Сессия создана.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MeResponse"
+                }
+              }
+            },
+            "headers": {
+              "Set-Cookie": {
+                "description": "Создаёт или обновляет серверную сессию.",
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Ошибка формата или валидации.",
             "content": {
               "application/json": {
                 "schema": {
@@ -160,7 +278,7 @@
             }
           },
           "401": {
-            "description": "Не аутентифицирован",
+            "description": "Не аутентифицирован.",
             "content": {
               "application/json": {
                 "schema": {
@@ -170,7 +288,7 @@
             }
           },
           "403": {
-            "description": "Действие запрещено",
+            "description": "Действие запрещено.",
             "content": {
               "application/json": {
                 "schema": {
@@ -179,8 +297,8 @@
               }
             }
           },
-          "404": {
-            "description": "Ресурс не найден или его существование не раскрывается",
+          "429": {
+            "description": "Слишком много запросов.",
             "content": {
               "application/json": {
                 "schema": {
@@ -190,7 +308,102 @@
             }
           },
           "500": {
-            "description": "Внутренняя ошибка",
+            "description": "Внутренняя ошибка.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/auth/logout": {
+      "post": {
+        "operationId": "logout",
+        "tags": [
+          "Auth"
+        ],
+        "summary": "Завершить текущую сессию",
+        "security": [
+          {
+            "sessionCookie": []
+          }
+        ],
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/CsrfHeader"
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Сессия завершена."
+          },
+          "401": {
+            "description": "Не аутентифицирован.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Действие запрещено.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Внутренняя ошибка.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/me": {
+      "get": {
+        "operationId": "getMe",
+        "tags": [
+          "Profiles"
+        ],
+        "summary": "Получить текущего пользователя и профили",
+        "responses": {
+          "200": {
+            "description": "Текущий пользователь.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MeResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Не аутентифицирован.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Внутренняя ошибка.",
             "content": {
               "application/json": {
                 "schema": {
@@ -202,22 +415,14 @@
         }
       },
       "patch": {
-        "operationId": "updateUser",
+        "operationId": "updateMe",
         "tags": [
-          "People"
+          "Profiles"
         ],
-        "summary": "Изменить общий профиль",
-        "description": "Требуется право редактирования этого User. Обновляет общие данные одновременно для его участия как преподавателя и ученика. Нельзя менять произвольные чужие профили по известному ID.",
+        "summary": "Изменить общие данные текущего пользователя",
         "parameters": [
           {
-            "name": "userId",
-            "in": "path",
-            "required": true,
-            "schema": {
-              "type": "string",
-              "minLength": 1,
-              "description": "UserId: непрозрачная строка. Teacher определяется тем же UserId; отдельного TeacherId/StudentId нет."
-            }
+            "$ref": "#/components/parameters/CsrfHeader"
           }
         ],
         "requestBody": {
@@ -225,24 +430,24 @@
           "content": {
             "application/json": {
               "schema": {
-                "$ref": "#/components/schemas/UpdateUserRequest"
+                "$ref": "#/components/schemas/UpdateMeRequest"
               }
             }
           }
         },
         "responses": {
           "200": {
-            "description": "OK",
+            "description": "Данные обновлены.",
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/UserResponse"
+                  "$ref": "#/components/schemas/MeResponse"
                 }
               }
             }
           },
           "400": {
-            "description": "Ошибка формата, полей, интервала или инвариантов",
+            "description": "Ошибка формата или валидации.",
             "content": {
               "application/json": {
                 "schema": {
@@ -252,7 +457,7 @@
             }
           },
           "401": {
-            "description": "Не аутентифицирован",
+            "description": "Не аутентифицирован.",
             "content": {
               "application/json": {
                 "schema": {
@@ -262,17 +467,7 @@
             }
           },
           "403": {
-            "description": "Действие запрещено",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ApiError"
-                }
-              }
-            }
-          },
-          "404": {
-            "description": "Ресурс не найден или его существование не раскрывается",
+            "description": "Действие запрещено.",
             "content": {
               "application/json": {
                 "schema": {
@@ -282,7 +477,7 @@
             }
           },
           "409": {
-            "description": "Конфликт состояния занятия или отсутствует требуемая связь с учеником",
+            "description": "Конфликт состояния.",
             "content": {
               "application/json": {
                 "schema": {
@@ -292,7 +487,7 @@
             }
           },
           "500": {
-            "description": "Внутренняя ошибка",
+            "description": "Внутренняя ошибка.",
             "content": {
               "application/json": {
                 "schema": {
@@ -304,69 +499,26 @@
         }
       }
     },
-    "/teachers/{teacherUserId}": {
+    "/subjects": {
       "get": {
-        "operationId": "getTeacher",
+        "operationId": "listSubjects",
         "tags": [
-          "People"
+          "Catalog"
         ],
-        "summary": "Получить преподавателя",
-        "description": "teacherUserId равен User.id. Нет Teacher для существующего User — 404. Наличие Teacher выражает бизнес-роль преподавателя, а не право доступа к чужим данным.",
-        "parameters": [
-          {
-            "name": "teacherUserId",
-            "in": "path",
-            "required": true,
-            "schema": {
-              "type": "string",
-              "minLength": 1,
-              "description": "UserId: непрозрачная строка. Teacher определяется тем же UserId; отдельного TeacherId/StudentId нет."
-            }
-          }
-        ],
+        "summary": "Получить справочник предметов",
         "responses": {
           "200": {
-            "description": "OK",
+            "description": "Активные предметы.",
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/TeacherResponse"
-                }
-              }
-            }
-          },
-          "400": {
-            "description": "Ошибка формата, полей, интервала или инвариантов",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ApiError"
+                  "$ref": "#/components/schemas/SubjectListResponse"
                 }
               }
             }
           },
           "401": {
-            "description": "Не аутентифицирован",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ApiError"
-                }
-              }
-            }
-          },
-          "403": {
-            "description": "Действие запрещено",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ApiError"
-                }
-              }
-            }
-          },
-          "404": {
-            "description": "Ресурс не найден или его существование не раскрывается",
+            "description": "Не аутентифицирован.",
             "content": {
               "application/json": {
                 "schema": {
@@ -376,7 +528,68 @@
             }
           },
           "500": {
-            "description": "Внутренняя ошибка",
+            "description": "Внутренняя ошибка.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/teachers/me": {
+      "get": {
+        "operationId": "getMyTeacherProfile",
+        "tags": [
+          "Profiles"
+        ],
+        "summary": "Получить свой профиль репетитора",
+        "responses": {
+          "200": {
+            "description": "Профиль репетитора.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TeacherProfileResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Не аутентифицирован.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Действие запрещено.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Ресурс не найден или скрыт.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Внутренняя ошибка.",
             "content": {
               "application/json": {
                 "schema": {
@@ -388,47 +601,49 @@
         }
       },
       "put": {
-        "operationId": "enableTeacher",
+        "operationId": "upsertMyTeacherProfile",
         "tags": [
-          "People"
+          "Profiles"
         ],
-        "summary": "Сделать существующего пользователя преподавателем",
-        "description": "Без тела. Требуется сам пользователь или явно уполномоченный управляющий; право редактировать контактные поля чужого User само по себе недостаточно. Создаёт Teacher для этого User, список учеников изначально пуст. Повтор возвращает существующего Teacher, не сбрасывая список. 201 при создании, 200 при повторе.",
+        "summary": "Создать или заменить свой профиль репетитора",
         "parameters": [
           {
-            "name": "teacherUserId",
-            "in": "path",
-            "required": true,
-            "schema": {
-              "type": "string",
-              "minLength": 1,
-              "description": "UserId: непрозрачная строка. Teacher определяется тем же UserId; отдельного TeacherId/StudentId нет."
-            }
+            "$ref": "#/components/parameters/CsrfHeader"
           }
         ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/TeacherProfileUpsertRequest"
+              }
+            }
+          }
+        },
         "responses": {
           "200": {
-            "description": "Teacher уже существует; состояние сохранено",
+            "description": "Профиль обновлён.",
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/TeacherResponse"
+                  "$ref": "#/components/schemas/TeacherProfileResponse"
                 }
               }
             }
           },
           "201": {
-            "description": "Created",
+            "description": "Профиль создан.",
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/TeacherResponse"
+                  "$ref": "#/components/schemas/TeacherProfileResponse"
                 }
               }
             }
           },
           "400": {
-            "description": "Ошибка формата, полей, интервала или инвариантов",
+            "description": "Ошибка формата или валидации.",
             "content": {
               "application/json": {
                 "schema": {
@@ -438,7 +653,7 @@
             }
           },
           "401": {
-            "description": "Не аутентифицирован",
+            "description": "Не аутентифицирован.",
             "content": {
               "application/json": {
                 "schema": {
@@ -448,27 +663,7 @@
             }
           },
           "403": {
-            "description": "Действие запрещено",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ApiError"
-                }
-              }
-            }
-          },
-          "404": {
-            "description": "Ресурс не найден или его существование не раскрывается",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ApiError"
-                }
-              }
-            }
-          },
-          "409": {
-            "description": "Конфликт состояния занятия или отсутствует требуемая связь с учеником",
+            "description": "Действие запрещено.",
             "content": {
               "application/json": {
                 "schema": {
@@ -478,7 +673,7 @@
             }
           },
           "500": {
-            "description": "Внутренняя ошибка",
+            "description": "Внутренняя ошибка.",
             "content": {
               "application/json": {
                 "schema": {
@@ -490,69 +685,26 @@
         }
       }
     },
-    "/teachers/{teacherUserId}/students": {
+    "/students/me": {
       "get": {
-        "operationId": "listTeacherStudents",
+        "operationId": "getMyStudentProfile",
         "tags": [
-          "People"
+          "Profiles"
         ],
-        "summary": "Мои ученики",
-        "description": "Только этот преподаватель/редактор. Сортировка User.id ASC. Список людей, а не StudentProfile.",
-        "parameters": [
-          {
-            "name": "teacherUserId",
-            "in": "path",
-            "required": true,
-            "schema": {
-              "type": "string",
-              "minLength": 1,
-              "description": "UserId: непрозрачная строка. Teacher определяется тем же UserId; отдельного TeacherId/StudentId нет."
-            }
-          },
-          {
-            "name": "cursor",
-            "in": "query",
-            "required": false,
-            "schema": {
-              "type": "string"
-            },
-            "description": "Непрозрачный курсор следующей страницы."
-          },
-          {
-            "name": "limit",
-            "in": "query",
-            "required": false,
-            "schema": {
-              "type": "integer",
-              "minimum": 1,
-              "maximum": 100,
-              "default": 50
-            }
-          }
-        ],
+        "summary": "Получить свой профиль ученика",
         "responses": {
           "200": {
-            "description": "OK",
+            "description": "Профиль ученика.",
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/UserPage"
-                }
-              }
-            }
-          },
-          "400": {
-            "description": "Ошибка формата, полей, интервала или инвариантов",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ApiError"
+                  "$ref": "#/components/schemas/StudentProfileResponse"
                 }
               }
             }
           },
           "401": {
-            "description": "Не аутентифицирован",
+            "description": "Не аутентифицирован.",
             "content": {
               "application/json": {
                 "schema": {
@@ -562,7 +714,7 @@
             }
           },
           "403": {
-            "description": "Действие запрещено",
+            "description": "Действие запрещено.",
             "content": {
               "application/json": {
                 "schema": {
@@ -572,7 +724,7 @@
             }
           },
           "404": {
-            "description": "Ресурс не найден или его существование не раскрывается",
+            "description": "Ресурс не найден или скрыт.",
             "content": {
               "application/json": {
                 "schema": {
@@ -582,7 +734,7 @@
             }
           },
           "500": {
-            "description": "Внутренняя ошибка",
+            "description": "Внутренняя ошибка.",
             "content": {
               "application/json": {
                 "schema": {
@@ -592,61 +744,51 @@
             }
           }
         }
-      }
-    },
-    "/users/{userId}/teachers": {
-      "get": {
-        "operationId": "listUserTeachers",
+      },
+      "put": {
+        "operationId": "upsertMyStudentProfile",
         "tags": [
-          "People"
+          "Profiles"
         ],
-        "summary": "Мои преподаватели",
-        "description": "Список Teacher, у которых этот User входит в students. Включает только текущие связи, независимо от наличия занятий. Сортировка teacher.user.id ASC. Только сам пользователь или явно уполномоченный читатель всего списка.",
+        "summary": "Создать или заменить свой профиль ученика",
         "parameters": [
           {
-            "name": "userId",
-            "in": "path",
-            "required": true,
-            "schema": {
-              "type": "string",
-              "minLength": 1,
-              "description": "UserId: непрозрачная строка. Teacher определяется тем же UserId; отдельного TeacherId/StudentId нет."
-            }
-          },
-          {
-            "name": "cursor",
-            "in": "query",
-            "required": false,
-            "schema": {
-              "type": "string"
-            },
-            "description": "Непрозрачный курсор следующей страницы."
-          },
-          {
-            "name": "limit",
-            "in": "query",
-            "required": false,
-            "schema": {
-              "type": "integer",
-              "minimum": 1,
-              "maximum": 100,
-              "default": 50
-            }
+            "$ref": "#/components/parameters/CsrfHeader"
           }
         ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/StudentProfileUpsertRequest"
+              }
+            }
+          }
+        },
         "responses": {
           "200": {
-            "description": "OK",
+            "description": "Профиль обновлён.",
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/TeacherPage"
+                  "$ref": "#/components/schemas/StudentProfileResponse"
+                }
+              }
+            }
+          },
+          "201": {
+            "description": "Профиль создан.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/StudentProfileResponse"
                 }
               }
             }
           },
           "400": {
-            "description": "Ошибка формата, полей, интервала или инвариантов",
+            "description": "Ошибка формата или валидации.",
             "content": {
               "application/json": {
                 "schema": {
@@ -656,7 +798,7 @@
             }
           },
           "401": {
-            "description": "Не аутентифицирован",
+            "description": "Не аутентифицирован.",
             "content": {
               "application/json": {
                 "schema": {
@@ -666,17 +808,7 @@
             }
           },
           "403": {
-            "description": "Действие запрещено",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ApiError"
-                }
-              }
-            }
-          },
-          "404": {
-            "description": "Ресурс не найден или его существование не раскрывается",
+            "description": "Действие запрещено.",
             "content": {
               "application/json": {
                 "schema": {
@@ -686,7 +818,7 @@
             }
           },
           "500": {
-            "description": "Внутренняя ошибка",
+            "description": "Внутренняя ошибка.",
             "content": {
               "application/json": {
                 "schema": {
@@ -698,24 +830,16 @@
         }
       }
     },
-    "/teachers/{teacherUserId}/student-invitations": {
+    "/teachers/me/student-invitations": {
       "post": {
         "operationId": "inviteStudent",
         "tags": [
-          "People"
+          "Invitations"
         ],
         "summary": "Пригласить ученика по email",
-        "description": "Преподаватель не задаёт чужой пароль. Создаётся приглашение со сроком действия; доставка письма относится к notifications. Если User с email уже существует, приглашение связывается с ним после принятия. Повтор активного приглашения — 409 INVITATION_ALREADY_PENDING.",
         "parameters": [
           {
-            "name": "teacherUserId",
-            "in": "path",
-            "required": true,
-            "schema": {
-              "type": "string",
-              "minLength": 1,
-              "description": "UserId: непрозрачная строка. Teacher определяется тем же UserId; отдельного TeacherId/StudentId нет."
-            }
+            "$ref": "#/components/parameters/CsrfHeader"
           }
         ],
         "requestBody": {
@@ -730,7 +854,7 @@
         },
         "responses": {
           "201": {
-            "description": "Created",
+            "description": "Приглашение создано на 30 суток.",
             "content": {
               "application/json": {
                 "schema": {
@@ -740,7 +864,7 @@
             }
           },
           "400": {
-            "description": "Ошибка формата, полей, интервала или инвариантов",
+            "description": "Ошибка формата или валидации.",
             "content": {
               "application/json": {
                 "schema": {
@@ -750,7 +874,7 @@
             }
           },
           "401": {
-            "description": "Не аутентифицирован",
+            "description": "Не аутентифицирован.",
             "content": {
               "application/json": {
                 "schema": {
@@ -760,17 +884,7 @@
             }
           },
           "403": {
-            "description": "Действие запрещено",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ApiError"
-                }
-              }
-            }
-          },
-          "404": {
-            "description": "Ресурс не найден или его существование не раскрывается",
+            "description": "Действие запрещено.",
             "content": {
               "application/json": {
                 "schema": {
@@ -780,7 +894,17 @@
             }
           },
           "409": {
-            "description": "Конфликт состояния занятия или отсутствует требуемая связь с учеником",
+            "description": "Конфликт состояния.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Слишком много запросов.",
             "content": {
               "application/json": {
                 "schema": {
@@ -790,7 +914,7 @@
             }
           },
           "500": {
-            "description": "Внутренняя ошибка",
+            "description": "Внутренняя ошибка.",
             "content": {
               "application/json": {
                 "schema": {
@@ -802,14 +926,90 @@
         }
       }
     },
-    "/student-invitations/{invitationId}/accept": {
+    "/students/me/invitations": {
+      "get": {
+        "operationId": "listMyStudentInvitations",
+        "tags": [
+          "Invitations"
+        ],
+        "summary": "Получить входящие приглашения",
+        "parameters": [
+          {
+            "name": "status",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "$ref": "#/components/schemas/InvitationStatus"
+            }
+          },
+          {
+            "$ref": "#/components/parameters/Cursor"
+          },
+          {
+            "$ref": "#/components/parameters/Limit"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Приглашения, createdAt DESC и id DESC.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/StudentInvitationPage"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Ошибка формата или валидации.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Не аутентифицирован.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Действие запрещено.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Внутренняя ошибка.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/students/me/invitations/{invitationId}/accept": {
       "post": {
         "operationId": "acceptStudentInvitation",
         "tags": [
-          "People"
+          "Invitations"
         ],
-        "summary": "Принять приглашение преподавателя",
-        "description": "Текущий аутентифицированный User может принять только приглашение на свой email. Принятие атомарно создаёт связь Teacher.students. Повтор принятого приглашения успешен; неверное или просроченное — 409 INVALID_INVITATION/INVITATION_EXPIRED.",
+        "summary": "Принять приглашение",
         "parameters": [
           {
             "name": "invitationId",
@@ -818,26 +1018,20 @@
             "schema": {
               "type": "string",
               "minLength": 1,
-              "description": "Непрозрачный идентификатор приглашения."
+              "maxLength": 100,
+              "description": "Непрозрачный идентификатор StudentInvitation."
             }
+          },
+          {
+            "$ref": "#/components/parameters/CsrfHeader"
           }
         ],
         "responses": {
           "204": {
-            "description": "No content"
-          },
-          "400": {
-            "description": "Ошибка формата, полей, интервала или инвариантов",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ApiError"
-                }
-              }
-            }
+            "description": "Связь создана."
           },
           "401": {
-            "description": "Не аутентифицирован",
+            "description": "Не аутентифицирован.",
             "content": {
               "application/json": {
                 "schema": {
@@ -847,7 +1041,7 @@
             }
           },
           "403": {
-            "description": "Действие запрещено",
+            "description": "Действие запрещено.",
             "content": {
               "application/json": {
                 "schema": {
@@ -857,7 +1051,7 @@
             }
           },
           "404": {
-            "description": "Ресурс не найден или его существование не раскрывается",
+            "description": "Ресурс не найден или скрыт.",
             "content": {
               "application/json": {
                 "schema": {
@@ -867,7 +1061,7 @@
             }
           },
           "409": {
-            "description": "Конфликт состояния занятия или отсутствует требуемая связь с учеником",
+            "description": "Конфликт состояния.",
             "content": {
               "application/json": {
                 "schema": {
@@ -877,7 +1071,7 @@
             }
           },
           "500": {
-            "description": "Внутренняя ошибка",
+            "description": "Внутренняя ошибка.",
             "content": {
               "application/json": {
                 "schema": {
@@ -889,52 +1083,35 @@
         }
       }
     },
-    "/teachers/{teacherUserId}/students/{studentUserId}": {
-      "put": {
-        "operationId": "linkStudent",
+    "/students/me/invitations/{invitationId}/reject": {
+      "post": {
+        "operationId": "rejectStudentInvitation",
         "tags": [
-          "People"
+          "Invitations"
         ],
-        "summary": "Добавить существующего User в ученики",
-        "description": "Без тела. Идемпотентно. Требуется управление списком Teacher и разрешение на связь с конкретным User. Самого преподавателя добавлять нельзя (400 SELF_TEACHING_NOT_ALLOWED). Ученик может сам быть Teacher.",
+        "summary": "Отклонить приглашение",
         "parameters": [
           {
-            "name": "teacherUserId",
+            "name": "invitationId",
             "in": "path",
             "required": true,
             "schema": {
               "type": "string",
               "minLength": 1,
-              "description": "UserId: непрозрачная строка. Teacher определяется тем же UserId; отдельного TeacherId/StudentId нет."
+              "maxLength": 100,
+              "description": "Непрозрачный идентификатор StudentInvitation."
             }
           },
           {
-            "name": "studentUserId",
-            "in": "path",
-            "required": true,
-            "schema": {
-              "type": "string",
-              "minLength": 1,
-              "description": "UserId: непрозрачная строка. Teacher определяется тем же UserId; отдельного TeacherId/StudentId нет."
-            }
+            "$ref": "#/components/parameters/CsrfHeader"
           }
         ],
         "responses": {
           "204": {
-            "description": "No content"
-          },
-          "400": {
-            "description": "Ошибка формата, полей, интервала или инвариантов",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ApiError"
-                }
-              }
-            }
+            "description": "Приглашение отклонено."
           },
           "401": {
-            "description": "Не аутентифицирован",
+            "description": "Не аутентифицирован.",
             "content": {
               "application/json": {
                 "schema": {
@@ -944,7 +1121,7 @@
             }
           },
           "403": {
-            "description": "Действие запрещено",
+            "description": "Действие запрещено.",
             "content": {
               "application/json": {
                 "schema": {
@@ -954,7 +1131,7 @@
             }
           },
           "404": {
-            "description": "Ресурс не найден или его существование не раскрывается",
+            "description": "Ресурс не найден или скрыт.",
             "content": {
               "application/json": {
                 "schema": {
@@ -964,7 +1141,7 @@
             }
           },
           "409": {
-            "description": "Конфликт состояния занятия или отсутствует требуемая связь с учеником",
+            "description": "Конфликт состояния.",
             "content": {
               "application/json": {
                 "schema": {
@@ -974,7 +1151,150 @@
             }
           },
           "500": {
-            "description": "Внутренняя ошибка",
+            "description": "Внутренняя ошибка.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/teachers/me/students": {
+      "get": {
+        "operationId": "listMyStudents",
+        "tags": [
+          "Invitations"
+        ],
+        "summary": "Получить своих учеников",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/Cursor"
+          },
+          {
+            "$ref": "#/components/parameters/Limit"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Ученики, lastName ASC, firstName ASC, id ASC.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/StudentPage"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Ошибка формата или валидации.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Не аутентифицирован.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Действие запрещено.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Внутренняя ошибка.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/teachers/me/students/{studentUserId}": {
+      "get": {
+        "operationId": "getMyStudent",
+        "tags": [
+          "Invitations"
+        ],
+        "summary": "Получить карточку и статистику ученика",
+        "parameters": [
+          {
+            "name": "studentUserId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 100,
+              "description": "Непрозрачный идентификатор User."
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Карточка связанного ученика.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/StudentCardResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Не аутентифицирован.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Действие запрещено.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Ресурс не найден или скрыт.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Внутренняя ошибка.",
             "content": {
               "application/json": {
                 "schema": {
@@ -986,23 +1306,12 @@
         }
       },
       "delete": {
-        "operationId": "unlinkStudent",
+        "operationId": "unlinkMyStudent",
         "tags": [
-          "People"
+          "Invitations"
         ],
-        "summary": "Убрать User из списка учеников",
-        "description": "Без тела. Повтор успешен для доступных существующих ресурсов. Не удаляет User или Teacher этого человека; не меняет состав, время и статус существующих занятий, в том числе будущих.",
+        "summary": "Отвязать ученика и обработать будущие уроки",
         "parameters": [
-          {
-            "name": "teacherUserId",
-            "in": "path",
-            "required": true,
-            "schema": {
-              "type": "string",
-              "minLength": 1,
-              "description": "UserId: непрозрачная строка. Teacher определяется тем же UserId; отдельного TeacherId/StudentId нет."
-            }
-          },
           {
             "name": "studentUserId",
             "in": "path",
@@ -1010,26 +1319,21 @@
             "schema": {
               "type": "string",
               "minLength": 1,
-              "description": "UserId: непрозрачная строка. Teacher определяется тем же UserId; отдельного TeacherId/StudentId нет."
+              "maxLength": 100,
+              "description": "Непрозрачный идентификатор User."
             }
+          },
+          {
+            "$ref": "#/components/parameters/CsrfHeader"
           }
         ],
+        "description": "Атомарно отменяет будущие индивидуальные уроки с причиной STUDENT_UNLINKED, удаляет ученика из будущих групповых уроков и меняет группу из одного участника на INDIVIDUAL.",
         "responses": {
           "204": {
-            "description": "No content"
-          },
-          "400": {
-            "description": "Ошибка формата, полей, интервала или инвариантов",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ApiError"
-                }
-              }
-            }
+            "description": "Ученик отвязан."
           },
           "401": {
-            "description": "Не аутентифицирован",
+            "description": "Не аутентифицирован.",
             "content": {
               "application/json": {
                 "schema": {
@@ -1039,7 +1343,7 @@
             }
           },
           "403": {
-            "description": "Действие запрещено",
+            "description": "Действие запрещено.",
             "content": {
               "application/json": {
                 "schema": {
@@ -1049,7 +1353,7 @@
             }
           },
           "404": {
-            "description": "Ресурс не найден или его существование не раскрывается",
+            "description": "Ресурс не найден или скрыт.",
             "content": {
               "application/json": {
                 "schema": {
@@ -1059,7 +1363,7 @@
             }
           },
           "409": {
-            "description": "Конфликт состояния занятия или отсутствует требуемая связь с учеником",
+            "description": "Конфликт состояния.",
             "content": {
               "application/json": {
                 "schema": {
@@ -1069,7 +1373,7 @@
             }
           },
           "500": {
-            "description": "Внутренняя ошибка",
+            "description": "Внутренняя ошибка.",
             "content": {
               "application/json": {
                 "schema": {
@@ -1081,68 +1385,34 @@
         }
       }
     },
-    "/teachers/{teacherUserId}/lessons": {
+    "/students/me/teachers": {
       "get": {
-        "operationId": "getTeachingCalendar",
+        "operationId": "listMyTeachers",
         "tags": [
-          "Scheduling"
+          "Invitations"
         ],
-        "summary": "Календарь: я преподаю",
-        "description": "Полный список без пагинации за [from,to), from < to, не более 93 суток. Включить startAt < to AND endAt > from; сортировать startAt ASC, id ASC. Без status — все статусы. Время ответа UTC. Не усекать результат. Только этот преподаватель/редактор. Связанные ученики не получают весь его календарь.",
+        "summary": "Получить своих репетиторов",
         "parameters": [
           {
-            "name": "teacherUserId",
-            "in": "path",
-            "required": true,
-            "schema": {
-              "type": "string",
-              "minLength": 1,
-              "description": "UserId: непрозрачная строка. Teacher определяется тем же UserId; отдельного TeacherId/StudentId нет."
-            }
+            "$ref": "#/components/parameters/Cursor"
           },
           {
-            "name": "from",
-            "in": "query",
-            "required": true,
-            "schema": {
-              "type": "string",
-              "format": "date-time",
-              "description": "RFC 3339: дата, время и Z/offset обязательны. Ответ сервера — UTC с Z."
-            }
-          },
-          {
-            "name": "to",
-            "in": "query",
-            "required": true,
-            "schema": {
-              "type": "string",
-              "format": "date-time",
-              "description": "RFC 3339: дата, время и Z/offset обязательны. Ответ сервера — UTC с Z."
-            }
-          },
-          {
-            "name": "status",
-            "in": "query",
-            "required": false,
-            "schema": {
-              "$ref": "#/components/schemas/LessonStatus"
-            },
-            "description": "Без фильтра возвращаются все статусы, в том числе CANCELLED."
+            "$ref": "#/components/parameters/Limit"
           }
         ],
         "responses": {
           "200": {
-            "description": "OK",
+            "description": "Репетиторы и их email.",
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/TeacherCalendarResponse"
+                  "$ref": "#/components/schemas/TeacherContactPage"
                 }
               }
             }
           },
           "400": {
-            "description": "Ошибка формата, полей, интервала или инвариантов",
+            "description": "Ошибка формата или валидации.",
             "content": {
               "application/json": {
                 "schema": {
@@ -1152,7 +1422,7 @@
             }
           },
           "401": {
-            "description": "Не аутентифицирован",
+            "description": "Не аутентифицирован.",
             "content": {
               "application/json": {
                 "schema": {
@@ -1162,17 +1432,7 @@
             }
           },
           "403": {
-            "description": "Действие запрещено",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ApiError"
-                }
-              }
-            }
-          },
-          "404": {
-            "description": "Ресурс не найден или его существование не раскрывается",
+            "description": "Действие запрещено.",
             "content": {
               "application/json": {
                 "schema": {
@@ -1182,7 +1442,116 @@
             }
           },
           "500": {
-            "description": "Внутренняя ошибка",
+            "description": "Внутренняя ошибка.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/teachers/me/lessons": {
+      "get": {
+        "operationId": "getMyTeachingSchedule",
+        "tags": [
+          "Scheduling"
+        ],
+        "summary": "Получить расписание репетитора",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/From"
+          },
+          {
+            "$ref": "#/components/parameters/To"
+          },
+          {
+            "name": "studentUserId",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 100,
+              "description": "Непрозрачный идентификатор User."
+            }
+          },
+          {
+            "name": "subjectCode",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 50,
+              "pattern": "^[A-Z][A-Z0-9_]*$"
+            }
+          },
+          {
+            "name": "status",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "$ref": "#/components/schemas/LessonStatus"
+            }
+          },
+          {
+            "$ref": "#/components/parameters/SortOrder"
+          },
+          {
+            "$ref": "#/components/parameters/Cursor"
+          },
+          {
+            "$ref": "#/components/parameters/Limit"
+          }
+        ],
+        "description": "Окно [from,to), максимум 93 суток; startAt < to AND endAt > from. Сортировка startAt, id.",
+        "responses": {
+          "200": {
+            "description": "Страница полного представления уроков.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TeacherLessonPage"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Ошибка формата или валидации.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Не аутентифицирован.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Действие запрещено.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Внутренняя ошибка.",
             "content": {
               "application/json": {
                 "schema": {
@@ -1198,18 +1567,10 @@
         "tags": [
           "Scheduling"
         ],
-        "summary": "Создать разовое занятие",
-        "description": "Teacher берётся из URL и должен существовать. studentUserIds — существующие разрешённые User из его списка. Преподаватель не входит в состав. Формат обязателен; INDIVIDUAL ровно один, GROUP минимум один. endAt > startAt. Статус SCHEDULED. Прошедшее время и пересечения разрешены. Отсутствие связи для доступного User — 409 STUDENT_NOT_LINKED.",
+        "summary": "Создать урок",
         "parameters": [
           {
-            "name": "teacherUserId",
-            "in": "path",
-            "required": true,
-            "schema": {
-              "type": "string",
-              "minLength": 1,
-              "description": "UserId: непрозрачная строка. Teacher определяется тем же UserId; отдельного TeacherId/StudentId нет."
-            }
+            "$ref": "#/components/parameters/CsrfHeader"
           }
         ],
         "requestBody": {
@@ -1224,7 +1585,7 @@
         },
         "responses": {
           "201": {
-            "description": "Created",
+            "description": "Урок создан со статусом SCHEDULED.",
             "content": {
               "application/json": {
                 "schema": {
@@ -1234,7 +1595,7 @@
             }
           },
           "400": {
-            "description": "Ошибка формата, полей, интервала или инвариантов",
+            "description": "Ошибка формата или валидации.",
             "content": {
               "application/json": {
                 "schema": {
@@ -1244,7 +1605,7 @@
             }
           },
           "401": {
-            "description": "Не аутентифицирован",
+            "description": "Не аутентифицирован.",
             "content": {
               "application/json": {
                 "schema": {
@@ -1254,7 +1615,7 @@
             }
           },
           "403": {
-            "description": "Действие запрещено",
+            "description": "Действие запрещено.",
             "content": {
               "application/json": {
                 "schema": {
@@ -1264,7 +1625,7 @@
             }
           },
           "404": {
-            "description": "Ресурс не найден или его существование не раскрывается",
+            "description": "Ресурс не найден или скрыт.",
             "content": {
               "application/json": {
                 "schema": {
@@ -1274,7 +1635,7 @@
             }
           },
           "409": {
-            "description": "Конфликт состояния занятия или отсутствует требуемая связь с учеником",
+            "description": "Конфликт состояния.",
             "content": {
               "application/json": {
                 "schema": {
@@ -1284,7 +1645,7 @@
             }
           },
           "500": {
-            "description": "Внутренняя ошибка",
+            "description": "Внутренняя ошибка.",
             "content": {
               "application/json": {
                 "schema": {
@@ -1296,138 +1657,14 @@
         }
       }
     },
-    "/users/{userId}/learning-lessons": {
+    "/teachers/me/lessons/{lessonId}": {
       "get": {
-        "operationId": "getLearningCalendar",
+        "operationId": "getMyTeachingLesson",
         "tags": [
           "Scheduling"
         ],
-        "summary": "Календарь: я учусь",
-        "description": "Полный список без пагинации за [from,to), from < to, не более 93 суток. Включить startAt < to AND endAt > from; сортировать startAt ASC, id ASC. Без status — все статусы. Время ответа UTC. Не усекать результат. Выборка по User в составе студентов, даже если у него есть Teacher. Существующий доступный User без занятий получает пустой список. Только сам User или читатель всего календаря; преподавателю связь с User не открывает его чужие занятия.",
+        "summary": "Получить свой урок как репетитор",
         "parameters": [
-          {
-            "name": "userId",
-            "in": "path",
-            "required": true,
-            "schema": {
-              "type": "string",
-              "minLength": 1,
-              "description": "UserId: непрозрачная строка. Teacher определяется тем же UserId; отдельного TeacherId/StudentId нет."
-            }
-          },
-          {
-            "name": "from",
-            "in": "query",
-            "required": true,
-            "schema": {
-              "type": "string",
-              "format": "date-time",
-              "description": "RFC 3339: дата, время и Z/offset обязательны. Ответ сервера — UTC с Z."
-            }
-          },
-          {
-            "name": "to",
-            "in": "query",
-            "required": true,
-            "schema": {
-              "type": "string",
-              "format": "date-time",
-              "description": "RFC 3339: дата, время и Z/offset обязательны. Ответ сервера — UTC с Z."
-            }
-          },
-          {
-            "name": "status",
-            "in": "query",
-            "required": false,
-            "schema": {
-              "$ref": "#/components/schemas/LessonStatus"
-            },
-            "description": "Без фильтра возвращаются все статусы, в том числе CANCELLED."
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "OK",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/StudentCalendarResponse"
-                }
-              }
-            }
-          },
-          "400": {
-            "description": "Ошибка формата, полей, интервала или инвариантов",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ApiError"
-                }
-              }
-            }
-          },
-          "401": {
-            "description": "Не аутентифицирован",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ApiError"
-                }
-              }
-            }
-          },
-          "403": {
-            "description": "Действие запрещено",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ApiError"
-                }
-              }
-            }
-          },
-          "404": {
-            "description": "Ресурс не найден или его существование не раскрывается",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ApiError"
-                }
-              }
-            }
-          },
-          "500": {
-            "description": "Внутренняя ошибка",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ApiError"
-                }
-              }
-            }
-          }
-        }
-      }
-    },
-    "/teachers/{teacherUserId}/lessons/{lessonId}": {
-      "get": {
-        "operationId": "getTeachingLesson",
-        "tags": [
-          "Scheduling"
-        ],
-        "summary": "Карточка занятия для преподавателя",
-        "description": "Teacher занятия должен принадлежать teacherUserId. Иначе 404. Только преподаватель/редактор.",
-        "parameters": [
-          {
-            "name": "teacherUserId",
-            "in": "path",
-            "required": true,
-            "schema": {
-              "type": "string",
-              "minLength": 1,
-              "description": "UserId: непрозрачная строка. Teacher определяется тем же UserId; отдельного TeacherId/StudentId нет."
-            }
-          },
           {
             "name": "lessonId",
             "in": "path",
@@ -1435,13 +1672,14 @@
             "schema": {
               "type": "string",
               "minLength": 1,
-              "description": "Идентификатор конкретного занятия; сохраняется при переносе."
+              "maxLength": 100,
+              "description": "Непрозрачный идентификатор LessonOccurrence."
             }
           }
         ],
         "responses": {
           "200": {
-            "description": "OK",
+            "description": "Полное представление урока.",
             "content": {
               "application/json": {
                 "schema": {
@@ -1450,18 +1688,8 @@
               }
             }
           },
-          "400": {
-            "description": "Ошибка формата, полей, интервала или инвариантов",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ApiError"
-                }
-              }
-            }
-          },
           "401": {
-            "description": "Не аутентифицирован",
+            "description": "Не аутентифицирован.",
             "content": {
               "application/json": {
                 "schema": {
@@ -1471,7 +1699,7 @@
             }
           },
           "403": {
-            "description": "Действие запрещено",
+            "description": "Действие запрещено.",
             "content": {
               "application/json": {
                 "schema": {
@@ -1481,7 +1709,7 @@
             }
           },
           "404": {
-            "description": "Ресурс не найден или его существование не раскрывается",
+            "description": "Ресурс не найден или скрыт.",
             "content": {
               "application/json": {
                 "schema": {
@@ -1491,7 +1719,7 @@
             }
           },
           "500": {
-            "description": "Внутренняя ошибка",
+            "description": "Внутренняя ошибка.",
             "content": {
               "application/json": {
                 "schema": {
@@ -1503,23 +1731,12 @@
         }
       },
       "patch": {
-        "operationId": "updateLesson",
+        "operationId": "updateMyTeachingLesson",
         "tags": [
           "Scheduling"
         ],
-        "summary": "Изменить состав, формат или время занятия",
-        "description": "Только SCHEDULED и свой Teacher. Пропуск сохраняет поле; null запрещён. Время передаётся парой. Новые участники должны входить в Teacher.students, уже присутствующие могут остаться после удаления связи. Конечное состояние должно соответствовать формату и endAt > startAt. Формат не меняется автоматически: для второго ученика INDIVIDUAL передать format:GROUP. Смена GROUP на INDIVIDUAL возможна только с конечным составом из одного. Изменение атомарно, ID/статус/Teacher сохраняются.",
+        "summary": "Изменить будущий запланированный урок",
         "parameters": [
-          {
-            "name": "teacherUserId",
-            "in": "path",
-            "required": true,
-            "schema": {
-              "type": "string",
-              "minLength": 1,
-              "description": "UserId: непрозрачная строка. Teacher определяется тем же UserId; отдельного TeacherId/StudentId нет."
-            }
-          },
           {
             "name": "lessonId",
             "in": "path",
@@ -1527,8 +1744,12 @@
             "schema": {
               "type": "string",
               "minLength": 1,
-              "description": "Идентификатор конкретного занятия; сохраняется при переносе."
+              "maxLength": 100,
+              "description": "Непрозрачный идентификатор LessonOccurrence."
             }
+          },
+          {
+            "$ref": "#/components/parameters/CsrfHeader"
           }
         ],
         "requestBody": {
@@ -1543,7 +1764,7 @@
         },
         "responses": {
           "200": {
-            "description": "OK",
+            "description": "Урок обновлён.",
             "content": {
               "application/json": {
                 "schema": {
@@ -1553,7 +1774,7 @@
             }
           },
           "400": {
-            "description": "Ошибка формата, полей, интервала или инвариантов",
+            "description": "Ошибка формата или валидации.",
             "content": {
               "application/json": {
                 "schema": {
@@ -1563,7 +1784,7 @@
             }
           },
           "401": {
-            "description": "Не аутентифицирован",
+            "description": "Не аутентифицирован.",
             "content": {
               "application/json": {
                 "schema": {
@@ -1573,7 +1794,7 @@
             }
           },
           "403": {
-            "description": "Действие запрещено",
+            "description": "Действие запрещено.",
             "content": {
               "application/json": {
                 "schema": {
@@ -1583,7 +1804,7 @@
             }
           },
           "404": {
-            "description": "Ресурс не найден или его существование не раскрывается",
+            "description": "Ресурс не найден или скрыт.",
             "content": {
               "application/json": {
                 "schema": {
@@ -1593,7 +1814,7 @@
             }
           },
           "409": {
-            "description": "Конфликт состояния занятия или отсутствует требуемая связь с учеником",
+            "description": "Конфликт состояния.",
             "content": {
               "application/json": {
                 "schema": {
@@ -1603,7 +1824,7 @@
             }
           },
           "500": {
-            "description": "Внутренняя ошибка",
+            "description": "Внутренняя ошибка.",
             "content": {
               "application/json": {
                 "schema": {
@@ -1615,25 +1836,14 @@
         }
       }
     },
-    "/users/{userId}/learning-lessons/{lessonId}": {
-      "get": {
-        "operationId": "getLearningLesson",
+    "/teachers/me/lessons/{lessonId}/cancel": {
+      "post": {
+        "operationId": "cancelMyTeachingLesson",
         "tags": [
           "Scheduling"
         ],
-        "summary": "Карточка занятия для ученика",
-        "description": "User должен быть участником занятия. Иначе 404. Чужие участники группы не раскрываются.",
+        "summary": "Отменить будущий урок",
         "parameters": [
-          {
-            "name": "userId",
-            "in": "path",
-            "required": true,
-            "schema": {
-              "type": "string",
-              "minLength": 1,
-              "description": "UserId: непрозрачная строка. Teacher определяется тем же UserId; отдельного TeacherId/StudentId нет."
-            }
-          },
           {
             "name": "lessonId",
             "in": "path",
@@ -1641,23 +1851,37 @@
             "schema": {
               "type": "string",
               "minLength": 1,
-              "description": "Идентификатор конкретного занятия; сохраняется при переносе."
+              "maxLength": 100,
+              "description": "Непрозрачный идентификатор LessonOccurrence."
             }
+          },
+          {
+            "$ref": "#/components/parameters/CsrfHeader"
           }
         ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CancelLessonRequest"
+              }
+            }
+          }
+        },
         "responses": {
           "200": {
-            "description": "OK",
+            "description": "Урок отменён с аудитом.",
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/StudentLessonResponse"
+                  "$ref": "#/components/schemas/TeacherLessonResponse"
                 }
               }
             }
           },
           "400": {
-            "description": "Ошибка формата, полей, интервала или инвариантов",
+            "description": "Ошибка формата или валидации.",
             "content": {
               "application/json": {
                 "schema": {
@@ -1667,7 +1891,7 @@
             }
           },
           "401": {
-            "description": "Не аутентифицирован",
+            "description": "Не аутентифицирован.",
             "content": {
               "application/json": {
                 "schema": {
@@ -1677,7 +1901,7 @@
             }
           },
           "403": {
-            "description": "Действие запрещено",
+            "description": "Действие запрещено.",
             "content": {
               "application/json": {
                 "schema": {
@@ -1687,7 +1911,17 @@
             }
           },
           "404": {
-            "description": "Ресурс не найден или его существование не раскрывается",
+            "description": "Ресурс не найден или скрыт.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Конфликт состояния.",
             "content": {
               "application/json": {
                 "schema": {
@@ -1697,7 +1931,7 @@
             }
           },
           "500": {
-            "description": "Внутренняя ошибка",
+            "description": "Внутренняя ошибка.",
             "content": {
               "application/json": {
                 "schema": {
@@ -1709,25 +1943,14 @@
         }
       }
     },
-    "/teachers/{teacherUserId}/lessons/{lessonId}/status": {
-      "put": {
-        "operationId": "setLessonStatus",
+    "/teachers/me/lessons/{lessonId}/status": {
+      "post": {
+        "operationId": "setMyTeachingLessonStatus",
         "tags": [
           "Scheduling"
         ],
-        "summary": "Отменить или завершить занятие",
-        "description": "SCHEDULED → CANCELLED или COMPLETED. COMPLETED только после endAt по часам сервера. Повтор текущего целевого статуса успешен. Иные переходы — 409. Отмена сохраняет запись.",
+        "summary": "Отметить урок проведённым или пропущенным",
         "parameters": [
-          {
-            "name": "teacherUserId",
-            "in": "path",
-            "required": true,
-            "schema": {
-              "type": "string",
-              "minLength": 1,
-              "description": "UserId: непрозрачная строка. Teacher определяется тем же UserId; отдельного TeacherId/StudentId нет."
-            }
-          },
           {
             "name": "lessonId",
             "in": "path",
@@ -1735,8 +1958,12 @@
             "schema": {
               "type": "string",
               "minLength": 1,
-              "description": "Идентификатор конкретного занятия; сохраняется при переносе."
+              "maxLength": 100,
+              "description": "Непрозрачный идентификатор LessonOccurrence."
             }
+          },
+          {
+            "$ref": "#/components/parameters/CsrfHeader"
           }
         ],
         "requestBody": {
@@ -1751,7 +1978,7 @@
         },
         "responses": {
           "200": {
-            "description": "OK",
+            "description": "Статус изменён.",
             "content": {
               "application/json": {
                 "schema": {
@@ -1761,7 +1988,7 @@
             }
           },
           "400": {
-            "description": "Ошибка формата, полей, интервала или инвариантов",
+            "description": "Ошибка формата или валидации.",
             "content": {
               "application/json": {
                 "schema": {
@@ -1771,7 +1998,7 @@
             }
           },
           "401": {
-            "description": "Не аутентифицирован",
+            "description": "Не аутентифицирован.",
             "content": {
               "application/json": {
                 "schema": {
@@ -1781,7 +2008,7 @@
             }
           },
           "403": {
-            "description": "Действие запрещено",
+            "description": "Действие запрещено.",
             "content": {
               "application/json": {
                 "schema": {
@@ -1791,7 +2018,7 @@
             }
           },
           "404": {
-            "description": "Ресурс не найден или его существование не раскрывается",
+            "description": "Ресурс не найден или скрыт.",
             "content": {
               "application/json": {
                 "schema": {
@@ -1801,7 +2028,7 @@
             }
           },
           "409": {
-            "description": "Конфликт состояния занятия или отсутствует требуемая связь с учеником",
+            "description": "Конфликт состояния.",
             "content": {
               "application/json": {
                 "schema": {
@@ -1811,7 +2038,179 @@
             }
           },
           "500": {
-            "description": "Внутренняя ошибка",
+            "description": "Внутренняя ошибка.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/students/me/lessons": {
+      "get": {
+        "operationId": "getMyLearningSchedule",
+        "tags": [
+          "Scheduling"
+        ],
+        "summary": "Получить расписание ученика",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/From"
+          },
+          {
+            "$ref": "#/components/parameters/To"
+          },
+          {
+            "name": "teacherUserId",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 100,
+              "description": "Непрозрачный идентификатор User."
+            }
+          },
+          {
+            "name": "status",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "$ref": "#/components/schemas/LessonStatus"
+            }
+          },
+          {
+            "$ref": "#/components/parameters/SortOrder"
+          },
+          {
+            "$ref": "#/components/parameters/Cursor"
+          },
+          {
+            "$ref": "#/components/parameters/Limit"
+          }
+        ],
+        "description": "Окно [from,to), максимум 93 суток; startAt < to AND endAt > from. Не возвращает price и cancelledByUserId.",
+        "responses": {
+          "200": {
+            "description": "Страница безопасного представления уроков.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/StudentLessonPage"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Ошибка формата или валидации.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Не аутентифицирован.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Действие запрещено.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Внутренняя ошибка.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/students/me/lessons/{lessonId}": {
+      "get": {
+        "operationId": "getMyLearningLesson",
+        "tags": [
+          "Scheduling"
+        ],
+        "summary": "Получить свой урок как ученик",
+        "parameters": [
+          {
+            "name": "lessonId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 100,
+              "description": "Непрозрачный идентификатор LessonOccurrence."
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Безопасное представление своего урока.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/StudentLessonResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Не аутентифицирован.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Действие запрещено.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Ресурс не найден или скрыт.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Внутренняя ошибка.",
             "content": {
               "application/json": {
                 "schema": {
@@ -1826,42 +2225,93 @@
   },
   "components": {
     "securitySchemes": {
-      "bearerAuth": {
-        "type": "http",
-        "scheme": "bearer"
+      "sessionCookie": {
+        "type": "apiKey",
+        "in": "cookie",
+        "name": "SESSION",
+        "description": "Серверная HTTP-сессия."
+      }
+    },
+    "parameters": {
+      "CsrfHeader": {
+        "name": "X-XSRF-TOKEN",
+        "in": "header",
+        "required": true,
+        "schema": {
+          "type": "string",
+          "minLength": 1
+        },
+        "description": "Значение cookie XSRF-TOKEN."
+      },
+      "Cursor": {
+        "name": "cursor",
+        "in": "query",
+        "required": false,
+        "schema": {
+          "type": "string",
+          "minLength": 1
+        },
+        "description": "Непрозрачный курсор."
+      },
+      "Limit": {
+        "name": "limit",
+        "in": "query",
+        "required": false,
+        "schema": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 100,
+          "default": 50
+        }
+      },
+      "From": {
+        "name": "from",
+        "in": "query",
+        "required": true,
+        "schema": {
+          "type": "string",
+          "format": "date-time",
+          "description": "RFC 3339 с обязательным Z или UTC-offset; сервер возвращает UTC с Z."
+        }
+      },
+      "To": {
+        "name": "to",
+        "in": "query",
+        "required": true,
+        "schema": {
+          "type": "string",
+          "format": "date-time",
+          "description": "RFC 3339 с обязательным Z или UTC-offset; сервер возвращает UTC с Z."
+        }
+      },
+      "SortOrder": {
+        "name": "sortOrder",
+        "in": "query",
+        "required": false,
+        "schema": {
+          "type": "string",
+          "enum": [
+            "ASC",
+            "DESC"
+          ],
+          "default": "ASC"
+        }
       }
     },
     "schemas": {
-      "UserSummary": {
-        "type": "object",
-        "additionalProperties": false,
-        "properties": {
-          "id": {
-            "type": "string",
-            "minLength": 1,
-            "description": "UserId: непрозрачная строка. Teacher определяется тем же UserId; отдельного TeacherId/StudentId нет."
-          },
-          "firstName": {
-            "type": "string",
-            "minLength": 1,
-            "maxLength": 100,
-            "description": "Непустое значение после trim."
-          },
-          "lastName": {
-            "type": "string",
-            "maxLength": 100
-          }
-        },
-        "required": [
-          "id",
-          "firstName",
-          "lastName"
-        ],
-        "example": {
-          "id": "u_001",
-          "firstName": "Алексей",
-          "lastName": "Иванов"
-        }
+      "UserRole": {
+        "type": "string",
+        "enum": [
+          "TEACHER",
+          "STUDENT"
+        ]
+      },
+      "UserStatus": {
+        "type": "string",
+        "enum": [
+          "PENDING_EMAIL_VERIFICATION",
+          "ACTIVE"
+        ]
       },
       "UserResponse": {
         "type": "object",
@@ -1870,102 +2320,337 @@
           "id": {
             "type": "string",
             "minLength": 1,
-            "description": "UserId: непрозрачная строка. Teacher определяется тем же UserId; отдельного TeacherId/StudentId нет."
+            "maxLength": 100,
+            "description": "Непрозрачный идентификатор User."
+          },
+          "email": {
+            "type": "string",
+            "format": "email",
+            "maxLength": 254
           },
           "firstName": {
             "type": "string",
             "minLength": 1,
             "maxLength": 100,
-            "description": "Непустое значение после trim."
+            "description": "Непустое после trim."
           },
           "lastName": {
             "type": "string",
-            "maxLength": 100
+            "minLength": 1,
+            "maxLength": 100,
+            "description": "Непустое после trim."
           },
-          "email": {
+          "roles": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/UserRole"
+            },
+            "minItems": 1,
+            "maxItems": 2,
+            "uniqueItems": true
+          },
+          "status": {
+            "$ref": "#/components/schemas/UserStatus"
+          },
+          "pendingEmail": {
             "type": "string",
             "format": "email",
             "maxLength": 254,
-            "description": "Обязательный уникальный email аккаунта."
+            "nullable": true
+          },
+          "emailVerifiedAt": {
+            "type": "string",
+            "format": "date-time",
+            "description": "RFC 3339 с обязательным Z или UTC-offset; сервер возвращает UTC с Z.",
+            "nullable": true
+          }
+        },
+        "required": [
+          "id",
+          "email",
+          "firstName",
+          "lastName",
+          "roles",
+          "status",
+          "pendingEmail",
+          "emailVerifiedAt"
+        ],
+        "example": {
+          "id": "u_002",
+          "email": "anna@example.com",
+          "firstName": "Анна",
+          "lastName": "Петрова",
+          "roles": [
+            "STUDENT"
+          ],
+          "status": "ACTIVE",
+          "pendingEmail": null,
+          "emailVerifiedAt": "2026-09-06T12:00:00Z"
+        }
+      },
+      "UserSummary": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "id": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 100,
+            "description": "Непрозрачный идентификатор User."
+          },
+          "firstName": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 100,
+            "description": "Непустое после trim."
+          },
+          "lastName": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 100,
+            "description": "Непустое после trim."
           }
         },
         "required": [
           "id",
           "firstName",
-          "lastName",
-          "email"
-        ],
-        "example": {
-          "id": "u_001",
-          "firstName": "Алексей",
-          "lastName": "Иванов",
-          "email": "alex@example.com"
-        }
+          "lastName"
+        ]
       },
-      "TeacherResponse": {
+      "TeacherSummary": {
         "type": "object",
         "additionalProperties": false,
         "properties": {
-          "user": {
-            "$ref": "#/components/schemas/UserSummary"
-          }
-        },
-        "required": [
-          "user"
-        ],
-        "description": "API-представление Teacher. user.id — идентификатор этого Teacher в URL. Общие данные редактируются через /users. Список учеников запрашивается отдельно.",
-        "example": {
-          "user": {
-            "id": "u_001",
-            "firstName": "Алексей",
-            "lastName": "Иванов"
-          }
-        }
-      },
-      "CreateUserRequest": {
-        "type": "object",
-        "additionalProperties": false,
-        "properties": {
+          "id": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 100,
+            "description": "Непрозрачный идентификатор User."
+          },
           "firstName": {
             "type": "string",
             "minLength": 1,
             "maxLength": 100,
-            "description": "Непустое значение после trim."
+            "description": "Непустое после trim."
           },
           "lastName": {
             "type": "string",
+            "minLength": 1,
             "maxLength": 100,
-            "default": ""
+            "description": "Непустое после trim."
+          }
+        },
+        "required": [
+          "id",
+          "firstName",
+          "lastName"
+        ]
+      },
+      "TeacherContactSummary": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "id": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 100,
+            "description": "Непрозрачный идентификатор User."
           },
           "email": {
             "type": "string",
             "format": "email",
-            "maxLength": 254,
-            "description": "Обязательный уникальный email аккаунта."
+            "maxLength": 254
+          },
+          "firstName": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 100,
+            "description": "Непустое после trim."
+          },
+          "lastName": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 100,
+            "description": "Непустое после trim."
+          }
+        },
+        "required": [
+          "id",
+          "email",
+          "firstName",
+          "lastName"
+        ]
+      },
+      "StudentSummary": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "id": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 100,
+            "description": "Непрозрачный идентификатор User."
+          },
+          "firstName": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 100,
+            "description": "Непустое после trim."
+          },
+          "lastName": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 100,
+            "description": "Непустое после trim."
+          }
+        },
+        "required": [
+          "id",
+          "firstName",
+          "lastName"
+        ]
+      },
+      "RegisterRequest": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "email": {
+            "type": "string",
+            "format": "email",
+            "maxLength": 254
           },
           "password": {
             "type": "string",
             "format": "password",
             "minLength": 8,
             "maxLength": 128,
-            "writeOnly": true,
-            "description": "Обязателен только при регистрации. Никогда не возвращается в ответе и не хранится в открытом виде."
+            "writeOnly": true
+          },
+          "firstName": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 100,
+            "description": "Непустое после trim."
+          },
+          "lastName": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 100,
+            "description": "Непустое после trim."
+          },
+          "roles": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/UserRole"
+            },
+            "minItems": 1,
+            "maxItems": 2,
+            "uniqueItems": true
           }
         },
         "required": [
+          "email",
+          "password",
           "firstName",
+          "lastName",
+          "roles"
+        ],
+        "example": {
+          "email": "anna@example.com",
+          "password": "example-password",
+          "firstName": "Анна",
+          "lastName": "Петрова",
+          "roles": [
+            "STUDENT"
+          ]
+        }
+      },
+      "VerificationPendingResponse": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "email": {
+            "type": "string",
+            "format": "email",
+            "maxLength": 254
+          },
+          "verificationExpiresAt": {
+            "type": "string",
+            "format": "date-time",
+            "description": "RFC 3339 с обязательным Z или UTC-offset; сервер возвращает UTC с Z."
+          }
+        },
+        "required": [
+          "email",
+          "verificationExpiresAt"
+        ],
+        "example": {
+          "email": "anna@example.com",
+          "verificationExpiresAt": "2026-09-07T12:00:00Z"
+        }
+      },
+      "ConfirmEmailRequest": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "token": {
+            "type": "string",
+            "minLength": 20,
+            "maxLength": 512,
+            "writeOnly": true
+          }
+        },
+        "required": [
+          "token"
+        ],
+        "example": {
+          "token": "vfy_12345678901234567890"
+        }
+      },
+      "ResendEmailVerificationRequest": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "email": {
+            "type": "string",
+            "format": "email",
+            "maxLength": 254
+          }
+        },
+        "required": [
+          "email"
+        ],
+        "example": {
+          "email": "anna@example.com"
+        }
+      },
+      "LoginRequest": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "email": {
+            "type": "string",
+            "format": "email",
+            "maxLength": 254
+          },
+          "password": {
+            "type": "string",
+            "format": "password",
+            "minLength": 1,
+            "maxLength": 128,
+            "writeOnly": true
+          }
+        },
+        "required": [
           "email",
           "password"
         ],
-        "description": "Регистрация аккаунта. Email и пароль обязательны; password является write-only.",
         "example": {
-          "firstName": "Анна",
-          "lastName": "Петрова",
           "email": "anna@example.com",
           "password": "example-password"
         }
       },
-      "UpdateUserRequest": {
+      "UpdateMeRequest": {
         "type": "object",
         "additionalProperties": false,
         "properties": {
@@ -1973,94 +2658,294 @@
             "type": "string",
             "minLength": 1,
             "maxLength": 100,
-            "description": "Непустое значение после trim."
+            "description": "Непустое после trim."
           },
           "lastName": {
             "type": "string",
-            "maxLength": 100
+            "minLength": 1,
+            "maxLength": 100,
+            "description": "Непустое после trim."
           },
           "email": {
             "type": "string",
             "format": "email",
-            "maxLength": 254,
-            "description": "Обязательный уникальный email аккаунта."
+            "maxLength": 254
           }
         },
         "minProperties": 1,
-        "description": "Пропуск сохраняет значение. lastName:\"\" очищает фамилию. Email нельзя очистить. Пароль меняется отдельным auth-сценарием.",
+        "description": "Минимум одно поле. Роли и пароль не изменяются.",
         "example": {
-          "firstName": "Александр"
+          "firstName": "Анна-Мария"
         }
       },
-      "UserPage": {
+      "SubjectResponse": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "code": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 50,
+            "pattern": "^[A-Z][A-Z0-9_]*$"
+          },
+          "name": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 100
+          }
+        },
+        "required": [
+          "code",
+          "name"
+        ]
+      },
+      "SubjectListResponse": {
         "type": "object",
         "additionalProperties": false,
         "properties": {
           "items": {
             "type": "array",
             "items": {
-              "$ref": "#/components/schemas/UserSummary"
+              "$ref": "#/components/schemas/SubjectResponse"
             }
-          },
-          "nextCursor": {
-            "type": "string",
-            "nullable": true
           }
         },
         "required": [
-          "items",
-          "nextCursor"
+          "items"
         ],
         "example": {
           "items": [
             {
-              "id": "u_002",
-              "firstName": "Анна",
-              "lastName": "Петрова"
+              "code": "MATH",
+              "name": "Математика"
             }
+          ]
+        }
+      },
+      "TeacherProfileUpsertRequest": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "subjectCodes": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 50,
+              "pattern": "^[A-Z][A-Z0-9_]*$"
+            },
+            "minItems": 1,
+            "uniqueItems": true
+          },
+          "description": {
+            "type": "string",
+            "maxLength": 500,
+            "nullable": true
+          },
+          "education": {
+            "type": "string",
+            "maxLength": 500,
+            "nullable": true
+          },
+          "experienceYears": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 100,
+            "nullable": true
+          },
+          "city": {
+            "type": "string",
+            "maxLength": 100,
+            "nullable": true
+          },
+          "photoUrl": {
+            "type": "string",
+            "format": "uri",
+            "maxLength": 2048,
+            "nullable": true
+          }
+        },
+        "required": [
+          "subjectCodes"
+        ],
+        "example": {
+          "subjectCodes": [
+            "MATH"
           ],
-          "nextCursor": null
+          "description": "Готовлю к экзаменам",
+          "education": null,
+          "experienceYears": 5,
+          "city": "Москва",
+          "photoUrl": null
         }
       },
-      "TeacherPage": {
+      "TeacherProfileResponse": {
         "type": "object",
         "additionalProperties": false,
         "properties": {
-          "items": {
+          "user": {
+            "$ref": "#/components/schemas/UserResponse"
+          },
+          "subjectCodes": {
             "type": "array",
             "items": {
-              "$ref": "#/components/schemas/TeacherResponse"
-            }
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 50,
+              "pattern": "^[A-Z][A-Z0-9_]*$"
+            },
+            "minItems": 1,
+            "uniqueItems": true
           },
-          "nextCursor": {
+          "description": {
             "type": "string",
+            "maxLength": 500,
+            "nullable": true
+          },
+          "education": {
+            "type": "string",
+            "maxLength": 500,
+            "nullable": true
+          },
+          "experienceYears": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 100,
+            "nullable": true
+          },
+          "city": {
+            "type": "string",
+            "maxLength": 100,
+            "nullable": true
+          },
+          "photoUrl": {
+            "type": "string",
+            "format": "uri",
+            "maxLength": 2048,
             "nullable": true
           }
         },
         "required": [
-          "items",
-          "nextCursor"
+          "user",
+          "subjectCodes",
+          "description",
+          "education",
+          "experienceYears",
+          "city",
+          "photoUrl"
+        ]
+      },
+      "StudentProfileUpsertRequest": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "birthDate": {
+            "type": "string",
+            "format": "date"
+          },
+          "subjectCodes": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 50,
+              "pattern": "^[A-Z][A-Z0-9_]*$"
+            },
+            "minItems": 1,
+            "uniqueItems": true
+          },
+          "photoUrl": {
+            "type": "string",
+            "format": "uri",
+            "maxLength": 2048,
+            "nullable": true
+          }
+        },
+        "required": [
+          "birthDate",
+          "subjectCodes"
         ],
         "example": {
-          "items": [
-            {
-              "user": {
-                "id": "u_003",
-                "firstName": "Мария",
-                "lastName": "Смирнова"
+          "birthDate": "2010-05-14",
+          "subjectCodes": [
+            "MATH"
+          ],
+          "photoUrl": null
+        }
+      },
+      "StudentProfileResponse": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "user": {
+            "$ref": "#/components/schemas/UserResponse"
+          },
+          "birthDate": {
+            "type": "string",
+            "format": "date"
+          },
+          "subjectCodes": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 50,
+              "pattern": "^[A-Z][A-Z0-9_]*$"
+            },
+            "minItems": 1,
+            "uniqueItems": true
+          },
+          "photoUrl": {
+            "type": "string",
+            "format": "uri",
+            "maxLength": 2048,
+            "nullable": true
+          }
+        },
+        "required": [
+          "user",
+          "birthDate",
+          "subjectCodes",
+          "photoUrl"
+        ]
+      },
+      "MeResponse": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "user": {
+            "$ref": "#/components/schemas/UserResponse"
+          },
+          "teacherProfile": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/TeacherProfileResponse"
               }
-            }
-          ],
-          "nextCursor": null
-        }
+            ],
+            "nullable": true
+          },
+          "studentProfile": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/StudentProfileResponse"
+              }
+            ],
+            "nullable": true
+          }
+        },
+        "required": [
+          "user",
+          "teacherProfile",
+          "studentProfile"
+        ]
       },
       "InvitationStatus": {
         "type": "string",
         "enum": [
           "PENDING",
           "ACCEPTED",
-          "EXPIRED",
-          "CANCELLED"
+          "REJECTED",
+          "EXPIRED"
         ]
       },
       "CreateStudentInvitationRequest": {
@@ -2070,8 +2955,7 @@
           "email": {
             "type": "string",
             "format": "email",
-            "maxLength": 254,
-            "description": "Обязательный уникальный email аккаунта."
+            "maxLength": 254
           }
         },
         "required": [
@@ -2088,53 +2972,357 @@
           "id": {
             "type": "string",
             "minLength": 1,
-            "description": "Непрозрачный идентификатор приглашения."
+            "maxLength": 100,
+            "description": "Непрозрачный идентификатор StudentInvitation."
           },
           "teacher": {
-            "$ref": "#/components/schemas/TeacherResponse"
+            "$ref": "#/components/schemas/TeacherContactSummary"
           },
-          "email": {
+          "studentEmail": {
             "type": "string",
             "format": "email",
-            "maxLength": 254,
-            "description": "Обязательный уникальный email аккаунта."
+            "maxLength": 254
+          },
+          "studentUserId": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 100,
+            "description": "Непрозрачный идентификатор User.",
+            "nullable": true
           },
           "status": {
             "$ref": "#/components/schemas/InvitationStatus"
           },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time",
+            "description": "RFC 3339 с обязательным Z или UTC-offset; сервер возвращает UTC с Z."
+          },
           "expiresAt": {
             "type": "string",
             "format": "date-time",
-            "description": "RFC 3339: дата, время и Z/offset обязательны. Ответ сервера — UTC с Z."
+            "description": "RFC 3339 с обязательным Z или UTC-offset; сервер возвращает UTC с Z."
+          },
+          "respondedAt": {
+            "type": "string",
+            "format": "date-time",
+            "description": "RFC 3339 с обязательным Z или UTC-offset; сервер возвращает UTC с Z.",
+            "nullable": true
           }
         },
         "required": [
           "id",
           "teacher",
-          "email",
+          "studentEmail",
+          "studentUserId",
           "status",
-          "expiresAt"
+          "createdAt",
+          "expiresAt",
+          "respondedAt"
         ],
         "example": {
           "id": "inv_001",
           "teacher": {
-            "user": {
-              "id": "u_001",
-              "firstName": "Алексей",
-              "lastName": "Иванов"
-            }
+            "id": "u_001",
+            "email": "alex@example.com",
+            "firstName": "Алексей",
+            "lastName": "Иванов"
           },
-          "email": "anna@example.com",
+          "studentEmail": "anna@example.com",
+          "studentUserId": "u_002",
           "status": "PENDING",
-          "expiresAt": "2026-09-13T15:00:00Z"
+          "createdAt": "2026-09-06T12:00:00Z",
+          "expiresAt": "2026-10-06T12:00:00Z",
+          "respondedAt": null
         }
       },
-      "LessonStatus": {
-        "type": "string",
-        "enum": [
-          "SCHEDULED",
-          "COMPLETED",
-          "CANCELLED"
+      "StudentInvitationPage": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "items": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/StudentInvitationResponse"
+            }
+          },
+          "nextCursor": {
+            "type": "string",
+            "nullable": true
+          }
+        },
+        "required": [
+          "items",
+          "nextCursor"
+        ]
+      },
+      "StudentListItem": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "id": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 100,
+            "description": "Непрозрачный идентификатор User."
+          },
+          "firstName": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 100,
+            "description": "Непустое после trim."
+          },
+          "lastName": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 100,
+            "description": "Непустое после trim."
+          },
+          "profileCompleted": {
+            "type": "boolean"
+          },
+          "photoUrl": {
+            "type": "string",
+            "format": "uri",
+            "maxLength": 2048,
+            "nullable": true
+          },
+          "subjectCodes": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 50,
+              "pattern": "^[A-Z][A-Z0-9_]*$"
+            },
+            "uniqueItems": true
+          }
+        },
+        "required": [
+          "id",
+          "firstName",
+          "lastName",
+          "profileCompleted",
+          "photoUrl",
+          "subjectCodes"
+        ]
+      },
+      "StudentPage": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "items": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/StudentListItem"
+            }
+          },
+          "nextCursor": {
+            "type": "string",
+            "nullable": true
+          }
+        },
+        "required": [
+          "items",
+          "nextCursor"
+        ]
+      },
+      "StudentCardProfile": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "birthDate": {
+            "type": "string",
+            "format": "date"
+          },
+          "subjectCodes": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 50,
+              "pattern": "^[A-Z][A-Z0-9_]*$"
+            },
+            "minItems": 1,
+            "uniqueItems": true
+          },
+          "photoUrl": {
+            "type": "string",
+            "format": "uri",
+            "maxLength": 2048,
+            "nullable": true
+          }
+        },
+        "required": [
+          "birthDate",
+          "subjectCodes",
+          "photoUrl"
+        ]
+      },
+      "StudentStatistics": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "totalLessons": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "completedLessons": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "cancelledLessons": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "missedLessons": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "lastLessonAt": {
+            "type": "string",
+            "format": "date-time",
+            "description": "RFC 3339 с обязательным Z или UTC-offset; сервер возвращает UTC с Z.",
+            "nullable": true
+          }
+        },
+        "required": [
+          "totalLessons",
+          "completedLessons",
+          "cancelledLessons",
+          "missedLessons",
+          "lastLessonAt"
+        ]
+      },
+      "StudentCardResponse": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "id": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 100,
+            "description": "Непрозрачный идентификатор User."
+          },
+          "email": {
+            "type": "string",
+            "format": "email",
+            "maxLength": 254
+          },
+          "firstName": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 100,
+            "description": "Непустое после trim."
+          },
+          "lastName": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 100,
+            "description": "Непустое после trim."
+          },
+          "profile": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/StudentCardProfile"
+              }
+            ],
+            "nullable": true
+          },
+          "statistics": {
+            "$ref": "#/components/schemas/StudentStatistics"
+          }
+        },
+        "required": [
+          "id",
+          "email",
+          "firstName",
+          "lastName",
+          "profile",
+          "statistics"
+        ]
+      },
+      "TeacherContactResponse": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "id": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 100,
+            "description": "Непрозрачный идентификатор User."
+          },
+          "email": {
+            "type": "string",
+            "format": "email",
+            "maxLength": 254
+          },
+          "firstName": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 100,
+            "description": "Непустое после trim."
+          },
+          "lastName": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 100,
+            "description": "Непустое после trim."
+          },
+          "profileCompleted": {
+            "type": "boolean"
+          },
+          "subjectCodes": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 50,
+              "pattern": "^[A-Z][A-Z0-9_]*$"
+            },
+            "uniqueItems": true
+          },
+          "description": {
+            "type": "string",
+            "maxLength": 500,
+            "nullable": true
+          },
+          "photoUrl": {
+            "type": "string",
+            "format": "uri",
+            "maxLength": 2048,
+            "nullable": true
+          }
+        },
+        "required": [
+          "id",
+          "email",
+          "firstName",
+          "lastName",
+          "profileCompleted",
+          "subjectCodes",
+          "description",
+          "photoUrl"
+        ]
+      },
+      "TeacherContactPage": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "items": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/TeacherContactResponse"
+            }
+          },
+          "nextCursor": {
+            "type": "string",
+            "nullable": true
+          }
+        },
+        "required": [
+          "items",
+          "nextCursor"
         ]
       },
       "LessonFormat": {
@@ -2142,8 +3330,597 @@
         "enum": [
           "INDIVIDUAL",
           "GROUP"
+        ]
+      },
+      "LocationType": {
+        "type": "string",
+        "enum": [
+          "ONLINE",
+          "OFFLINE"
+        ]
+      },
+      "LessonStatus": {
+        "type": "string",
+        "enum": [
+          "SCHEDULED",
+          "COMPLETED",
+          "CANCELLED",
+          "MISSED"
+        ]
+      },
+      "LessonCancelReason": {
+        "type": "string",
+        "enum": [
+          "ILLNESS",
+          "FAMILY",
+          "NOT_READY",
+          "OTHER",
+          "STUDENT_UNLINKED"
+        ]
+      },
+      "LessonParticipantSummary": {
+        "$ref": "#/components/schemas/StudentSummary"
+      },
+      "CreateLessonRequest": {
+        "description": "Ровно один вариант времени и места; формат определяет минимальное число участников.",
+        "oneOf": [
+          {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+              "studentUserIds": {
+                "type": "array",
+                "items": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 100,
+                  "description": "Непрозрачный идентификатор User."
+                },
+                "minItems": 1,
+                "maxItems": 1,
+                "uniqueItems": true
+              },
+              "subjectCode": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 50,
+                "pattern": "^[A-Z][A-Z0-9_]*$"
+              },
+              "format": {
+                "type": "string",
+                "enum": [
+                  "INDIVIDUAL"
+                ]
+              },
+              "locationType": {
+                "type": "string",
+                "enum": [
+                  "ONLINE"
+                ]
+              },
+              "price": {
+                "type": "string",
+                "pattern": "^(0|[1-9][0-9]{0,9})\\.[0-9]{2}$",
+                "description": "Сумма в RUB, ровно два знака после запятой, например 1500.00.",
+                "nullable": true
+              },
+              "startAt": {
+                "type": "string",
+                "format": "date-time",
+                "description": "RFC 3339 с обязательным Z или UTC-offset; сервер возвращает UTC с Z."
+              },
+              "endAt": {
+                "type": "string",
+                "format": "date-time",
+                "description": "RFC 3339 с обязательным Z или UTC-offset; сервер возвращает UTC с Z."
+              },
+              "meetingUrl": {
+                "type": "string",
+                "format": "uri",
+                "maxLength": 2048
+              }
+            },
+            "required": [
+              "studentUserIds",
+              "subjectCode",
+              "format",
+              "locationType",
+              "startAt",
+              "endAt",
+              "meetingUrl"
+            ]
+          },
+          {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+              "studentUserIds": {
+                "type": "array",
+                "items": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 100,
+                  "description": "Непрозрачный идентификатор User."
+                },
+                "minItems": 1,
+                "maxItems": 1,
+                "uniqueItems": true
+              },
+              "subjectCode": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 50,
+                "pattern": "^[A-Z][A-Z0-9_]*$"
+              },
+              "format": {
+                "type": "string",
+                "enum": [
+                  "INDIVIDUAL"
+                ]
+              },
+              "locationType": {
+                "type": "string",
+                "enum": [
+                  "ONLINE"
+                ]
+              },
+              "price": {
+                "type": "string",
+                "pattern": "^(0|[1-9][0-9]{0,9})\\.[0-9]{2}$",
+                "description": "Сумма в RUB, ровно два знака после запятой, например 1500.00.",
+                "nullable": true
+              },
+              "startAt": {
+                "type": "string",
+                "format": "date-time",
+                "description": "RFC 3339 с обязательным Z или UTC-offset; сервер возвращает UTC с Z."
+              },
+              "durationMinutes": {
+                "type": "integer",
+                "enum": [
+                  30,
+                  45,
+                  60,
+                  90,
+                  120
+                ]
+              },
+              "meetingUrl": {
+                "type": "string",
+                "format": "uri",
+                "maxLength": 2048
+              }
+            },
+            "required": [
+              "studentUserIds",
+              "subjectCode",
+              "format",
+              "locationType",
+              "startAt",
+              "durationMinutes",
+              "meetingUrl"
+            ]
+          },
+          {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+              "studentUserIds": {
+                "type": "array",
+                "items": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 100,
+                  "description": "Непрозрачный идентификатор User."
+                },
+                "minItems": 1,
+                "maxItems": 1,
+                "uniqueItems": true
+              },
+              "subjectCode": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 50,
+                "pattern": "^[A-Z][A-Z0-9_]*$"
+              },
+              "format": {
+                "type": "string",
+                "enum": [
+                  "INDIVIDUAL"
+                ]
+              },
+              "locationType": {
+                "type": "string",
+                "enum": [
+                  "OFFLINE"
+                ]
+              },
+              "price": {
+                "type": "string",
+                "pattern": "^(0|[1-9][0-9]{0,9})\\.[0-9]{2}$",
+                "description": "Сумма в RUB, ровно два знака после запятой, например 1500.00.",
+                "nullable": true
+              },
+              "startAt": {
+                "type": "string",
+                "format": "date-time",
+                "description": "RFC 3339 с обязательным Z или UTC-offset; сервер возвращает UTC с Z."
+              },
+              "endAt": {
+                "type": "string",
+                "format": "date-time",
+                "description": "RFC 3339 с обязательным Z или UTC-offset; сервер возвращает UTC с Z."
+              },
+              "offlineAddress": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 500
+              }
+            },
+            "required": [
+              "studentUserIds",
+              "subjectCode",
+              "format",
+              "locationType",
+              "startAt",
+              "endAt",
+              "offlineAddress"
+            ]
+          },
+          {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+              "studentUserIds": {
+                "type": "array",
+                "items": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 100,
+                  "description": "Непрозрачный идентификатор User."
+                },
+                "minItems": 1,
+                "maxItems": 1,
+                "uniqueItems": true
+              },
+              "subjectCode": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 50,
+                "pattern": "^[A-Z][A-Z0-9_]*$"
+              },
+              "format": {
+                "type": "string",
+                "enum": [
+                  "INDIVIDUAL"
+                ]
+              },
+              "locationType": {
+                "type": "string",
+                "enum": [
+                  "OFFLINE"
+                ]
+              },
+              "price": {
+                "type": "string",
+                "pattern": "^(0|[1-9][0-9]{0,9})\\.[0-9]{2}$",
+                "description": "Сумма в RUB, ровно два знака после запятой, например 1500.00.",
+                "nullable": true
+              },
+              "startAt": {
+                "type": "string",
+                "format": "date-time",
+                "description": "RFC 3339 с обязательным Z или UTC-offset; сервер возвращает UTC с Z."
+              },
+              "durationMinutes": {
+                "type": "integer",
+                "enum": [
+                  30,
+                  45,
+                  60,
+                  90,
+                  120
+                ]
+              },
+              "offlineAddress": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 500
+              }
+            },
+            "required": [
+              "studentUserIds",
+              "subjectCode",
+              "format",
+              "locationType",
+              "startAt",
+              "durationMinutes",
+              "offlineAddress"
+            ]
+          },
+          {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+              "studentUserIds": {
+                "type": "array",
+                "items": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 100,
+                  "description": "Непрозрачный идентификатор User."
+                },
+                "minItems": 2,
+                "uniqueItems": true
+              },
+              "subjectCode": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 50,
+                "pattern": "^[A-Z][A-Z0-9_]*$"
+              },
+              "format": {
+                "type": "string",
+                "enum": [
+                  "GROUP"
+                ]
+              },
+              "locationType": {
+                "type": "string",
+                "enum": [
+                  "ONLINE"
+                ]
+              },
+              "price": {
+                "type": "string",
+                "pattern": "^(0|[1-9][0-9]{0,9})\\.[0-9]{2}$",
+                "description": "Сумма в RUB, ровно два знака после запятой, например 1500.00.",
+                "nullable": true
+              },
+              "startAt": {
+                "type": "string",
+                "format": "date-time",
+                "description": "RFC 3339 с обязательным Z или UTC-offset; сервер возвращает UTC с Z."
+              },
+              "endAt": {
+                "type": "string",
+                "format": "date-time",
+                "description": "RFC 3339 с обязательным Z или UTC-offset; сервер возвращает UTC с Z."
+              },
+              "meetingUrl": {
+                "type": "string",
+                "format": "uri",
+                "maxLength": 2048
+              }
+            },
+            "required": [
+              "studentUserIds",
+              "subjectCode",
+              "format",
+              "locationType",
+              "startAt",
+              "endAt",
+              "meetingUrl"
+            ]
+          },
+          {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+              "studentUserIds": {
+                "type": "array",
+                "items": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 100,
+                  "description": "Непрозрачный идентификатор User."
+                },
+                "minItems": 2,
+                "uniqueItems": true
+              },
+              "subjectCode": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 50,
+                "pattern": "^[A-Z][A-Z0-9_]*$"
+              },
+              "format": {
+                "type": "string",
+                "enum": [
+                  "GROUP"
+                ]
+              },
+              "locationType": {
+                "type": "string",
+                "enum": [
+                  "ONLINE"
+                ]
+              },
+              "price": {
+                "type": "string",
+                "pattern": "^(0|[1-9][0-9]{0,9})\\.[0-9]{2}$",
+                "description": "Сумма в RUB, ровно два знака после запятой, например 1500.00.",
+                "nullable": true
+              },
+              "startAt": {
+                "type": "string",
+                "format": "date-time",
+                "description": "RFC 3339 с обязательным Z или UTC-offset; сервер возвращает UTC с Z."
+              },
+              "durationMinutes": {
+                "type": "integer",
+                "enum": [
+                  30,
+                  45,
+                  60,
+                  90,
+                  120
+                ]
+              },
+              "meetingUrl": {
+                "type": "string",
+                "format": "uri",
+                "maxLength": 2048
+              }
+            },
+            "required": [
+              "studentUserIds",
+              "subjectCode",
+              "format",
+              "locationType",
+              "startAt",
+              "durationMinutes",
+              "meetingUrl"
+            ]
+          },
+          {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+              "studentUserIds": {
+                "type": "array",
+                "items": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 100,
+                  "description": "Непрозрачный идентификатор User."
+                },
+                "minItems": 2,
+                "uniqueItems": true
+              },
+              "subjectCode": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 50,
+                "pattern": "^[A-Z][A-Z0-9_]*$"
+              },
+              "format": {
+                "type": "string",
+                "enum": [
+                  "GROUP"
+                ]
+              },
+              "locationType": {
+                "type": "string",
+                "enum": [
+                  "OFFLINE"
+                ]
+              },
+              "price": {
+                "type": "string",
+                "pattern": "^(0|[1-9][0-9]{0,9})\\.[0-9]{2}$",
+                "description": "Сумма в RUB, ровно два знака после запятой, например 1500.00.",
+                "nullable": true
+              },
+              "startAt": {
+                "type": "string",
+                "format": "date-time",
+                "description": "RFC 3339 с обязательным Z или UTC-offset; сервер возвращает UTC с Z."
+              },
+              "endAt": {
+                "type": "string",
+                "format": "date-time",
+                "description": "RFC 3339 с обязательным Z или UTC-offset; сервер возвращает UTC с Z."
+              },
+              "offlineAddress": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 500
+              }
+            },
+            "required": [
+              "studentUserIds",
+              "subjectCode",
+              "format",
+              "locationType",
+              "startAt",
+              "endAt",
+              "offlineAddress"
+            ]
+          },
+          {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+              "studentUserIds": {
+                "type": "array",
+                "items": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 100,
+                  "description": "Непрозрачный идентификатор User."
+                },
+                "minItems": 2,
+                "uniqueItems": true
+              },
+              "subjectCode": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 50,
+                "pattern": "^[A-Z][A-Z0-9_]*$"
+              },
+              "format": {
+                "type": "string",
+                "enum": [
+                  "GROUP"
+                ]
+              },
+              "locationType": {
+                "type": "string",
+                "enum": [
+                  "OFFLINE"
+                ]
+              },
+              "price": {
+                "type": "string",
+                "pattern": "^(0|[1-9][0-9]{0,9})\\.[0-9]{2}$",
+                "description": "Сумма в RUB, ровно два знака после запятой, например 1500.00.",
+                "nullable": true
+              },
+              "startAt": {
+                "type": "string",
+                "format": "date-time",
+                "description": "RFC 3339 с обязательным Z или UTC-offset; сервер возвращает UTC с Z."
+              },
+              "durationMinutes": {
+                "type": "integer",
+                "enum": [
+                  30,
+                  45,
+                  60,
+                  90,
+                  120
+                ]
+              },
+              "offlineAddress": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 500
+              }
+            },
+            "required": [
+              "studentUserIds",
+              "subjectCode",
+              "format",
+              "locationType",
+              "startAt",
+              "durationMinutes",
+              "offlineAddress"
+            ]
+          }
         ],
-        "description": "Явный формат, не вычисляется из числа учеников. GROUP может содержать одного ученика."
+        "example": {
+          "studentUserIds": [
+            "u_002"
+          ],
+          "subjectCode": "MATH",
+          "format": "INDIVIDUAL",
+          "locationType": "ONLINE",
+          "price": "1500.00",
+          "startAt": "2026-09-07T15:00:00Z",
+          "durationMinutes": 60,
+          "meetingUrl": "https://meet.example/lesson-1"
+        }
       },
       "UpdateLessonRequest": {
         "type": "object",
@@ -2154,58 +3931,1159 @@
             "items": {
               "type": "string",
               "minLength": 1,
-              "description": "UserId: непрозрачная строка. Teacher определяется тем же UserId; отдельного TeacherId/StudentId нет."
+              "maxLength": 100,
+              "description": "Непрозрачный идентификатор User."
             },
             "minItems": 1,
-            "uniqueItems": true,
-            "description": "UserId учеников, не StudentId. Преподаватель не может входить в собственный состав."
+            "uniqueItems": true
+          },
+          "subjectCode": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 50,
+            "pattern": "^[A-Z][A-Z0-9_]*$"
+          },
+          "format": {
+            "$ref": "#/components/schemas/LessonFormat"
+          },
+          "locationType": {
+            "$ref": "#/components/schemas/LocationType"
+          },
+          "meetingUrl": {
+            "type": "string",
+            "format": "uri",
+            "maxLength": 2048,
+            "nullable": true
+          },
+          "offlineAddress": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 500,
+            "nullable": true
+          },
+          "price": {
+            "type": "string",
+            "pattern": "^(0|[1-9][0-9]{0,9})\\.[0-9]{2}$",
+            "description": "Сумма в RUB, ровно два знака после запятой, например 1500.00.",
+            "nullable": true
           },
           "startAt": {
             "type": "string",
             "format": "date-time",
-            "description": "RFC 3339: дата, время и Z/offset обязательны. Ответ сервера — UTC с Z."
+            "description": "RFC 3339 с обязательным Z или UTC-offset; сервер возвращает UTC с Z."
           },
           "endAt": {
             "type": "string",
             "format": "date-time",
-            "description": "RFC 3339: дата, время и Z/offset обязательны. Ответ сервера — UTC с Z."
+            "description": "RFC 3339 с обязательным Z или UTC-offset; сервер возвращает UTC с Z."
           },
-          "format": {
-            "$ref": "#/components/schemas/LessonFormat"
+          "durationMinutes": {
+            "type": "integer",
+            "enum": [
+              30,
+              45,
+              60,
+              90,
+              120
+            ]
           }
         },
         "minProperties": 1,
-        "description": "Только SCHEDULED. Время передаётся парой. studentUserIds заменяет весь состав. Формат и состав проверяются вместе по конечному состоянию; неподходящее количество учеников — 400 VALIDATION_ERROR / FORMAT_PARTICIPANTS_MISMATCH. Все изменения атомарны.",
-        "anyOf": [
+        "not": {
+          "type": "object",
+          "required": [
+            "endAt",
+            "durationMinutes"
+          ]
+        },
+        "description": "Итоговое состояние проверяется целиком. При смене locationType требуется соответствующее поле места.",
+        "example": {
+          "startAt": "2026-09-07T16:00:00Z",
+          "durationMinutes": 90
+        }
+      },
+      "TeacherLessonResponse": {
+        "oneOf": [
           {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+              "id": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 100,
+                "description": "Непрозрачный идентификатор LessonOccurrence."
+              },
+              "teacher": {
+                "$ref": "#/components/schemas/TeacherSummary"
+              },
+              "participants": {
+                "type": "array",
+                "items": {
+                  "$ref": "#/components/schemas/LessonParticipantSummary"
+                },
+                "minItems": 1,
+                "maxItems": 1
+              },
+              "subjectCode": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 50,
+                "pattern": "^[A-Z][A-Z0-9_]*$"
+              },
+              "format": {
+                "type": "string",
+                "enum": [
+                  "INDIVIDUAL"
+                ]
+              },
+              "locationType": {
+                "type": "string",
+                "enum": [
+                  "ONLINE"
+                ]
+              },
+              "meetingUrl": {
+                "type": "string",
+                "format": "uri",
+                "maxLength": 2048,
+                "nullable": true
+              },
+              "offlineAddress": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 500,
+                "nullable": true
+              },
+              "price": {
+                "type": "string",
+                "pattern": "^(0|[1-9][0-9]{0,9})\\.[0-9]{2}$",
+                "description": "Сумма в RUB, ровно два знака после запятой, например 1500.00.",
+                "nullable": true
+              },
+              "startAt": {
+                "type": "string",
+                "format": "date-time",
+                "description": "RFC 3339 с обязательным Z или UTC-offset; сервер возвращает UTC с Z."
+              },
+              "endAt": {
+                "type": "string",
+                "format": "date-time",
+                "description": "RFC 3339 с обязательным Z или UTC-offset; сервер возвращает UTC с Z."
+              },
+              "durationMinutes": {
+                "type": "integer",
+                "enum": [
+                  30,
+                  45,
+                  60,
+                  90,
+                  120
+                ]
+              },
+              "status": {
+                "$ref": "#/components/schemas/LessonStatus"
+              },
+              "cancelReason": {
+                "allOf": [
+                  {
+                    "$ref": "#/components/schemas/LessonCancelReason"
+                  }
+                ],
+                "nullable": true
+              },
+              "cancelComment": {
+                "type": "string",
+                "maxLength": 500,
+                "nullable": true
+              },
+              "cancelledByUserId": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 100,
+                "description": "Непрозрачный идентификатор User.",
+                "nullable": true
+              },
+              "cancelledAt": {
+                "type": "string",
+                "format": "date-time",
+                "description": "RFC 3339 с обязательным Z или UTC-offset; сервер возвращает UTC с Z.",
+                "nullable": true
+              }
+            },
             "required": [
+              "id",
+              "teacher",
+              "participants",
+              "subjectCode",
+              "format",
+              "locationType",
+              "meetingUrl",
+              "offlineAddress",
+              "price",
               "startAt",
-              "endAt"
+              "endAt",
+              "durationMinutes",
+              "status",
+              "cancelReason",
+              "cancelComment",
+              "cancelledByUserId",
+              "cancelledAt"
             ]
           },
           {
-            "not": {
-              "anyOf": [
-                {
-                  "required": [
-                    "startAt"
-                  ]
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+              "id": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 100,
+                "description": "Непрозрачный идентификатор LessonOccurrence."
+              },
+              "teacher": {
+                "$ref": "#/components/schemas/TeacherSummary"
+              },
+              "participants": {
+                "type": "array",
+                "items": {
+                  "$ref": "#/components/schemas/LessonParticipantSummary"
                 },
-                {
-                  "required": [
-                    "endAt"
-                  ]
-                }
-              ]
-            }
+                "minItems": 1,
+                "maxItems": 1
+              },
+              "subjectCode": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 50,
+                "pattern": "^[A-Z][A-Z0-9_]*$"
+              },
+              "format": {
+                "type": "string",
+                "enum": [
+                  "INDIVIDUAL"
+                ]
+              },
+              "locationType": {
+                "type": "string",
+                "enum": [
+                  "OFFLINE"
+                ]
+              },
+              "meetingUrl": {
+                "type": "string",
+                "format": "uri",
+                "maxLength": 2048,
+                "nullable": true
+              },
+              "offlineAddress": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 500,
+                "nullable": true
+              },
+              "price": {
+                "type": "string",
+                "pattern": "^(0|[1-9][0-9]{0,9})\\.[0-9]{2}$",
+                "description": "Сумма в RUB, ровно два знака после запятой, например 1500.00.",
+                "nullable": true
+              },
+              "startAt": {
+                "type": "string",
+                "format": "date-time",
+                "description": "RFC 3339 с обязательным Z или UTC-offset; сервер возвращает UTC с Z."
+              },
+              "endAt": {
+                "type": "string",
+                "format": "date-time",
+                "description": "RFC 3339 с обязательным Z или UTC-offset; сервер возвращает UTC с Z."
+              },
+              "durationMinutes": {
+                "type": "integer",
+                "enum": [
+                  30,
+                  45,
+                  60,
+                  90,
+                  120
+                ]
+              },
+              "status": {
+                "$ref": "#/components/schemas/LessonStatus"
+              },
+              "cancelReason": {
+                "allOf": [
+                  {
+                    "$ref": "#/components/schemas/LessonCancelReason"
+                  }
+                ],
+                "nullable": true
+              },
+              "cancelComment": {
+                "type": "string",
+                "maxLength": 500,
+                "nullable": true
+              },
+              "cancelledByUserId": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 100,
+                "description": "Непрозрачный идентификатор User.",
+                "nullable": true
+              },
+              "cancelledAt": {
+                "type": "string",
+                "format": "date-time",
+                "description": "RFC 3339 с обязательным Z или UTC-offset; сервер возвращает UTC с Z.",
+                "nullable": true
+              }
+            },
+            "required": [
+              "id",
+              "teacher",
+              "participants",
+              "subjectCode",
+              "format",
+              "locationType",
+              "meetingUrl",
+              "offlineAddress",
+              "price",
+              "startAt",
+              "endAt",
+              "durationMinutes",
+              "status",
+              "cancelReason",
+              "cancelComment",
+              "cancelledByUserId",
+              "cancelledAt"
+            ]
+          },
+          {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+              "id": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 100,
+                "description": "Непрозрачный идентификатор LessonOccurrence."
+              },
+              "teacher": {
+                "$ref": "#/components/schemas/TeacherSummary"
+              },
+              "participants": {
+                "type": "array",
+                "items": {
+                  "$ref": "#/components/schemas/LessonParticipantSummary"
+                },
+                "minItems": 2
+              },
+              "subjectCode": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 50,
+                "pattern": "^[A-Z][A-Z0-9_]*$"
+              },
+              "format": {
+                "type": "string",
+                "enum": [
+                  "GROUP"
+                ]
+              },
+              "locationType": {
+                "type": "string",
+                "enum": [
+                  "ONLINE"
+                ]
+              },
+              "meetingUrl": {
+                "type": "string",
+                "format": "uri",
+                "maxLength": 2048,
+                "nullable": true
+              },
+              "offlineAddress": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 500,
+                "nullable": true
+              },
+              "price": {
+                "type": "string",
+                "pattern": "^(0|[1-9][0-9]{0,9})\\.[0-9]{2}$",
+                "description": "Сумма в RUB, ровно два знака после запятой, например 1500.00.",
+                "nullable": true
+              },
+              "startAt": {
+                "type": "string",
+                "format": "date-time",
+                "description": "RFC 3339 с обязательным Z или UTC-offset; сервер возвращает UTC с Z."
+              },
+              "endAt": {
+                "type": "string",
+                "format": "date-time",
+                "description": "RFC 3339 с обязательным Z или UTC-offset; сервер возвращает UTC с Z."
+              },
+              "durationMinutes": {
+                "type": "integer",
+                "enum": [
+                  30,
+                  45,
+                  60,
+                  90,
+                  120
+                ]
+              },
+              "status": {
+                "$ref": "#/components/schemas/LessonStatus"
+              },
+              "cancelReason": {
+                "allOf": [
+                  {
+                    "$ref": "#/components/schemas/LessonCancelReason"
+                  }
+                ],
+                "nullable": true
+              },
+              "cancelComment": {
+                "type": "string",
+                "maxLength": 500,
+                "nullable": true
+              },
+              "cancelledByUserId": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 100,
+                "description": "Непрозрачный идентификатор User.",
+                "nullable": true
+              },
+              "cancelledAt": {
+                "type": "string",
+                "format": "date-time",
+                "description": "RFC 3339 с обязательным Z или UTC-offset; сервер возвращает UTC с Z.",
+                "nullable": true
+              }
+            },
+            "required": [
+              "id",
+              "teacher",
+              "participants",
+              "subjectCode",
+              "format",
+              "locationType",
+              "meetingUrl",
+              "offlineAddress",
+              "price",
+              "startAt",
+              "endAt",
+              "durationMinutes",
+              "status",
+              "cancelReason",
+              "cancelComment",
+              "cancelledByUserId",
+              "cancelledAt"
+            ]
+          },
+          {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+              "id": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 100,
+                "description": "Непрозрачный идентификатор LessonOccurrence."
+              },
+              "teacher": {
+                "$ref": "#/components/schemas/TeacherSummary"
+              },
+              "participants": {
+                "type": "array",
+                "items": {
+                  "$ref": "#/components/schemas/LessonParticipantSummary"
+                },
+                "minItems": 2
+              },
+              "subjectCode": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 50,
+                "pattern": "^[A-Z][A-Z0-9_]*$"
+              },
+              "format": {
+                "type": "string",
+                "enum": [
+                  "GROUP"
+                ]
+              },
+              "locationType": {
+                "type": "string",
+                "enum": [
+                  "OFFLINE"
+                ]
+              },
+              "meetingUrl": {
+                "type": "string",
+                "format": "uri",
+                "maxLength": 2048,
+                "nullable": true
+              },
+              "offlineAddress": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 500,
+                "nullable": true
+              },
+              "price": {
+                "type": "string",
+                "pattern": "^(0|[1-9][0-9]{0,9})\\.[0-9]{2}$",
+                "description": "Сумма в RUB, ровно два знака после запятой, например 1500.00.",
+                "nullable": true
+              },
+              "startAt": {
+                "type": "string",
+                "format": "date-time",
+                "description": "RFC 3339 с обязательным Z или UTC-offset; сервер возвращает UTC с Z."
+              },
+              "endAt": {
+                "type": "string",
+                "format": "date-time",
+                "description": "RFC 3339 с обязательным Z или UTC-offset; сервер возвращает UTC с Z."
+              },
+              "durationMinutes": {
+                "type": "integer",
+                "enum": [
+                  30,
+                  45,
+                  60,
+                  90,
+                  120
+                ]
+              },
+              "status": {
+                "$ref": "#/components/schemas/LessonStatus"
+              },
+              "cancelReason": {
+                "allOf": [
+                  {
+                    "$ref": "#/components/schemas/LessonCancelReason"
+                  }
+                ],
+                "nullable": true
+              },
+              "cancelComment": {
+                "type": "string",
+                "maxLength": 500,
+                "nullable": true
+              },
+              "cancelledByUserId": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 100,
+                "description": "Непрозрачный идентификатор User.",
+                "nullable": true
+              },
+              "cancelledAt": {
+                "type": "string",
+                "format": "date-time",
+                "description": "RFC 3339 с обязательным Z или UTC-offset; сервер возвращает UTC с Z.",
+                "nullable": true
+              }
+            },
+            "required": [
+              "id",
+              "teacher",
+              "participants",
+              "subjectCode",
+              "format",
+              "locationType",
+              "meetingUrl",
+              "offlineAddress",
+              "price",
+              "startAt",
+              "endAt",
+              "durationMinutes",
+              "status",
+              "cancelReason",
+              "cancelComment",
+              "cancelledByUserId",
+              "cancelledAt"
+            ]
           }
         ],
         "example": {
-          "format": "GROUP",
-          "studentUserIds": [
-            "u_002",
-            "u_003"
-          ]
+          "id": "l_001",
+          "teacher": {
+            "id": "u_001",
+            "firstName": "Алексей",
+            "lastName": "Иванов"
+          },
+          "participants": [
+            {
+              "id": "u_002",
+              "firstName": "Анна",
+              "lastName": "Петрова"
+            }
+          ],
+          "subjectCode": "MATH",
+          "format": "INDIVIDUAL",
+          "locationType": "ONLINE",
+          "meetingUrl": "https://meet.example/lesson-1",
+          "offlineAddress": null,
+          "price": "1500.00",
+          "startAt": "2026-09-07T15:00:00Z",
+          "endAt": "2026-09-07T16:00:00Z",
+          "durationMinutes": 60,
+          "status": "SCHEDULED",
+          "cancelReason": null,
+          "cancelComment": null,
+          "cancelledByUserId": null,
+          "cancelledAt": null
+        }
+      },
+      "StudentLessonResponse": {
+        "description": "Не содержит price и cancelledByUserId.",
+        "oneOf": [
+          {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+              "id": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 100,
+                "description": "Непрозрачный идентификатор LessonOccurrence."
+              },
+              "teacher": {
+                "$ref": "#/components/schemas/TeacherContactSummary"
+              },
+              "participants": {
+                "type": "array",
+                "items": {
+                  "$ref": "#/components/schemas/LessonParticipantSummary"
+                },
+                "minItems": 1,
+                "maxItems": 1
+              },
+              "subjectCode": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 50,
+                "pattern": "^[A-Z][A-Z0-9_]*$"
+              },
+              "format": {
+                "type": "string",
+                "enum": [
+                  "INDIVIDUAL"
+                ]
+              },
+              "locationType": {
+                "type": "string",
+                "enum": [
+                  "ONLINE"
+                ]
+              },
+              "meetingUrl": {
+                "type": "string",
+                "format": "uri",
+                "maxLength": 2048,
+                "nullable": true
+              },
+              "offlineAddress": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 500,
+                "nullable": true
+              },
+              "startAt": {
+                "type": "string",
+                "format": "date-time",
+                "description": "RFC 3339 с обязательным Z или UTC-offset; сервер возвращает UTC с Z."
+              },
+              "endAt": {
+                "type": "string",
+                "format": "date-time",
+                "description": "RFC 3339 с обязательным Z или UTC-offset; сервер возвращает UTC с Z."
+              },
+              "durationMinutes": {
+                "type": "integer",
+                "enum": [
+                  30,
+                  45,
+                  60,
+                  90,
+                  120
+                ]
+              },
+              "status": {
+                "$ref": "#/components/schemas/LessonStatus"
+              },
+              "cancelReason": {
+                "allOf": [
+                  {
+                    "$ref": "#/components/schemas/LessonCancelReason"
+                  }
+                ],
+                "nullable": true
+              },
+              "cancelComment": {
+                "type": "string",
+                "maxLength": 500,
+                "nullable": true
+              },
+              "cancelledAt": {
+                "type": "string",
+                "format": "date-time",
+                "description": "RFC 3339 с обязательным Z или UTC-offset; сервер возвращает UTC с Z.",
+                "nullable": true
+              }
+            },
+            "required": [
+              "id",
+              "teacher",
+              "participants",
+              "subjectCode",
+              "format",
+              "locationType",
+              "meetingUrl",
+              "offlineAddress",
+              "startAt",
+              "endAt",
+              "durationMinutes",
+              "status",
+              "cancelReason",
+              "cancelComment",
+              "cancelledAt"
+            ]
+          },
+          {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+              "id": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 100,
+                "description": "Непрозрачный идентификатор LessonOccurrence."
+              },
+              "teacher": {
+                "$ref": "#/components/schemas/TeacherContactSummary"
+              },
+              "participants": {
+                "type": "array",
+                "items": {
+                  "$ref": "#/components/schemas/LessonParticipantSummary"
+                },
+                "minItems": 1,
+                "maxItems": 1
+              },
+              "subjectCode": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 50,
+                "pattern": "^[A-Z][A-Z0-9_]*$"
+              },
+              "format": {
+                "type": "string",
+                "enum": [
+                  "INDIVIDUAL"
+                ]
+              },
+              "locationType": {
+                "type": "string",
+                "enum": [
+                  "OFFLINE"
+                ]
+              },
+              "meetingUrl": {
+                "type": "string",
+                "format": "uri",
+                "maxLength": 2048,
+                "nullable": true
+              },
+              "offlineAddress": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 500,
+                "nullable": true
+              },
+              "startAt": {
+                "type": "string",
+                "format": "date-time",
+                "description": "RFC 3339 с обязательным Z или UTC-offset; сервер возвращает UTC с Z."
+              },
+              "endAt": {
+                "type": "string",
+                "format": "date-time",
+                "description": "RFC 3339 с обязательным Z или UTC-offset; сервер возвращает UTC с Z."
+              },
+              "durationMinutes": {
+                "type": "integer",
+                "enum": [
+                  30,
+                  45,
+                  60,
+                  90,
+                  120
+                ]
+              },
+              "status": {
+                "$ref": "#/components/schemas/LessonStatus"
+              },
+              "cancelReason": {
+                "allOf": [
+                  {
+                    "$ref": "#/components/schemas/LessonCancelReason"
+                  }
+                ],
+                "nullable": true
+              },
+              "cancelComment": {
+                "type": "string",
+                "maxLength": 500,
+                "nullable": true
+              },
+              "cancelledAt": {
+                "type": "string",
+                "format": "date-time",
+                "description": "RFC 3339 с обязательным Z или UTC-offset; сервер возвращает UTC с Z.",
+                "nullable": true
+              }
+            },
+            "required": [
+              "id",
+              "teacher",
+              "participants",
+              "subjectCode",
+              "format",
+              "locationType",
+              "meetingUrl",
+              "offlineAddress",
+              "startAt",
+              "endAt",
+              "durationMinutes",
+              "status",
+              "cancelReason",
+              "cancelComment",
+              "cancelledAt"
+            ]
+          },
+          {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+              "id": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 100,
+                "description": "Непрозрачный идентификатор LessonOccurrence."
+              },
+              "teacher": {
+                "$ref": "#/components/schemas/TeacherContactSummary"
+              },
+              "participants": {
+                "type": "array",
+                "items": {
+                  "$ref": "#/components/schemas/LessonParticipantSummary"
+                },
+                "minItems": 2
+              },
+              "subjectCode": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 50,
+                "pattern": "^[A-Z][A-Z0-9_]*$"
+              },
+              "format": {
+                "type": "string",
+                "enum": [
+                  "GROUP"
+                ]
+              },
+              "locationType": {
+                "type": "string",
+                "enum": [
+                  "ONLINE"
+                ]
+              },
+              "meetingUrl": {
+                "type": "string",
+                "format": "uri",
+                "maxLength": 2048,
+                "nullable": true
+              },
+              "offlineAddress": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 500,
+                "nullable": true
+              },
+              "startAt": {
+                "type": "string",
+                "format": "date-time",
+                "description": "RFC 3339 с обязательным Z или UTC-offset; сервер возвращает UTC с Z."
+              },
+              "endAt": {
+                "type": "string",
+                "format": "date-time",
+                "description": "RFC 3339 с обязательным Z или UTC-offset; сервер возвращает UTC с Z."
+              },
+              "durationMinutes": {
+                "type": "integer",
+                "enum": [
+                  30,
+                  45,
+                  60,
+                  90,
+                  120
+                ]
+              },
+              "status": {
+                "$ref": "#/components/schemas/LessonStatus"
+              },
+              "cancelReason": {
+                "allOf": [
+                  {
+                    "$ref": "#/components/schemas/LessonCancelReason"
+                  }
+                ],
+                "nullable": true
+              },
+              "cancelComment": {
+                "type": "string",
+                "maxLength": 500,
+                "nullable": true
+              },
+              "cancelledAt": {
+                "type": "string",
+                "format": "date-time",
+                "description": "RFC 3339 с обязательным Z или UTC-offset; сервер возвращает UTC с Z.",
+                "nullable": true
+              }
+            },
+            "required": [
+              "id",
+              "teacher",
+              "participants",
+              "subjectCode",
+              "format",
+              "locationType",
+              "meetingUrl",
+              "offlineAddress",
+              "startAt",
+              "endAt",
+              "durationMinutes",
+              "status",
+              "cancelReason",
+              "cancelComment",
+              "cancelledAt"
+            ]
+          },
+          {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+              "id": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 100,
+                "description": "Непрозрачный идентификатор LessonOccurrence."
+              },
+              "teacher": {
+                "$ref": "#/components/schemas/TeacherContactSummary"
+              },
+              "participants": {
+                "type": "array",
+                "items": {
+                  "$ref": "#/components/schemas/LessonParticipantSummary"
+                },
+                "minItems": 2
+              },
+              "subjectCode": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 50,
+                "pattern": "^[A-Z][A-Z0-9_]*$"
+              },
+              "format": {
+                "type": "string",
+                "enum": [
+                  "GROUP"
+                ]
+              },
+              "locationType": {
+                "type": "string",
+                "enum": [
+                  "OFFLINE"
+                ]
+              },
+              "meetingUrl": {
+                "type": "string",
+                "format": "uri",
+                "maxLength": 2048,
+                "nullable": true
+              },
+              "offlineAddress": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 500,
+                "nullable": true
+              },
+              "startAt": {
+                "type": "string",
+                "format": "date-time",
+                "description": "RFC 3339 с обязательным Z или UTC-offset; сервер возвращает UTC с Z."
+              },
+              "endAt": {
+                "type": "string",
+                "format": "date-time",
+                "description": "RFC 3339 с обязательным Z или UTC-offset; сервер возвращает UTC с Z."
+              },
+              "durationMinutes": {
+                "type": "integer",
+                "enum": [
+                  30,
+                  45,
+                  60,
+                  90,
+                  120
+                ]
+              },
+              "status": {
+                "$ref": "#/components/schemas/LessonStatus"
+              },
+              "cancelReason": {
+                "allOf": [
+                  {
+                    "$ref": "#/components/schemas/LessonCancelReason"
+                  }
+                ],
+                "nullable": true
+              },
+              "cancelComment": {
+                "type": "string",
+                "maxLength": 500,
+                "nullable": true
+              },
+              "cancelledAt": {
+                "type": "string",
+                "format": "date-time",
+                "description": "RFC 3339 с обязательным Z или UTC-offset; сервер возвращает UTC с Z.",
+                "nullable": true
+              }
+            },
+            "required": [
+              "id",
+              "teacher",
+              "participants",
+              "subjectCode",
+              "format",
+              "locationType",
+              "meetingUrl",
+              "offlineAddress",
+              "startAt",
+              "endAt",
+              "durationMinutes",
+              "status",
+              "cancelReason",
+              "cancelComment",
+              "cancelledAt"
+            ]
+          }
+        ],
+        "example": {
+          "id": "l_001",
+          "teacher": {
+            "id": "u_001",
+            "email": "alex@example.com",
+            "firstName": "Алексей",
+            "lastName": "Иванов"
+          },
+          "participants": [
+            {
+              "id": "u_002",
+              "firstName": "Анна",
+              "lastName": "Петрова"
+            }
+          ],
+          "subjectCode": "MATH",
+          "format": "INDIVIDUAL",
+          "locationType": "ONLINE",
+          "meetingUrl": "https://meet.example/lesson-1",
+          "offlineAddress": null,
+          "startAt": "2026-09-07T15:00:00Z",
+          "endAt": "2026-09-07T16:00:00Z",
+          "durationMinutes": 60,
+          "status": "SCHEDULED",
+          "cancelReason": null,
+          "cancelComment": null,
+          "cancelledAt": null
+        }
+      },
+      "TeacherLessonPage": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "items": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/TeacherLessonResponse"
+            }
+          },
+          "nextCursor": {
+            "type": "string",
+            "nullable": true
+          }
+        },
+        "required": [
+          "items",
+          "nextCursor"
+        ]
+      },
+      "StudentLessonPage": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "items": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/StudentLessonResponse"
+            }
+          },
+          "nextCursor": {
+            "type": "string",
+            "nullable": true
+          }
+        },
+        "required": [
+          "items",
+          "nextCursor"
+        ]
+      },
+      "CancelLessonRequest": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "reason": {
+            "type": "string",
+            "enum": [
+              "ILLNESS",
+              "FAMILY",
+              "NOT_READY",
+              "OTHER"
+            ]
+          },
+          "comment": {
+            "type": "string",
+            "maxLength": 500
+          }
+        },
+        "required": [
+          "reason"
+        ],
+        "example": {
+          "reason": "OTHER",
+          "comment": "Не смогу провести занятие"
         }
       },
       "SetLessonStatusRequest": {
@@ -2216,7 +5094,7 @@
             "type": "string",
             "enum": [
               "COMPLETED",
-              "CANCELLED"
+              "MISSED"
             ]
           }
         },
@@ -2224,169 +5102,7 @@
           "status"
         ],
         "example": {
-          "status": "CANCELLED"
-        }
-      },
-      "StudentLessonResponse": {
-        "type": "object",
-        "additionalProperties": false,
-        "properties": {
-          "id": {
-            "type": "string",
-            "minLength": 1,
-            "description": "Идентификатор конкретного занятия; сохраняется при переносе."
-          },
-          "studentUserId": {
-            "type": "string",
-            "minLength": 1,
-            "description": "UserId: непрозрачная строка. Teacher определяется тем же UserId; отдельного TeacherId/StudentId нет."
-          },
-          "teacher": {
-            "$ref": "#/components/schemas/TeacherResponse"
-          },
-          "startAt": {
-            "type": "string",
-            "format": "date-time",
-            "description": "RFC 3339: дата, время и Z/offset обязательны. Ответ сервера — UTC с Z."
-          },
-          "endAt": {
-            "type": "string",
-            "format": "date-time",
-            "description": "RFC 3339: дата, время и Z/offset обязательны. Ответ сервера — UTC с Z."
-          },
-          "status": {
-            "$ref": "#/components/schemas/LessonStatus"
-          },
-          "format": {
-            "$ref": "#/components/schemas/LessonFormat"
-          }
-        },
-        "required": [
-          "id",
-          "studentUserId",
-          "teacher",
-          "startAt",
-          "endAt",
-          "status",
-          "format"
-        ],
-        "description": "Представление занятия для ученика. studentUserId совпадает с пользователем в URL. Другие участники и email не раскрываются. StudentLessonResponse — DTO, не новая domain entity.",
-        "example": {
-          "id": "l_002",
-          "studentUserId": "u_001",
-          "teacher": {
-            "user": {
-              "id": "u_003",
-              "firstName": "Мария",
-              "lastName": "Смирнова"
-            }
-          },
-          "startAt": "2026-09-08T09:00:00Z",
-          "endAt": "2026-09-08T10:00:00Z",
-          "status": "SCHEDULED",
-          "format": "GROUP"
-        }
-      },
-      "TeacherCalendarResponse": {
-        "type": "object",
-        "additionalProperties": false,
-        "properties": {
-          "from": {
-            "type": "string",
-            "format": "date-time",
-            "description": "RFC 3339: дата, время и Z/offset обязательны. Ответ сервера — UTC с Z."
-          },
-          "to": {
-            "type": "string",
-            "format": "date-time",
-            "description": "RFC 3339: дата, время и Z/offset обязательны. Ответ сервера — UTC с Z."
-          },
-          "items": {
-            "type": "array",
-            "items": {
-              "$ref": "#/components/schemas/TeacherLessonResponse"
-            }
-          }
-        },
-        "required": [
-          "from",
-          "to",
-          "items"
-        ],
-        "example": {
-          "from": "2026-09-06T21:00:00Z",
-          "to": "2026-09-13T21:00:00Z",
-          "items": [
-            {
-              "id": "l_001",
-              "teacher": {
-                "user": {
-                  "id": "u_001",
-                  "firstName": "Алексей",
-                  "lastName": "Иванов"
-                }
-              },
-              "students": [
-                {
-                  "id": "u_002",
-                  "firstName": "Анна",
-                  "lastName": "Петрова"
-                }
-              ],
-              "startAt": "2026-09-07T15:00:00Z",
-              "endAt": "2026-09-07T16:00:00Z",
-              "status": "SCHEDULED",
-              "format": "INDIVIDUAL"
-            }
-          ]
-        }
-      },
-      "StudentCalendarResponse": {
-        "type": "object",
-        "additionalProperties": false,
-        "properties": {
-          "from": {
-            "type": "string",
-            "format": "date-time",
-            "description": "RFC 3339: дата, время и Z/offset обязательны. Ответ сервера — UTC с Z."
-          },
-          "to": {
-            "type": "string",
-            "format": "date-time",
-            "description": "RFC 3339: дата, время и Z/offset обязательны. Ответ сервера — UTC с Z."
-          },
-          "items": {
-            "type": "array",
-            "items": {
-              "$ref": "#/components/schemas/StudentLessonResponse"
-            }
-          }
-        },
-        "required": [
-          "from",
-          "to",
-          "items"
-        ],
-        "example": {
-          "from": "2026-09-06T21:00:00Z",
-          "to": "2026-09-13T21:00:00Z",
-          "items": [
-            {
-              "id": "l_002",
-              "studentUserId": "u_001",
-              "teacher": {
-                "user": {
-                  "id": "u_003",
-                  "firstName": "Мария",
-                  "lastName": "Смирнова"
-                }
-              },
-              "startAt": "2026-09-08T09:00:00Z",
-              "endAt": "2026-09-08T10:00:00Z",
-              "status": "SCHEDULED",
-              "format": "GROUP"
-            }
-          ]
+          "status": "COMPLETED"
         }
       },
       "FieldError": {
@@ -2409,27 +5125,36 @@
           "message"
         ]
       },
+      "ErrorCode": {
+        "type": "string",
+        "enum": [
+          "VALIDATION_ERROR",
+          "UNKNOWN_SUBJECT",
+          "UNAUTHENTICATED",
+          "INVALID_CREDENTIALS",
+          "EMAIL_NOT_VERIFIED",
+          "FORBIDDEN",
+          "NOT_FOUND",
+          "PROFILE_NOT_FOUND",
+          "EMAIL_ALREADY_EXISTS",
+          "INVALID_VERIFICATION_TOKEN",
+          "INVITATION_ALREADY_PENDING",
+          "INVITATION_EXPIRED",
+          "INVALID_INVITATION_STATE",
+          "ALREADY_LINKED",
+          "STUDENT_NOT_LINKED",
+          "LESSON_OVERLAP",
+          "INVALID_LESSON_STATE",
+          "RATE_LIMIT_EXCEEDED",
+          "INTERNAL_ERROR"
+        ]
+      },
       "ApiError": {
         "type": "object",
         "additionalProperties": false,
         "properties": {
           "code": {
-            "type": "string",
-            "enum": [
-              "VALIDATION_ERROR",
-              "INVALID_INTERVAL",
-              "EMAIL_ALREADY_EXISTS",
-              "UNAUTHENTICATED",
-              "FORBIDDEN",
-              "NOT_FOUND",
-              "INVALID_LESSON_STATE",
-              "STUDENT_NOT_LINKED",
-              "LESSON_NOT_ENDED",
-              "INVITATION_ALREADY_PENDING",
-              "INVALID_INVITATION",
-              "INVITATION_EXPIRED",
-              "INTERNAL_ERROR"
-            ]
+            "$ref": "#/components/schemas/ErrorCode"
           },
           "message": {
             "type": "string"
@@ -2439,240 +5164,23 @@
             "items": {
               "$ref": "#/components/schemas/FieldError"
             }
+          },
+          "requestId": {
+            "type": "string",
+            "minLength": 1
           }
         },
         "required": [
           "code",
           "message",
-          "fieldErrors"
+          "fieldErrors",
+          "requestId"
         ],
         "example": {
-          "code": "VALIDATION_ERROR",
-          "message": "Для индивидуального занятия нужен ровно один ученик",
-          "fieldErrors": [
-            {
-              "field": "studentUserIds",
-              "code": "FORMAT_PARTICIPANTS_MISMATCH",
-              "message": "Измените состав или формат занятия"
-            }
-          ]
-        }
-      },
-      "CreateLessonRequest": {
-        "description": "Создать одно занятие. Все поля обязательны. INDIVIDUAL — один ученик, GROUP — минимум один.",
-        "oneOf": [
-          {
-            "type": "object",
-            "additionalProperties": false,
-            "properties": {
-              "studentUserIds": {
-                "type": "array",
-                "items": {
-                  "type": "string",
-                  "minLength": 1,
-                  "description": "UserId: непрозрачная строка. Teacher определяется тем же UserId; отдельного TeacherId/StudentId нет."
-                },
-                "minItems": 1,
-                "uniqueItems": true,
-                "description": "UserId учеников, не StudentId. Преподаватель не может входить в собственный состав.",
-                "maxItems": 1
-              },
-              "startAt": {
-                "type": "string",
-                "format": "date-time",
-                "description": "RFC 3339: дата, время и Z/offset обязательны. Ответ сервера — UTC с Z."
-              },
-              "endAt": {
-                "type": "string",
-                "format": "date-time",
-                "description": "RFC 3339: дата, время и Z/offset обязательны. Ответ сервера — UTC с Z."
-              },
-              "format": {
-                "type": "string",
-                "enum": [
-                  "INDIVIDUAL"
-                ]
-              }
-            },
-            "required": [
-              "studentUserIds",
-              "startAt",
-              "endAt",
-              "format"
-            ]
-          },
-          {
-            "type": "object",
-            "additionalProperties": false,
-            "properties": {
-              "studentUserIds": {
-                "type": "array",
-                "items": {
-                  "type": "string",
-                  "minLength": 1,
-                  "description": "UserId: непрозрачная строка. Teacher определяется тем же UserId; отдельного TeacherId/StudentId нет."
-                },
-                "minItems": 1,
-                "uniqueItems": true,
-                "description": "UserId учеников, не StudentId. Преподаватель не может входить в собственный состав."
-              },
-              "startAt": {
-                "type": "string",
-                "format": "date-time",
-                "description": "RFC 3339: дата, время и Z/offset обязательны. Ответ сервера — UTC с Z."
-              },
-              "endAt": {
-                "type": "string",
-                "format": "date-time",
-                "description": "RFC 3339: дата, время и Z/offset обязательны. Ответ сервера — UTC с Z."
-              },
-              "format": {
-                "type": "string",
-                "enum": [
-                  "GROUP"
-                ]
-              }
-            },
-            "required": [
-              "studentUserIds",
-              "startAt",
-              "endAt",
-              "format"
-            ]
-          }
-        ],
-        "example": {
-          "studentUserIds": [
-            "u_002"
-          ],
-          "startAt": "2026-09-07T18:00:00+03:00",
-          "endAt": "2026-09-07T19:00:00+03:00",
-          "format": "INDIVIDUAL"
-        }
-      },
-      "TeacherLessonResponse": {
-        "description": "Полный состав виден преподавателю; ссылки на User передаются как UserSummary. Имена актуальные.",
-        "oneOf": [
-          {
-            "type": "object",
-            "additionalProperties": false,
-            "properties": {
-              "id": {
-                "type": "string",
-                "minLength": 1,
-                "description": "Идентификатор конкретного занятия; сохраняется при переносе."
-              },
-              "teacher": {
-                "$ref": "#/components/schemas/TeacherResponse"
-              },
-              "students": {
-                "type": "array",
-                "items": {
-                  "$ref": "#/components/schemas/UserSummary"
-                },
-                "minItems": 1,
-                "maxItems": 1
-              },
-              "startAt": {
-                "type": "string",
-                "format": "date-time",
-                "description": "RFC 3339: дата, время и Z/offset обязательны. Ответ сервера — UTC с Z."
-              },
-              "endAt": {
-                "type": "string",
-                "format": "date-time",
-                "description": "RFC 3339: дата, время и Z/offset обязательны. Ответ сервера — UTC с Z."
-              },
-              "status": {
-                "$ref": "#/components/schemas/LessonStatus"
-              },
-              "format": {
-                "type": "string",
-                "enum": [
-                  "INDIVIDUAL"
-                ]
-              }
-            },
-            "required": [
-              "id",
-              "teacher",
-              "students",
-              "startAt",
-              "endAt",
-              "status",
-              "format"
-            ]
-          },
-          {
-            "type": "object",
-            "additionalProperties": false,
-            "properties": {
-              "id": {
-                "type": "string",
-                "minLength": 1,
-                "description": "Идентификатор конкретного занятия; сохраняется при переносе."
-              },
-              "teacher": {
-                "$ref": "#/components/schemas/TeacherResponse"
-              },
-              "students": {
-                "type": "array",
-                "items": {
-                  "$ref": "#/components/schemas/UserSummary"
-                },
-                "minItems": 1
-              },
-              "startAt": {
-                "type": "string",
-                "format": "date-time",
-                "description": "RFC 3339: дата, время и Z/offset обязательны. Ответ сервера — UTC с Z."
-              },
-              "endAt": {
-                "type": "string",
-                "format": "date-time",
-                "description": "RFC 3339: дата, время и Z/offset обязательны. Ответ сервера — UTC с Z."
-              },
-              "status": {
-                "$ref": "#/components/schemas/LessonStatus"
-              },
-              "format": {
-                "type": "string",
-                "enum": [
-                  "GROUP"
-                ]
-              }
-            },
-            "required": [
-              "id",
-              "teacher",
-              "students",
-              "startAt",
-              "endAt",
-              "status",
-              "format"
-            ]
-          }
-        ],
-        "example": {
-          "id": "l_001",
-          "teacher": {
-            "user": {
-              "id": "u_001",
-              "firstName": "Алексей",
-              "lastName": "Иванов"
-            }
-          },
-          "students": [
-            {
-              "id": "u_002",
-              "firstName": "Анна",
-              "lastName": "Петрова"
-            }
-          ],
-          "startAt": "2026-09-07T15:00:00Z",
-          "endAt": "2026-09-07T16:00:00Z",
-          "status": "SCHEDULED",
-          "format": "INDIVIDUAL"
+          "code": "LESSON_OVERLAP",
+          "message": "Участник уже занят в это время",
+          "fieldErrors": [],
+          "requestId": "req_001"
         }
       }
     }
