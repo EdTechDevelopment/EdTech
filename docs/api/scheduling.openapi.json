@@ -2,8 +2,8 @@
   "openapi": "3.0.3",
   "info": {
     "title": "Tutoring people and scheduling API",
-    "version": "0.2.0",
-    "description": "Контракт обновлён под User, Teacher и LessonOccurrence. User — человек, не аккаунт; Teacher идентифицируется его UserId. Отдельных TeacherProfile, StudentProfile, StudentId и глобальной записываемой роли STUDENT нет. DTO для режима ученика не создаёт новую доменную сущность. people и scheduling — предлагаемые границы backend. Без LessonSeries. Bearer — предварительное соглашение транспорта, выдача токенов вне контракта."
+    "version": "0.3.0",
+    "description": "User — зарегистрированный аккаунт: email и password обязательны при создании. Password только write-only и не входит в ответы. Teacher идентифицируется UserId; отдельного Student нет. Новых учеников приглашают по email, преподаватель не создаёт им пароль. DTO режима ученика не является domain entity. Модули people, identity, scheduling и notifications разделены. Без LessonSeries."
   },
   "servers": [
     {
@@ -30,8 +30,8 @@
         "tags": [
           "People"
         ],
-        "summary": "Создать человека",
-        "description": "Создаёт бизнес-запись User без аккаунта. Создатель получает право управления созданным User. Пропущенные lastName/email становятся \"\"/null. Имя и email не используются для автоматического объединения людей.",
+        "summary": "Зарегистрировать пользователя",
+        "description": "Создаёт User и аккаунт для входа. Email и пароль обязательны. Email уникален без учёта регистра. Пароль хешируется и никогда не возвращается. Пропущенный lastName становится \"\". Повтор email — 409 EMAIL_ALREADY_EXISTS.",
         "parameters": [],
         "requestBody": {
           "required": true,
@@ -114,7 +114,8 @@
               }
             }
           }
-        }
+        },
+        "security": []
       }
     },
     "/users/{userId}": {
@@ -124,7 +125,7 @@
           "People"
         ],
         "summary": "Получить общий профиль",
-        "description": "Только собственный или явно доступный профиль. Это не endpoint чтения аккаунта или пароля.",
+        "description": "Только собственный или явно доступный профиль. Пароль и его хеш никогда не возвращаются.",
         "parameters": [
           {
             "name": "userId",
@@ -591,108 +592,6 @@
             }
           }
         }
-      },
-      "post": {
-        "operationId": "createAndLinkStudent",
-        "tags": [
-          "People"
-        ],
-        "summary": "Создать User и добавить в ученики",
-        "description": "Удобная атомарная операция: новый User плюс связь Teacher.students. Teacher должен существовать и быть доступен для изменения. Аккаунт и StudentProfile не создаются. Начальные значения как POST /users. Создатель получает право редактировать созданный User.",
-        "parameters": [
-          {
-            "name": "teacherUserId",
-            "in": "path",
-            "required": true,
-            "schema": {
-              "type": "string",
-              "minLength": 1,
-              "description": "UserId: непрозрачная строка. Teacher определяется тем же UserId; отдельного TeacherId/StudentId нет."
-            }
-          }
-        ],
-        "requestBody": {
-          "required": true,
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/CreateUserRequest"
-              }
-            }
-          }
-        },
-        "responses": {
-          "201": {
-            "description": "Created",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/UserResponse"
-                }
-              }
-            }
-          },
-          "400": {
-            "description": "Ошибка формата, полей, интервала или инвариантов",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ApiError"
-                }
-              }
-            }
-          },
-          "401": {
-            "description": "Не аутентифицирован",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ApiError"
-                }
-              }
-            }
-          },
-          "403": {
-            "description": "Действие запрещено",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ApiError"
-                }
-              }
-            }
-          },
-          "404": {
-            "description": "Ресурс не найден или его существование не раскрывается",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ApiError"
-                }
-              }
-            }
-          },
-          "409": {
-            "description": "Конфликт состояния занятия или отсутствует требуемая связь с учеником",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ApiError"
-                }
-              }
-            }
-          },
-          "500": {
-            "description": "Внутренняя ошибка",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ApiError"
-                }
-              }
-            }
-          }
-        }
       }
     },
     "/users/{userId}/teachers": {
@@ -778,6 +677,197 @@
           },
           "404": {
             "description": "Ресурс не найден или его существование не раскрывается",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Внутренняя ошибка",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/teachers/{teacherUserId}/student-invitations": {
+      "post": {
+        "operationId": "inviteStudent",
+        "tags": [
+          "People"
+        ],
+        "summary": "Пригласить ученика по email",
+        "description": "Преподаватель не задаёт чужой пароль. Создаётся приглашение со сроком действия; доставка письма относится к notifications. Если User с email уже существует, приглашение связывается с ним после принятия. Повтор активного приглашения — 409 INVITATION_ALREADY_PENDING.",
+        "parameters": [
+          {
+            "name": "teacherUserId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "minLength": 1,
+              "description": "UserId: непрозрачная строка. Teacher определяется тем же UserId; отдельного TeacherId/StudentId нет."
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateStudentInvitationRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Created",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/StudentInvitationResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Ошибка формата, полей, интервала или инвариантов",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Не аутентифицирован",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Действие запрещено",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Ресурс не найден или его существование не раскрывается",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Конфликт состояния занятия или отсутствует требуемая связь с учеником",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Внутренняя ошибка",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/student-invitations/{invitationId}/accept": {
+      "post": {
+        "operationId": "acceptStudentInvitation",
+        "tags": [
+          "People"
+        ],
+        "summary": "Принять приглашение преподавателя",
+        "description": "Текущий аутентифицированный User может принять только приглашение на свой email. Принятие атомарно создаёт связь Teacher.students. Повтор принятого приглашения успешен; неверное или просроченное — 409 INVALID_INVITATION/INVITATION_EXPIRED.",
+        "parameters": [
+          {
+            "name": "invitationId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "minLength": 1,
+              "description": "Непрозрачный идентификатор приглашения."
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "No content"
+          },
+          "400": {
+            "description": "Ошибка формата, полей, интервала или инвариантов",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Не аутентифицирован",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Действие запрещено",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Ресурс не найден или его существование не раскрывается",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Конфликт состояния занятия или отсутствует требуемая связь с учеником",
             "content": {
               "application/json": {
                 "schema": {
@@ -1796,7 +1886,7 @@
             "type": "string",
             "format": "email",
             "maxLength": 254,
-            "nullable": true
+            "description": "Обязательный уникальный email аккаунта."
           }
         },
         "required": [
@@ -1851,15 +1941,28 @@
             "type": "string",
             "format": "email",
             "maxLength": 254,
-            "nullable": true
+            "description": "Обязательный уникальный email аккаунта."
+          },
+          "password": {
+            "type": "string",
+            "format": "password",
+            "minLength": 8,
+            "maxLength": 128,
+            "writeOnly": true,
+            "description": "Обязателен только при регистрации. Никогда не возвращается в ответе и не хранится в открытом виде."
           }
         },
         "required": [
-          "firstName"
+          "firstName",
+          "email",
+          "password"
         ],
+        "description": "Регистрация аккаунта. Email и пароль обязательны; password является write-only.",
         "example": {
           "firstName": "Анна",
-          "lastName": "Петрова"
+          "lastName": "Петрова",
+          "email": "anna@example.com",
+          "password": "example-password"
         }
       },
       "UpdateUserRequest": {
@@ -1880,13 +1983,13 @@
             "type": "string",
             "format": "email",
             "maxLength": 254,
-            "nullable": true
+            "description": "Обязательный уникальный email аккаунта."
           }
         },
         "minProperties": 1,
-        "description": "Пропуск сохраняет значение. email:null очищает контакт; lastName:\"\" очищает фамилию. Роли/пароли не принимаются.",
+        "description": "Пропуск сохраняет значение. lastName:\"\" очищает фамилию. Email нельзя очистить. Пароль меняется отдельным auth-сценарием.",
         "example": {
-          "email": null
+          "firstName": "Александр"
         }
       },
       "UserPage": {
@@ -1949,6 +2052,81 @@
             }
           ],
           "nextCursor": null
+        }
+      },
+      "InvitationStatus": {
+        "type": "string",
+        "enum": [
+          "PENDING",
+          "ACCEPTED",
+          "EXPIRED",
+          "CANCELLED"
+        ]
+      },
+      "CreateStudentInvitationRequest": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "email": {
+            "type": "string",
+            "format": "email",
+            "maxLength": 254,
+            "description": "Обязательный уникальный email аккаунта."
+          }
+        },
+        "required": [
+          "email"
+        ],
+        "example": {
+          "email": "anna@example.com"
+        }
+      },
+      "StudentInvitationResponse": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "id": {
+            "type": "string",
+            "minLength": 1,
+            "description": "Непрозрачный идентификатор приглашения."
+          },
+          "teacher": {
+            "$ref": "#/components/schemas/TeacherResponse"
+          },
+          "email": {
+            "type": "string",
+            "format": "email",
+            "maxLength": 254,
+            "description": "Обязательный уникальный email аккаунта."
+          },
+          "status": {
+            "$ref": "#/components/schemas/InvitationStatus"
+          },
+          "expiresAt": {
+            "type": "string",
+            "format": "date-time",
+            "description": "RFC 3339: дата, время и Z/offset обязательны. Ответ сервера — UTC с Z."
+          }
+        },
+        "required": [
+          "id",
+          "teacher",
+          "email",
+          "status",
+          "expiresAt"
+        ],
+        "example": {
+          "id": "inv_001",
+          "teacher": {
+            "user": {
+              "id": "u_001",
+              "firstName": "Алексей",
+              "lastName": "Иванов"
+            }
+          },
+          "email": "anna@example.com",
+          "status": "PENDING",
+          "expiresAt": "2026-09-13T15:00:00Z"
         }
       },
       "LessonStatus": {
@@ -2240,12 +2418,16 @@
             "enum": [
               "VALIDATION_ERROR",
               "INVALID_INTERVAL",
+              "EMAIL_ALREADY_EXISTS",
               "UNAUTHENTICATED",
               "FORBIDDEN",
               "NOT_FOUND",
               "INVALID_LESSON_STATE",
               "STUDENT_NOT_LINKED",
               "LESSON_NOT_ENDED",
+              "INVITATION_ALREADY_PENDING",
+              "INVALID_INVITATION",
+              "INVITATION_EXPIRED",
               "INTERNAL_ERROR"
             ]
           },
