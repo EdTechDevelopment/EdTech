@@ -47,7 +47,12 @@
 ## Важные инварианты
 
 - Пользователь может иметь обе роли и по одному профилю каждой роли.
+- При регистрации обязательны email, пароль, имя, фамилия и минимум одна роль.
+- Исходный пароль присутствует только в запросах регистрации и входа. API никогда не возвращает пароль или `passwordHash`.
 - Регистрация не создаёт сессию до подтверждения email.
+- `pendingEmail` содержит новый адрес, ожидающий подтверждения, либо `null`; это не логический флаг.
+- Возраст не хранится в `User` и при необходимости вычисляется из `StudentProfile.birthDate`.
+- `TeacherProfile` и `StudentProfile` связаны с аккаунтом по `userId` в доменной модели Tutoring. Вложенный `user` в DTO ответа — композиция данных для frontend, а не владение аккаунтом со стороны профиля.
 - Приглашение остаётся `PENDING` до явного принятия учеником.
 - Индивидуальный урок содержит одного ученика, групповой — минимум двух.
 - Создание принимает `startAt` и ровно одно из `endAt`/`durationMinutes`.
@@ -63,7 +68,7 @@
 |---|---|---|
 | `UserRole` | enum | `TEACHER`, `STUDENT` |
 | `UserStatus` | enum | `PENDING_EMAIL_VERIFICATION`, `ACTIVE` |
-| `UserResponse` | object | `id`, `email`, `firstName`, `lastName`, `roles`, `status`, `pendingEmail`, `emailVerifiedAt` |
+| `UserResponse` | object | `id`, `email`, `pendingEmail`, `firstName`, `lastName`, `roles`, `status`, `emailVerifiedAt`, `createdAt`, `updatedAt` |
 | `UserSummary` | object | `id`, `firstName`, `lastName` |
 | `TeacherSummary` | object | `id`, `firstName`, `lastName` |
 | `TeacherContactSummary` | object | `id`, `email`, `firstName`, `lastName` |
@@ -109,11 +114,75 @@
 | `ErrorCode` | enum | `VALIDATION_ERROR`, `UNKNOWN_SUBJECT`, `UNAUTHENTICATED`, `INVALID_CREDENTIALS`, `EMAIL_NOT_VERIFIED`, `FORBIDDEN`, `NOT_FOUND`, `PROFILE_NOT_FOUND`, `EMAIL_ALREADY_EXISTS`, `INVALID_VERIFICATION_TOKEN`, `INVITATION_ALREADY_PENDING`, `INVITATION_EXPIRED`, `INVALID_INVITATION_STATE`, `ALREADY_LINKED`, `STUDENT_NOT_LINKED`, `LESSON_OVERLAP`, `INVALID_LESSON_STATE`, `RATE_LIMIT_EXCEEDED`, `INTERNAL_ERROR` |
 | `ApiError` | object | `code`, `message`, `fieldErrors`, `requestId` |
 
+## Контракты аккаунта
+
+### `RegisterRequest`
+
+Все поля обязательны. `roles` содержит одну или обе роли без повторений.
+
+```json
+{
+  "email": "anna@example.com",
+  "password": "example-password",
+  "firstName": "Анна",
+  "lastName": "Петрова",
+  "roles": ["STUDENT"]
+}
+```
+
+| Поле | Тип | Ограничения |
+|---|---|---|
+| `email` | string | Корректный email, максимум 254 символа, уникален без учёта регистра |
+| `password` | string | От 8 до 128 символов, только для записи |
+| `firstName` | string | От 1 до 100 символов после `trim` |
+| `lastName` | string | От 1 до 100 символов после `trim` |
+| `roles` | `UserRole[]` | От 1 до 2 уникальных значений: `TEACHER`, `STUDENT` |
+
+После регистрации сервер хранит bcrypt-хэш пароля, создаёт пользователя со статусом `PENDING_EMAIL_VERIFICATION`, отправляет письмо и отвечает `202 VerificationPendingResponse`. Сессия появляется только после подтверждения email.
+
+### `UserResponse`
+
+```json
+{
+  "id": "u_002",
+  "email": "anna@example.com",
+  "pendingEmail": null,
+  "firstName": "Анна",
+  "lastName": "Петрова",
+  "roles": ["STUDENT"],
+  "status": "ACTIVE",
+  "emailVerifiedAt": "2026-09-06T12:00:00Z",
+  "createdAt": "2026-09-06T11:55:00Z",
+  "updatedAt": "2026-09-06T12:00:00Z"
+}
+```
+
+Все поля ответа обязательны. `pendingEmail` и `emailVerifiedAt` могут быть `null`. Множество ролей сериализуется в JSON-массив. `password`, `passwordHash`, токены и сведения о серверной сессии в ответ не входят.
+
+### `UpdateMeRequest`
+
+Запрос содержит хотя бы одно поле из `firstName`, `lastName`, `email`:
+
+```json
+{
+  "firstName": "Анна-Мария",
+  "email": "anna.new@example.com"
+}
+```
+
+Имя и фамилия меняются сразу. Новый email записывается в `pendingEmail`, а поле `email` сохраняет прежнее значение до подтверждения. После подтверждения `email` получает новый адрес, `pendingEmail` становится `null`, `emailVerifiedAt` и `updatedAt` обновляются. Роли и пароль этим запросом не изменяются.
+
+### Профили
+
+`TeacherProfile` и `StudentProfile` принадлежат модулю Tutoring и связаны с `User` через его идентификатор. Email, имя, фамилия, роли, состояние аккаунта и пароль в профилях не хранятся. `TeacherProfileResponse` и `StudentProfileResponse` включают `user: UserResponse`, чтобы frontend получил готовую составную модель одним запросом.
+
 ## Операции
 
 ### `POST /api/v1/auth/register`
 
 Зарегистрировать пользователя.
+
+Обязательны email, пароль, имя, фамилия и минимум одна роль. Создаёт аккаунт PENDING_EMAIL_VERIFICATION без сессии.
 
 **Авторизация:** Не требуется.
 
@@ -230,6 +299,8 @@
 ### `PATCH /api/v1/me`
 
 Изменить общие данные текущего пользователя.
+
+При смене email текущий адрес сохраняется в email, а новый записывается в pendingEmail до подтверждения.
 
 **Авторизация:** Серверная сессия `SESSION`.
 

@@ -8,12 +8,14 @@ export type UserStatus = "PENDING_EMAIL_VERIFICATION" | "ACTIVE";
 export type UserResponse = {
   id: string;
   email: string;
+  pendingEmail: string | null;
   firstName: string;
   lastName: string;
   roles: Array<UserRole>;
   status: UserStatus;
-  pendingEmail: string | null;
   emailVerifiedAt: string | null;
+  createdAt: string;
+  updatedAt: string;
 };
 
 export type UserSummary = {

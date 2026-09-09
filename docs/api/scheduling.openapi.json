@@ -41,6 +41,7 @@
         ],
         "summary": "Зарегистрировать пользователя",
         "security": [],
+        "description": "Обязательны email, пароль, имя, фамилия и минимум одна роль. Создаёт аккаунт PENDING_EMAIL_VERIFICATION без сессии.",
         "requestBody": {
           "required": true,
           "content": {
@@ -425,6 +426,7 @@
             "$ref": "#/components/parameters/CsrfHeader"
           }
         ],
+        "description": "При смене email текущий адрес сохраняется в email, а новый записывается в pendingEmail до подтверждения.",
         "requestBody": {
           "required": true,
           "content": {
@@ -2328,6 +2330,13 @@
             "format": "email",
             "maxLength": 254
           },
+          "pendingEmail": {
+            "type": "string",
+            "format": "email",
+            "maxLength": 254,
+            "description": "Новый email, ожидающий подтверждения. Текущий email остаётся в поле email до подтверждения.",
+            "nullable": true
+          },
           "firstName": {
             "type": "string",
             "minLength": 1,
@@ -2352,40 +2361,48 @@
           "status": {
             "$ref": "#/components/schemas/UserStatus"
           },
-          "pendingEmail": {
-            "type": "string",
-            "format": "email",
-            "maxLength": 254,
-            "nullable": true
-          },
           "emailVerifiedAt": {
             "type": "string",
             "format": "date-time",
             "description": "RFC 3339 с обязательным Z или UTC-offset; сервер возвращает UTC с Z.",
             "nullable": true
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time",
+            "description": "Момент создания аккаунта; сервер возвращает UTC с Z."
+          },
+          "updatedAt": {
+            "type": "string",
+            "format": "date-time",
+            "description": "Момент последнего изменения аккаунта; сервер возвращает UTC с Z."
           }
         },
         "required": [
           "id",
           "email",
+          "pendingEmail",
           "firstName",
           "lastName",
           "roles",
           "status",
-          "pendingEmail",
-          "emailVerifiedAt"
+          "emailVerifiedAt",
+          "createdAt",
+          "updatedAt"
         ],
         "example": {
           "id": "u_002",
           "email": "anna@example.com",
+          "pendingEmail": null,
           "firstName": "Анна",
           "lastName": "Петрова",
           "roles": [
             "STUDENT"
           ],
           "status": "ACTIVE",
-          "pendingEmail": null,
-          "emailVerifiedAt": "2026-09-06T12:00:00Z"
+          "emailVerifiedAt": "2026-09-06T12:00:00Z",
+          "createdAt": "2026-09-06T11:55:00Z",
+          "updatedAt": "2026-09-06T12:00:00Z"
         }
       },
       "UserSummary": {
@@ -2675,7 +2692,8 @@
         "minProperties": 1,
         "description": "Минимум одно поле. Роли и пароль не изменяются.",
         "example": {
-          "firstName": "Анна-Мария"
+          "firstName": "Анна-Мария",
+          "email": "anna.new@example.com"
         }
       },
       "SubjectResponse": {

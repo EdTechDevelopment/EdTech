@@ -25,17 +25,20 @@
   "UserResponse": {
     "id": "u_002",
     "email": "anna@example.com",
+    "pendingEmail": null,
     "firstName": "Анна",
     "lastName": "Петрова",
     "roles": [
       "STUDENT"
     ],
     "status": "ACTIVE",
-    "pendingEmail": null,
-    "emailVerifiedAt": "2026-09-06T12:00:00Z"
+    "emailVerifiedAt": "2026-09-06T12:00:00Z",
+    "createdAt": "2026-09-06T11:55:00Z",
+    "updatedAt": "2026-09-06T12:00:00Z"
   },
   "UpdateMeRequest": {
-    "firstName": "Анна-Мария"
+    "firstName": "Анна-Мария",
+    "email": "anna.new@example.com"
   },
   "TeacherProfileUpsertRequest": {
     "subjectCodes": [
