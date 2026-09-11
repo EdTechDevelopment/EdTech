@@ -1,0 +1,63 @@
+<!doctype html>
+<html lang="ru">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>identity.presentation.account.controller</title>
+  <link rel="stylesheet" href="package.css">
+</head>
+<body>
+  <main class="page">
+    <nav class="breadcrumb"><span>Identity</span><span>›</span><span>presentation › account › controller</span></nav>
+    <header class="package-header">
+      <div>
+        <div class="eyebrow">PACKAGE</div>
+        <h1>controller</h1>
+        <code>identity.presentation.account.controller</code>
+      </div>
+      <a class="secondary" href="../content/Package_MWUhCQWGAqAAZguu.html">Исходная спецификация VP</a>
+    </header>
+
+    <section class="summary-grid">
+      <article class="description-panel">
+        <h2>Назначение пакета</h2>
+        <div class="description"><p>Содержит REST-контроллеры операций текущего аккаунта.</p><p>Контроллер получает идентификатор текущего пользователя из контекста</p><p>Spring Security, преобразует HTTP-запрос в application-команду</p><p>и вызывает входной application-порт.</p><p>Контроллер не должен принимать идентификатор изменяемого пользователя</p><p>из request body или path parameter.</p></div>
+      </article>
+      <aside class="stats-panel">
+        <div><strong>0</strong><span>дочерних пакетов</span></div>
+        <div><strong>1</strong><span>элементов</span></div>
+      </aside>
+    </section>
+
+    <section class="content-section">
+      <div class="section-heading"><h2>Дочерние пакеты</h2><span>0</span></div>
+      <div class="card-grid"><div class="empty-state">Вложенных пакетов нет</div></div>
+    </section>
+
+    <section class="content-section">
+      <div class="section-heading"><h2>Классы и интерфейсы</h2><span>1</span></div>
+      <div class="element-list">
+            <a class="element-card" href="../content/Class_AcXNCQWGAqAAZhA2.html">
+              <div class="card-icon element-icon">◇</div>
+              <div>
+                <div class="card-title">CurrentUserController</div>
+                <div class="type-badge">Класс</div>
+                <div class="card-description">HTTP-точка входа для изменения общих данных текущего пользователя.
+
+Получает userId из claim sub подтверждённого access JWT. Принимает
+
+изменение имени, фамилии или email и передаёт его
+
+UpdateCurrentUserUseCase.
+
+Контроллер не изменяет User самостоятельно и не решает, можно ли
+
+использовать новый email.</div>
+              </div>
+              <span class="open-arrow">›</span>
+            </a>
+            </div>
+    </section>
+  </main>
+</body>
+</html>

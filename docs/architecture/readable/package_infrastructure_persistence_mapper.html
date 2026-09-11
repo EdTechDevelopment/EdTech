@@ -1,0 +1,81 @@
+<!doctype html>
+<html lang="ru">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>identity.infrastructure.persistence.mapper</title>
+  <link rel="stylesheet" href="package.css">
+</head>
+<body>
+  <main class="page">
+    <nav class="breadcrumb"><span>Identity</span><span>›</span><span>infrastructure › persistence › mapper</span></nav>
+    <header class="package-header">
+      <div>
+        <div class="eyebrow">PACKAGE</div>
+        <h1>mapper</h1>
+        <code>identity.infrastructure.persistence.mapper</code>
+      </div>
+      <a class="secondary" href="../content/Package_IPUiSQWGAqAAZjgd.html">Исходная спецификация VP</a>
+    </header>
+
+    <section class="summary-grid">
+      <article class="description-panel">
+        <h2>Назначение пакета</h2>
+        <div class="description"><p>Преобразует UserPersistenceData в доменный aggregate User и обратно.</p><p>Восстанавливает Email, pendingEmail, PasswordHash, UserRole и UserStatus. Не выполняет SQL и не проверяет прикладные правила.</p><p>При сохранении создаёт отдельные записи CURRENT и PENDING для таблицы identity_user_emails.</p></div>
+      </article>
+      <aside class="stats-panel">
+        <div><strong>0</strong><span>дочерних пакетов</span></div>
+        <div><strong>3</strong><span>элементов</span></div>
+      </aside>
+    </section>
+
+    <section class="content-section">
+      <div class="section-heading"><h2>Дочерние пакеты</h2><span>0</span></div>
+      <div class="card-grid"><div class="empty-state">Вложенных пакетов нет</div></div>
+    </section>
+
+    <section class="content-section">
+      <div class="section-heading"><h2>Классы и интерфейсы</h2><span>3</span></div>
+      <div class="element-list">
+            <a class="element-card" href="../content/Class_KI3KSQWGAqAAZjvz.html">
+              <div class="card-icon element-icon">◇</div>
+              <div>
+                <div class="card-title">EmailVerificationPersistenceMapper</div>
+                <div class="type-badge">Класс</div>
+                <div class="card-description">Преобразует jOOQ record проверки email в aggregate EmailVerification и обратно.
+
+Восстанавливает VerificationTokenHash, Email и VerificationPurpose. Не определяет срок действия и не изменяет состояние проверки.</div>
+              </div>
+              <span class="open-arrow">›</span>
+            </a>
+            
+            <a class="element-card" href="../content/Class_guoqSQWGAqAAZjwv.html">
+              <div class="card-icon element-icon">◇</div>
+              <div>
+                <div class="card-title">RefreshTokenPersistenceMapper</div>
+                <div class="type-badge">Класс</div>
+                <div class="card-description">Преобразует запись refresh token в RefreshTokenState и обратно.
+
+Использует название toApplication, потому что RefreshTokenState принадлежит application.model и не является доменной сущностью.</div>
+              </div>
+              <span class="open-arrow">›</span>
+            </a>
+            
+            <a class="element-card" href="../content/Class_2jjKSQWGAqAAZjum.html">
+              <div class="card-icon element-icon">◇</div>
+              <div>
+                <div class="card-title">UserPersistenceMapper</div>
+                <div class="type-badge">Класс</div>
+                <div class="card-description">Преобразует UserPersistenceData в доменный aggregate User и обратно.
+
+Восстанавливает Email, pendingEmail, PasswordHash, UserRole и UserStatus. Не выполняет SQL и не проверяет прикладные правила.
+
+При сохранении создаёт отдельные записи CURRENT и PENDING для таблицы identity_user_emails.</div>
+              </div>
+              <span class="open-arrow">›</span>
+            </a>
+            </div>
+    </section>
+  </main>
+</body>
+</html>

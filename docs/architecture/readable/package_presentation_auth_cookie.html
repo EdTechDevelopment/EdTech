@@ -1,0 +1,57 @@
+<!doctype html>
+<html lang="ru">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>identity.presentation.auth.cookie</title>
+  <link rel="stylesheet" href="package.css">
+</head>
+<body>
+  <main class="page">
+    <nav class="breadcrumb"><span>Identity</span><span>›</span><span>presentation › auth › cookie</span></nav>
+    <header class="package-header">
+      <div>
+        <div class="eyebrow">PACKAGE</div>
+        <h1>cookie</h1>
+        <code>identity.presentation.auth.cookie</code>
+      </div>
+      <a class="secondary" href="../content/Package_TxlBCQWGAqAAZgsE.html">Исходная спецификация VP</a>
+    </header>
+
+    <section class="summary-grid">
+      <article class="description-panel">
+        <h2>Назначение пакета</h2>
+        <div class="description"><p>Содержит HTTP-логику передачи refresh token через cookie.</p><p>Пакет получает готовое значение refresh token от application и</p><p>создаёт безопасную HttpOnly cookie для браузера. При logout пакет</p><p>формирует cookie, удаляющую refresh token на стороне клиента.</p><p>Пакет не создаёт JWT, не проверяет его подпись, не выполняет ротацию,</p><p>не отзывает токен и не сохраняет refresh-сессию. Эти операции</p><p>выполняются application и infrastructure.</p></div>
+      </article>
+      <aside class="stats-panel">
+        <div><strong>0</strong><span>дочерних пакетов</span></div>
+        <div><strong>1</strong><span>элементов</span></div>
+      </aside>
+    </section>
+
+    <section class="content-section">
+      <div class="section-heading"><h2>Дочерние пакеты</h2><span>0</span></div>
+      <div class="card-grid"><div class="empty-state">Вложенных пакетов нет</div></div>
+    </section>
+
+    <section class="content-section">
+      <div class="section-heading"><h2>Классы и интерфейсы</h2><span>1</span></div>
+      <div class="element-list">
+            <a class="element-card" href="../content/Class_2XL1CQWGAqAAZg_d.html">
+              <div class="card-icon element-icon">◇</div>
+              <div>
+                <div class="card-title">RefreshTokenCookieFactory</div>
+                <div class="type-badge">Класс</div>
+                <div class="card-description">Формирует HTTP cookie для установки или удаления refresh token.
+
+Использует настройки имени cookie, срока действия, Path, HttpOnly,
+
+Secure и SameSite. Не знает о внутреннем содержимом JWT.</div>
+              </div>
+              <span class="open-arrow">›</span>
+            </a>
+            </div>
+    </section>
+  </main>
+</body>
+</html>

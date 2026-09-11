@@ -1,0 +1,105 @@
+<!doctype html>
+<html lang="ru">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>identity.presentation.account</title>
+  <link rel="stylesheet" href="package.css">
+</head>
+<body>
+  <main class="page">
+    <nav class="breadcrumb"><span>Identity</span><span>›</span><span>presentation › account</span></nav>
+    <header class="package-header">
+      <div>
+        <div class="eyebrow">PACKAGE</div>
+        <h1>account</h1>
+        <code>identity.presentation.account</code>
+      </div>
+      <a class="secondary" href="../content/Package_x1QBCQWGAqAAZgqe.html">Исходная спецификация VP</a>
+    </header>
+
+    <section class="summary-grid">
+      <article class="description-panel">
+        <h2>Назначение пакета</h2>
+        <div class="description"><p>Группа HTTP-сценариев работы с общими данными текущего аккаунта.</p><p>Пакет обслуживает изменение имени, фамилии и email пользователя.</p><p>Текущий пользователь определяется по подтверждённому access JWT,</p><p>а не по userId, переданному frontend.</p><p>Изменение имени и фамилии выполняется сразу. Изменение email запускает</p><p>процесс подтверждения нового адреса через pendingEmail.</p><p>TeacherProfile, StudentProfile, предметы и расписание не принадлежат</p><p>этому пакету.</p><p>PATCH /api/v1/me</p><p>GET /api/v1/me</p></div>
+      </article>
+      <aside class="stats-panel">
+        <div><strong>4</strong><span>дочерних пакетов</span></div>
+        <div><strong>0</strong><span>элементов</span></div>
+      </aside>
+    </section>
+
+    <section class="content-section">
+      <div class="section-heading"><h2>Дочерние пакеты</h2><span>4</span></div>
+      <div class="card-grid">
+            <a class="package-card" href="package_presentation_account_controller.html">
+              <div class="card-icon folder-icon">▰</div>
+              <div>
+                <div class="card-title">controller</div>
+                <div class="card-path">identity.presentation.account.controller</div>
+                <div class="card-description">Содержит REST-контроллеры операций текущего аккаунта.
+
+Контроллер получает идентификатор текущего пользователя из контекста
+
+Spring Security, преобразует HTTP-запрос в application-команду
+
+и вызывает входной application-порт.
+
+Контроллер не должен принимать идентификатор изменяемого пользователя
+
+из request body или path parameter.</div>
+              </div>
+              <span class="card-count">1</span>
+            </a>
+            
+            <a class="package-card" href="package_presentation_account_mapper.html">
+              <div class="card-icon folder-icon">▰</div>
+              <div>
+                <div class="card-title">mapper</div>
+                <div class="card-path">identity.presentation.account.mapper</div>
+                <div class="card-description">Содержит преобразования HTTP-моделей account в модели application и обратно.
+
+Mapper добавляет в application-команду userId, полученный контроллером из подтверждённого JWT, и переносит изменяемые данные из request.
+
+Пакет не выполняет проверку уникальности email, не загружает User и не применяет к нему изменения.</div>
+              </div>
+              <span class="card-count">1</span>
+            </a>
+            
+            <a class="package-card" href="package_presentation_account_model.html">
+              <div class="card-icon folder-icon">▰</div>
+              <div>
+                <div class="card-title">model</div>
+                <div class="card-path">identity.presentation.account.model</div>
+                <div class="card-description">Объединяет HTTP-модели операций текущего аккаунта.
+
+Модели этого пакета описывают обмен данными между frontend и Identity.
+
+Они не являются доменной сущностью User и не должны использоваться
+
+как persistence-модели.</div>
+              </div>
+              <span class="card-count">2</span>
+            </a>
+            
+            <a class="package-card" href="package_presentation_account_validation.html">
+              <div class="card-icon folder-icon">▰</div>
+              <div>
+                <div class="card-title">validation</div>
+                <div class="card-path">identity.presentation.account.validation</div>
+                <div class="card-description">Содержит проверки структуры HTTP-запросов account, которые нельзя выразить простой проверкой одного поля.
+
+Проверки относятся только к форме входящего запроса. Пакет не проверяет состояние User, уникальность email и другие бизнес-правила.</div>
+              </div>
+              <span class="card-count">2</span>
+            </a>
+            </div>
+    </section>
+
+    <section class="content-section">
+      <div class="section-heading"><h2>Классы и интерфейсы</h2><span>0</span></div>
+      <div class="element-list"><div class="empty-state">Классов и интерфейсов непосредственно в этом пакете нет</div></div>
+    </section>
+  </main>
+</body>
+</html>

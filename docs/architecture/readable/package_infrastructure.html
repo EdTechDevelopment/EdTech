@@ -1,0 +1,89 @@
+<!doctype html>
+<html lang="ru">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>identity.infrastructure</title>
+  <link rel="stylesheet" href="package.css">
+</head>
+<body>
+  <main class="page">
+    <nav class="breadcrumb"><span>Identity</span><span>›</span><span>infrastructure</span></nav>
+    <header class="package-header">
+      <div>
+        <div class="eyebrow">PACKAGE</div>
+        <h1>infrastructure</h1>
+        <code>identity.infrastructure</code>
+      </div>
+      <a class="secondary" href="../content/Package_QJhXMQWGAqAAZxIv.html">Исходная спецификация VP</a>
+    </header>
+
+    <section class="summary-grid">
+      <article class="description-panel">
+        <h2>Назначение пакета</h2>
+        <div class="description"><p>Технический слой модуля Identity.</p><p>Реализует output-порты application и связывает бизнес-код с PostgreSQL, jOOQ, BCrypt, Spring Security,JWT , SMTP и системным временем.</p><p>Infrastructure зависит от application и domain, поскольку реализует объявленные ими интерфейсы и преобразует сохранённые данные в доменные объекты.</p></div>
+      </article>
+      <aside class="stats-panel">
+        <div><strong>4</strong><span>дочерних пакетов</span></div>
+        <div><strong>0</strong><span>элементов</span></div>
+      </aside>
+    </section>
+
+    <section class="content-section">
+      <div class="section-heading"><h2>Дочерние пакеты</h2><span>4</span></div>
+      <div class="card-grid">
+            <a class="package-card" href="package_infrastructure_messaging.html">
+              <div class="card-icon folder-icon">▰</div>
+              <div>
+                <div class="card-title">messaging</div>
+                <div class="card-path">identity.infrastructure.messaging</div>
+                <div class="card-description">Содержит адаптер передачи проверочных писем публичному API модуля Notifications.
+
+Identity определяет получателя, назначение и срок действия проверки. Notifications сохраняет запрос и выполняет техническую SMTP-доставку.</div>
+              </div>
+              <span class="card-count">2</span>
+            </a>
+            
+            <a class="package-card" href="package_infrastructure_persistence.html">
+              <div class="card-icon folder-icon">▰</div>
+              <div>
+                <div class="card-title">persistence</div>
+                <div class="card-path">identity.infrastructure.persistence</div>
+                <div class="card-description">Содержит реализацию хранения данных Identity через PostgreSQL и jOOQ.
+
+Persistence преобразует доменные объекты и внутренние application-модели в записи базы данных. jOOQ records не выходят за границы этого пакета.</div>
+              </div>
+              <span class="card-count">3</span>
+            </a>
+            
+            <a class="package-card" href="package_infrastructure_security.html">
+              <div class="card-icon folder-icon">▰</div>
+              <div>
+                <div class="card-title">security</div>
+                <div class="card-path">identity.infrastructure.security</div>
+                <div class="card-description">Содержит преобразование проверенного JWT в стандартную модель аутентификации Spring Security.
+
+Пакет извлекает userId и роли из claims, но не загружает User из базы данных при каждом HTTP-запросе.</div>
+              </div>
+              <span class="card-count">4</span>
+            </a>
+            
+            <a class="package-card" href="package_infrastructure_time.html">
+              <div class="card-icon folder-icon">▰</div>
+              <div>
+                <div class="card-title">time</div>
+                <div class="card-path">identity.infrastructure.time</div>
+                <div class="card-description">Описание пакета пока не заполнено.</div>
+              </div>
+              <span class="card-count">1</span>
+            </a>
+            </div>
+    </section>
+
+    <section class="content-section">
+      <div class="section-heading"><h2>Классы и интерфейсы</h2><span>0</span></div>
+      <div class="element-list"><div class="empty-state">Классов и интерфейсов непосредственно в этом пакете нет</div></div>
+    </section>
+  </main>
+</body>
+</html>

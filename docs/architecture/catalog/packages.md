@@ -1,0 +1,241 @@
+# Структура пакетов Identity
+
+## Полное дерево
+
+```text
+identity
+├── api
+│   ├── IdentityQuery
+│   ├── model
+│   │   ├── UserSummary
+│   │   ├── UserRoleView
+│   │   └── UserStatusView
+│   └── event
+│       ├── UserRegisteredEvent
+│       ├── UserActivatedEvent
+│       └── UserAccountUpdatedEvent
+├── presentation
+│   ├── auth
+│   │   ├── controller
+│   │   │   ├── AuthController
+│   │   │   └── EmailVerificationController
+│   │   ├── model
+│   │   │   ├── request
+│   │   │   │   ├── RegisterRequest
+│   │   │   │   ├── LoginRequest
+│   │   │   │   ├── ConfirmEmailRequest
+│   │   │   │   └── ResendEmailVerificationRequest
+│   │   │   └── response
+│   │   │       ├── TokenResponse
+│   │   │       └── VerificationPendingResponse
+│   │   ├── mapper
+│   │   │   └── AuthPresentationMapper
+│   │   └── cookie
+│   │       └── RefreshTokenCookieFactory
+│   ├── account
+│   │   ├── controller
+│   │   │   └── CurrentUserController
+│   │   ├── model
+│   │   │   ├── request
+│   │   │   │   └── UpdateCurrentUserRequest
+│   │   │   └── response
+│   │   │       └── UserResponse
+│   │   ├── mapper
+│   │   │   └── UserPresentationMapper
+│   │   └── validation
+│   │       ├── ValidAccountUpdate
+│   │       └── AccountUpdateValidator
+│   └── error
+│       ├── handler
+│       │   ├── IdentityExceptionHandler
+│       │   ├── RestAuthenticationEntryPoint
+│       │   └── RestAccessDeniedHandler
+│       └── model
+│           ├── ApiError
+│           ├── FieldErrorResponse
+│           └── ErrorCode
+├── application
+│   ├── port
+│   │   ├── in
+│   │   │   ├── account
+│   │   │   │   ├── RegisterUserUseCase
+│   │   │   │   ├── GetCurrentUserUseCase
+│   │   │   │   └── UpdateCurrentUserUseCase
+│   │   │   ├── verification
+│   │   │   │   ├── ConfirmEmailUseCase
+│   │   │   │   └── ResendEmailVerificationUseCase
+│   │   │   └── authentication
+│   │   │       ├── LoginUseCase
+│   │   │       ├── RefreshTokenUseCase
+│   │   │       └── LogoutUseCase
+│   │   ├── out
+│   │   │   ├── persistence
+│   │   │   │   ├── UserRepository
+│   │   │   │   ├── EmailVerificationRepository
+│   │   │   │   └── RefreshTokenRepository
+│   │   │   ├── security
+│   │   │   │   ├── PasswordHasher
+│   │   │   │   ├── VerificationTokenGenerator
+│   │   │   │   ├── VerificationTokenHasher
+│   │   │   │   ├── AccessTokenIssuer
+│   │   │   │   ├── RefreshTokenIssuer
+│   │   │   │   └── RefreshTokenHasher
+│   │   │   └── messaging
+│   │   │       ├── VerificationEmailSender
+│   │   │       └── IntegrationEventPublisher
+│   │   └── TimeProvider
+│   ├── command
+│   │   ├── account
+│   │   │   ├── RegisterUserCommand
+│   │   │   └── UpdateCurrentUserCommand
+│   │   ├── verification
+│   │   │   ├── ConfirmEmailCommand
+│   │   │   └── ResendEmailVerificationCommand
+│   │   └── authentication
+│   │       ├── LoginCommand
+│   │       ├── RefreshTokenCommand
+│   │       └── LogoutCommand
+│   ├── query
+│   │   └── GetCurrentUserQuery
+│   ├── result
+│   │   ├── RegistrationResult
+│   │   ├── ResendVerificationResult
+│   │   ├── AuthenticationResult
+│   │   └── CurrentUserResult
+│   ├── model
+│   │   ├── IssuedAccessToken
+│   │   ├── IssuedRefreshToken
+│   │   └── RefreshTokenState
+│   ├── service
+│   │   ├── account
+│   │   │   ├── RegisterUserService
+│   │   │   ├── GetCurrentUserService
+│   │   │   ├── UpdateCurrentUserService
+│   │   │   └── IdentityQueryService
+│   │   ├── verification
+│   │   │   ├── ConfirmEmailService
+│   │   │   └── ResendEmailVerificationService
+│   │   └── authentication
+│   │       ├── LoginService
+│   │       ├── RefreshTokenService
+│   │       └── LogoutService
+│   ├── mapper
+│   │   ├── UserResultMapper
+│   │   └── IdentityApiMapper
+│   └── exception
+│       ├── InvalidUseCaseInputException
+│       ├── UserNotFoundException
+│       ├── EmailAlreadyExistsException
+│       ├── InvalidCredentialsException
+│       ├── EmailVerificationRequiredException
+│       ├── InvalidVerificationTokenException
+│       ├── InvalidRefreshTokenException
+│       └── AccountOperationNotAllowedException
+├── domain
+│   ├── user
+│   │   ├── model
+│   │   │   ├── User
+│   │   │   ├── Email
+│   │   │   ├── PasswordHash
+│   │   │   ├── UserRole
+│   │   │   └── UserStatus
+│   │   ├── event
+│   │   │   ├── UserRegisteredDomainEvent
+│   │   │   ├── UserActivatedDomainEvent
+│   │   │   └── UserAccountUpdatedDomainEvent
+│   │   └── exception
+│   │       ├── InvalidEmailException
+│   │       ├── InvalidUserDataException
+│   │       ├── InvalidUserStateException
+│   │       └── EmailNotVerifiedException
+│   └── verification
+│       ├── EmailVerification
+│       ├── VerificationTokenHash
+│       ├── VerificationPurpose
+│       └── InvalidEmailVerificationException
+└── infrastructure
+    ├── persistence
+    │   ├── adapter
+    │   │   ├── JooqUserRepositoryAdapter
+    │   │   ├── JooqEmailVerificationRepositoryAdapter
+    │   │   └── JooqRefreshTokenRepositoryAdapter
+    │   ├── mapper
+    │   │   ├── UserPersistenceMapper
+    │   │   ├── EmailVerificationPersistenceMapper
+    │   │   └── RefreshTokenPersistenceMapper
+    │   └── data
+    │       ├── model
+    │       │   └── UserPersistenceData
+    │       ├── repository
+    │       │   ├── UserJooqRepository
+    │       │   ├── EmailVerificationJooqRepository
+    │       │   └── RefreshTokenJooqRepository
+    │       └── generated
+    ├── security
+    │   ├── password
+    │   │   └── BCryptPasswordHasher
+    │   ├── token
+    │   │   ├── SpringJwtAccessTokenIssuer
+    │   │   ├── SecureRefreshTokenIssuer
+    │   │   ├── Sha256RefreshTokenHasher
+    │   │   ├── SecureVerificationTokenGenerator
+    │   │   └── Sha256VerificationTokenHasher
+    │   ├── authentication
+    │   │   └── IdentityJwtAuthenticationConverter
+    │   └── configuration
+    │       ├── SecurityConfiguration
+    │       ├── JwtConfiguration
+    │       └── IdentityTokenProperties
+    ├── messaging
+    │   ├── email
+    │   │   ├── NotificationVerificationEmailAdapter
+    │   │   └── IdentityNotificationProperties
+    │   └── event
+    │       └── SpringIntegrationEventPublisher
+    └── time
+        └── SystemTimeProvider
+```
+
+## Ответственность верхних пакетов
+
+| Пакет | Ответственность | Разрешённые зависимости |
+|---|---|---|
+| `identity.api` | Публичные запросы, DTO и события Identity | Простые Java-типы, без внутренних пакетов Identity |
+| `identity.presentation` | HTTP, JSON, cookies, валидация запросов и представление ошибок | `application.port.in`, `application.command`, `application.query`, `application.result` |
+| `identity.application` | Сценарии использования, транзакционные границы и порты | `domain`, `identity.api`; framework-аннотации только на композиционных границах |
+| `identity.domain` | Бизнес-состояние, инварианты, поведение и доменные события | Только JDK |
+| `identity.infrastructure` | Реализации портов, SQL, crypto/JWT, интеграции и конфигурация | `application.port.out`, `application.model`, `domain`, внешние библиотеки |
+
+## Ответственность пакетов Application
+
+| Пакет | Содержимое |
+|---|---|
+| `port.in.account` | Контракты регистрации, чтения и изменения текущего пользователя |
+| `port.in.verification` | Контракты подтверждения и повторной отправки email |
+| `port.in.authentication` | Контракты входа, обновления сессии и выхода |
+| `port.out.persistence` | Абстракции хранения агрегатов и refresh tokens |
+| `port.out.security` | Хеширование паролей и токенов, генерация и выпуск токенов |
+| `port.out.messaging` | Отправка письма через Notifications и публикация интеграционных событий |
+| `command.*` | Неизменяемые входные данные командных use cases |
+| `query` | Неизменяемые входные данные запросов |
+| `result` | Результаты use cases, безопасные для Presentation |
+| `model` | Внутренние application-модели токенов и их состояния |
+| `service.*` | Реализации use cases, разделённые по крупным функциональным областям |
+| `mapper` | Преобразование Domain → application result/API DTO |
+| `exception` | Ошибки сценариев использования |
+
+## Ответственность пакетов Infrastructure
+
+| Пакет | Содержимое |
+|---|---|
+| `persistence.adapter` | Реализации output repositories и координация mapper + data repository |
+| `persistence.mapper` | Преобразование доменных и persistence-моделей |
+| `persistence.data.repository` | Низкоуровневые SQL-операции через `DSLContext` |
+| `persistence.data.generated` | Сгенерированные jOOQ table/record/POJO types |
+| `security.password` | BCrypt-реализация `PasswordHasher` |
+| `security.token` | Выпуск JWT, генерация и SHA-256-хеширование opaque tokens |
+| `security.authentication` | Преобразование claims JWT в Spring Security authentication |
+| `security.configuration` | `SecurityFilterChain`, JWT beans и configuration properties |
+| `messaging.email` | Адаптер публичного API Notifications и формирование confirmation URL |
+| `messaging.event` | Публикация публичных событий Identity |
+| `time` | Реализация времени через внедрённый `Clock` |

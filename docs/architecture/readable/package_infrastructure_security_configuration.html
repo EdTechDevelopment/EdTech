@@ -1,0 +1,85 @@
+<!doctype html>
+<html lang="ru">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>identity.infrastructure.security.configuration</title>
+  <link rel="stylesheet" href="package.css">
+</head>
+<body>
+  <main class="page">
+    <nav class="breadcrumb"><span>Identity</span><span>›</span><span>infrastructure › security › configuration</span></nav>
+    <header class="package-header">
+      <div>
+        <div class="eyebrow">PACKAGE</div>
+        <h1>configuration</h1>
+        <code>identity.infrastructure.security.configuration</code>
+      </div>
+      <a class="secondary" href="../content/Package_h_liSQWGAqAAZjjJ.html">Исходная спецификация VP</a>
+    </header>
+
+    <section class="summary-grid">
+      <article class="description-panel">
+        <h2>Назначение пакета</h2>
+        <div class="description"><p>Содержит конфигурацию Spring Security, JWT encoder, JWT decoder и параметры времени жизни токенов.</p><p>Ключевой материал поступает из внешней конфигурации и не хранится в исходном коде.</p></div>
+      </article>
+      <aside class="stats-panel">
+        <div><strong>0</strong><span>дочерних пакетов</span></div>
+        <div><strong>3</strong><span>элементов</span></div>
+      </aside>
+    </section>
+
+    <section class="content-section">
+      <div class="section-heading"><h2>Дочерние пакеты</h2><span>0</span></div>
+      <div class="card-grid"><div class="empty-state">Вложенных пакетов нет</div></div>
+    </section>
+
+    <section class="content-section">
+      <div class="section-heading"><h2>Классы и интерфейсы</h2><span>3</span></div>
+      <div class="element-list">
+            <a class="element-card" href="../content/Class_9ei6SQWGAqAAZj9Y.html">
+              <div class="card-icon element-icon">◇</div>
+              <div>
+                <div class="card-title">IdentityTokenProperties</div>
+                <div class="type-badge">Класс</div>
+                <div class="card-description">Содержит конфигурационные параметры JWT, refresh token и verification token.
+
+Связывается с application.yml через ConfigurationProperties и проверяет корректность значений при запуске.
+
+Ключи подписи загружаются из внешнего источника и не хранятся в репозитории.</div>
+              </div>
+              <span class="open-arrow">›</span>
+            </a>
+            
+            <a class="element-card" href="../content/Class_c_W6SQWGAqAAZj_H.html">
+              <div class="card-icon element-icon">◇</div>
+              <div>
+                <div class="card-title">JwtConfiguration</div>
+                <div class="type-badge">Класс</div>
+                <div class="card-description">Создаёт JwtEncoder и JwtDecoder для RS256.
+
+JwtDecoder проверяет подпись, срок действия, issuer и audience. Конфигурация использует ключевой материал из внешнего источника.
+
+Класс не выпускает токены и не содержит бизнес-правила.</div>
+              </div>
+              <span class="open-arrow">›</span>
+            </a>
+            
+            <a class="element-card" href="../content/Class_Hmr6SQWGAqAAZkAF.html">
+              <div class="card-icon element-icon">◇</div>
+              <div>
+                <div class="card-title">SecurityConfiguration</div>
+                <div class="type-badge">Класс</div>
+                <div class="card-description">Настраивает stateless Spring Security и проверку Bearer JWT через OAuth2 Resource Server.
+
+Определяет публичные и защищённые endpoints, подключает IdentityJwtAuthenticationConverter, CORS, AuthenticationEntryPoint и AccessDeniedHandler.
+
+SecurityConfiguration зависит только от стандартных интерфейсов обработчиков Spring Security и не импортирует конкретные классы presentation.</div>
+              </div>
+              <span class="open-arrow">›</span>
+            </a>
+            </div>
+    </section>
+  </main>
+</body>
+</html>

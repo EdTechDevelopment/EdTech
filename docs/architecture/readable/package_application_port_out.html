@@ -1,0 +1,95 @@
+<!doctype html>
+<html lang="ru">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>identity.application.port.out</title>
+  <link rel="stylesheet" href="package.css">
+</head>
+<body>
+  <main class="page">
+    <nav class="breadcrumb"><span>Identity</span><span>›</span><span>application › port › out</span></nav>
+    <header class="package-header">
+      <div>
+        <div class="eyebrow">PACKAGE</div>
+        <h1>out</h1>
+        <code>identity.application.port.out</code>
+      </div>
+      <a class="secondary" href="../content/Package_eeVDiQWGAqAAZiWc.html">Исходная спецификация VP</a>
+    </header>
+
+    <section class="summary-grid">
+      <article class="description-panel">
+        <h2>Назначение пакета</h2>
+        <div class="description"><p>Содержит интерфейсы, через которые application обращается к хранилищу данных, security-компонентам, доставке сообщений и системному времени.</p><p>Реализации этих интерфейсов располагаются в infrastructure</p></div>
+      </article>
+      <aside class="stats-panel">
+        <div><strong>3</strong><span>дочерних пакетов</span></div>
+        <div><strong>1</strong><span>элементов</span></div>
+      </aside>
+    </section>
+
+    <section class="content-section">
+      <div class="section-heading"><h2>Дочерние пакеты</h2><span>3</span></div>
+      <div class="card-grid">
+            <a class="package-card" href="package_application_port_out_messaging.html">
+              <div class="card-icon folder-icon">▰</div>
+              <div>
+                <div class="card-title">messaging</div>
+                <div class="card-path">identity.application.port.out.messaging</div>
+                <div class="card-description">Содержит абстракции отправки проверочных писем и публикации публичных событий Identity.
+
+Application определяет момент отправки сообщения, а infrastructure выполняет техническую доставку.</div>
+              </div>
+              <span class="card-count">2</span>
+            </a>
+            
+            <a class="package-card" href="package_application_port_out_persistence.html">
+              <div class="card-icon folder-icon">▰</div>
+              <div>
+                <div class="card-title">persistence</div>
+                <div class="card-path">identity.application.port.out.persistence</div>
+                <div class="card-description">Содержит абстракции сохранения и поиска доменных объектов User, EmailVerification и внутреннего состояния refresh token.
+
+Интерфейсы не содержат jOOQ records, SQL и деталей PostgreSQL.</div>
+              </div>
+              <span class="card-count">3</span>
+            </a>
+            
+            <a class="package-card" href="package_application_port_out_security.html">
+              <div class="card-icon folder-icon">▰</div>
+              <div>
+                <div class="card-title">security</div>
+                <div class="card-path">identity.application.port.out.security</div>
+                <div class="card-description">Содержит абстракции хеширования паролей, генерации проверочных токенов, выпуска JWT и управления значениями refresh token.
+
+Конкретные алгоритмы и библиотеки выбираются в infrastructure.</div>
+              </div>
+              <span class="card-count">6</span>
+            </a>
+            </div>
+    </section>
+
+    <section class="content-section">
+      <div class="section-heading"><h2>Классы и интерфейсы</h2><span>1</span></div>
+      <div class="element-list">
+            <a class="element-card" href="../content/Class_wHlgSQWGAqAAZjOq.html">
+              <div class="card-icon element-icon">◇</div>
+              <div>
+                <div class="card-title">TimeProvider</div>
+                <div class="type-badge">Класс</div>
+                <div class="card-description">Выходной порт получения текущего времени.
+
+Используется при создании доменных объектов, проверке сроков действия, выпуске токенов и сохранении времени отзыва.
+
+Позволяет тестировать сценарии без прямой зависимости от системных часов.
+
+.</div>
+              </div>
+              <span class="open-arrow">›</span>
+            </a>
+            </div>
+    </section>
+  </main>
+</body>
+</html>

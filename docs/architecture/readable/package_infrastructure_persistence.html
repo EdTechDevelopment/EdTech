@@ -1,0 +1,81 @@
+<!doctype html>
+<html lang="ru">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>identity.infrastructure.persistence</title>
+  <link rel="stylesheet" href="package.css">
+</head>
+<body>
+  <main class="page">
+    <nav class="breadcrumb"><span>Identity</span><span>›</span><span>infrastructure › persistence</span></nav>
+    <header class="package-header">
+      <div>
+        <div class="eyebrow">PACKAGE</div>
+        <h1>persistence</h1>
+        <code>identity.infrastructure.persistence</code>
+      </div>
+      <a class="secondary" href="../content/Package__IbCSQWGAqAAZjeY.html">Исходная спецификация VP</a>
+    </header>
+
+    <section class="summary-grid">
+      <article class="description-panel">
+        <h2>Назначение пакета</h2>
+        <div class="description"><p>Содержит реализацию хранения данных Identity через PostgreSQL и jOOQ.</p><p>Persistence преобразует доменные объекты и внутренние application-модели в записи базы данных. jOOQ records не выходят за границы этого пакета.</p></div>
+      </article>
+      <aside class="stats-panel">
+        <div><strong>3</strong><span>дочерних пакетов</span></div>
+        <div><strong>0</strong><span>элементов</span></div>
+      </aside>
+    </section>
+
+    <section class="content-section">
+      <div class="section-heading"><h2>Дочерние пакеты</h2><span>3</span></div>
+      <div class="card-grid">
+            <a class="package-card" href="package_infrastructure_persistence_adapter.html">
+              <div class="card-icon folder-icon">▰</div>
+              <div>
+                <div class="card-title">adapter</div>
+                <div class="card-path">identity.infrastructure.persistence.adapter</div>
+                <div class="card-description">Содержит адаптеры, реализующие persistence output ports application.
+
+Адаптер координирует mapper и низкоуровневый jOOQ repository. SQL непосредственно внутри адаптера не размещается.</div>
+              </div>
+              <span class="card-count">3</span>
+            </a>
+            
+            <a class="package-card" href="package_infrastructure_persistence_data.html">
+              <div class="card-icon folder-icon">▰</div>
+              <div>
+                <div class="card-title">data</div>
+                <div class="card-path">identity.infrastructure.persistence.data</div>
+                <div class="card-description">Содержит двусторонние преобразования между domain или application-моделями и техническими persistence-моделями.
+
+Mapper не выполняет SQL, не вызывает repository и не применяет бизнес-правила.</div>
+              </div>
+              <span class="card-count">3</span>
+            </a>
+            
+            <a class="package-card" href="package_infrastructure_persistence_mapper.html">
+              <div class="card-icon folder-icon">▰</div>
+              <div>
+                <div class="card-title">mapper</div>
+                <div class="card-path">identity.infrastructure.persistence.mapper</div>
+                <div class="card-description">Преобразует UserPersistenceData в доменный aggregate User и обратно.
+
+Восстанавливает Email, pendingEmail, PasswordHash, UserRole и UserStatus. Не выполняет SQL и не проверяет прикладные правила.
+
+При сохранении создаёт отдельные записи CURRENT и PENDING для таблицы identity_user_emails.</div>
+              </div>
+              <span class="card-count">3</span>
+            </a>
+            </div>
+    </section>
+
+    <section class="content-section">
+      <div class="section-heading"><h2>Классы и интерфейсы</h2><span>0</span></div>
+      <div class="element-list"><div class="empty-state">Классов и интерфейсов непосредственно в этом пакете нет</div></div>
+    </section>
+  </main>
+</body>
+</html>

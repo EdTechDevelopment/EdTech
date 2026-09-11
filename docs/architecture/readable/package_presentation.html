@@ -1,0 +1,111 @@
+<!doctype html>
+<html lang="ru">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>identity.presentation</title>
+  <link rel="stylesheet" href="package.css">
+</head>
+<body>
+  <main class="page">
+    <nav class="breadcrumb"><span>Identity</span><span>›</span><span>presentation</span></nav>
+    <header class="package-header">
+      <div>
+        <div class="eyebrow">PACKAGE</div>
+        <h1>presentation</h1>
+        <code>identity.presentation</code>
+      </div>
+      <a class="secondary" href="../content/Package_pXGXMQWGAqAAZxIE.html">Исходная спецификация VP</a>
+    </header>
+
+    <section class="summary-grid">
+      <article class="description-panel">
+        <h2>Назначение пакета</h2>
+        <div class="description"><p>Внешний HTTP-интерфейс модуля Identity для frontend.</p><p>Принимает HTTP-запросы и JSON, выполняет структурную валидацию входных данных, преобразует request DTO в application-команды, вызывает input-порты и формирует HTTP-ответы.</p><p>Также преобразует исключения application и domain в единый формат ApiError.</p></div>
+      </article>
+      <aside class="stats-panel">
+        <div><strong>3</strong><span>дочерних пакетов</span></div>
+        <div><strong>0</strong><span>элементов</span></div>
+      </aside>
+    </section>
+
+    <section class="content-section">
+      <div class="section-heading"><h2>Дочерние пакеты</h2><span>3</span></div>
+      <div class="card-grid">
+            <a class="package-card" href="package_presentation_account.html">
+              <div class="card-icon folder-icon">▰</div>
+              <div>
+                <div class="card-title">account</div>
+                <div class="card-path">identity.presentation.account</div>
+                <div class="card-description">Группа HTTP-сценариев работы с общими данными текущего аккаунта.
+
+Пакет обслуживает изменение имени, фамилии и email пользователя.
+
+Текущий пользователь определяется по подтверждённому access JWT,
+
+а не по userId, переданному frontend.
+
+Изменение имени и фамилии выполняется сразу. Изменение email запускает
+
+процесс подтверждения нового адреса через pendingEmail.
+
+TeacherProfile, StudentProfile, предметы и расписание не принадлежат
+
+этому пакету.
+
+PATCH /api/v1/me
+
+GET /api/v1/me</div>
+              </div>
+              <span class="card-count">4</span>
+            </a>
+            
+            <a class="package-card" href="package_presentation_auth.html">
+              <div class="card-icon folder-icon">▰</div>
+              <div>
+                <div class="card-title">auth</div>
+                <div class="card-path">identity.presentation.auth</div>
+                <div class="card-description">Группа HTTP-сценариев, связанных с регистрацией и аутентификацией
+
+пользователя.
+
+Пакет обслуживает регистрацию, подтверждение email, повторную отправку
+
+письма подтверждения, вход, обновление токенов и выход.
+
+Auth отвечает только за HTTP-представление этих сценариев. Он принимает
+
+учётные данные и токены от клиента, передаёт их application use cases
+
+и формирует соответствующий HTTP-ответ.
+
+Пакет не сравнивает пароль с хэшем, не создаёт JWT, не проверяет
+
+подпись JWT, не сохраняет refresh token и не загружает пользователя
+
+из базы данных.</div>
+              </div>
+              <span class="card-count">4</span>
+            </a>
+            
+            <a class="package-card" href="package_presentation_error.html">
+              <div class="card-icon folder-icon">▰</div>
+              <div>
+                <div class="card-title">error</div>
+                <div class="card-path">identity.presentation.error</div>
+                <div class="card-description">Содержит единый HTTP-формат ошибок Identity и преобразование ошибок валидации и application-сценариев в HTTP-ответы.
+
+Пакет не содержит бизнес-логику и не изменяет смысл ошибок.</div>
+              </div>
+              <span class="card-count">2</span>
+            </a>
+            </div>
+    </section>
+
+    <section class="content-section">
+      <div class="section-heading"><h2>Классы и интерфейсы</h2><span>0</span></div>
+      <div class="element-list"><div class="empty-state">Классов и интерфейсов непосредственно в этом пакете нет</div></div>
+    </section>
+  </main>
+</body>
+</html>

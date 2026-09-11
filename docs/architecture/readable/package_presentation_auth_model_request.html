@@ -1,0 +1,105 @@
+<!doctype html>
+<html lang="ru">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>identity.presentation.auth.model.request</title>
+  <link rel="stylesheet" href="package.css">
+</head>
+<body>
+  <main class="page">
+    <nav class="breadcrumb"><span>Identity</span><span>›</span><span>presentation › auth › model › request</span></nav>
+    <header class="package-header">
+      <div>
+        <div class="eyebrow">PACKAGE</div>
+        <h1>request</h1>
+        <code>identity.presentation.auth.model.request</code>
+      </div>
+      <a class="secondary" href="../content/Package_t27BCQWGAqAAZgtF.html">Исходная спецификация VP</a>
+    </header>
+
+    <section class="summary-grid">
+      <article class="description-panel">
+        <h2>Назначение пакета</h2>
+        <div class="description"><p>Содержит модели входящих HTTP-запросов регистрации, входа,</p><p>подтверждения email и повторной отправки письма.</p><p>Request-модели отражают структуру входящего JSON и содержат только</p><p>данные, которые клиент имеет право передавать.</p><p>В request-моделях разрешается указывать аннотации структурной</p><p>валидации: обязательность поля, длину строки и формат email.</p><p>Проверка уникальности email, состояния пользователя, правильности</p><p>пароля и действительности токена не относится к этому пакету.</p></div>
+      </article>
+      <aside class="stats-panel">
+        <div><strong>0</strong><span>дочерних пакетов</span></div>
+        <div><strong>4</strong><span>элементов</span></div>
+      </aside>
+    </section>
+
+    <section class="content-section">
+      <div class="section-heading"><h2>Дочерние пакеты</h2><span>0</span></div>
+      <div class="card-grid"><div class="empty-state">Вложенных пакетов нет</div></div>
+    </section>
+
+    <section class="content-section">
+      <div class="section-heading"><h2>Классы и интерфейсы</h2><span>4</span></div>
+      <div class="element-list">
+            <a class="element-card" href="../content/Class_Ub_VCQWGAqAAZg6y.html">
+              <div class="card-icon element-icon">◇</div>
+              <div>
+                <div class="card-title">ConfirmEmailRequest</div>
+                <div class="type-badge">Класс</div>
+                <div class="card-description">Входная HTTP-модель подтверждения email.
+
+Передаёт одноразовый открытый токен, полученный пользователем в письме.
+
+Проверка назначения, срока действия, хэша и одноразовости токена
+
+выполняется application-сценарием.</div>
+              </div>
+              <span class="open-arrow">›</span>
+            </a>
+            
+            <a class="element-card" href="../content/Class_ERghCQWGAqAAZguC.html">
+              <div class="card-icon element-icon">◇</div>
+              <div>
+                <div class="card-title">LoginRequest</div>
+                <div class="type-badge">Класс</div>
+                <div class="card-description">Входная HTTP-модель аутентификации пользователя по email и паролю.
+
+Модель только передаёт введённые данные. Проверка пароля и состояния
+
+аккаунта выполняется LoginUseCase.</div>
+              </div>
+              <span class="open-arrow">›</span>
+            </a>
+            
+            <a class="element-card" href="../content/Class_u0ghCQWGAqAAZgt2.html">
+              <div class="card-icon element-icon">◇</div>
+              <div>
+                <div class="card-title">RegisterRequest</div>
+                <div class="type-badge">Класс</div>
+                <div class="card-description">Входная HTTP-модель регистрации пользователя.
+
+Содержит email, открытый пароль, имя, фамилию и выбранные роли.
+
+Открытый пароль существует только во время обработки запроса
+
+и никогда не возвращается в ответе и не сохраняется как часть User.
+
+Точный состав и ограничения полей определяются OpenAPI.</div>
+              </div>
+              <span class="open-arrow">›</span>
+            </a>
+            
+            <a class="element-card" href="../content/Class_PmVVCQWGAqAAZg7V.html">
+              <div class="card-icon element-icon">◇</div>
+              <div>
+                <div class="card-title">ResendEmailVerificationRequest</div>
+                <div class="type-badge">Класс</div>
+                <div class="card-description">Входная HTTP-модель запроса повторной отправки письма подтверждения.
+
+Передаёт email пользователя. Наличие или отсутствие пользователя
+
+не должно влиять на публичный HTTP-ответ.</div>
+              </div>
+              <span class="open-arrow">›</span>
+            </a>
+            </div>
+    </section>
+  </main>
+</body>
+</html>

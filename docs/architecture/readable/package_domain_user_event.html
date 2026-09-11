@@ -1,0 +1,79 @@
+<!doctype html>
+<html lang="ru">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>identity.domain.user.event</title>
+  <link rel="stylesheet" href="package.css">
+</head>
+<body>
+  <main class="page">
+    <nav class="breadcrumb"><span>Identity</span><span>›</span><span>domain › user › event</span></nav>
+    <header class="package-header">
+      <div>
+        <div class="eyebrow">PACKAGE</div>
+        <h1>event</h1>
+        <code>identity.domain.user.event</code>
+      </div>
+      <a class="secondary" href="../content/Package_Q4eWiQWGAqAAZh5H.html">Исходная спецификация VP</a>
+    </header>
+
+    <section class="summary-grid">
+      <article class="description-panel">
+        <h2>Назначение пакета</h2>
+        <div class="description"><p>Фиксирует факт успешного создания агрегата User. В момент возникновения пользователь имеет статус PENDING_EMAIL_VERIFICATION и ещё не может выполнять вход.</p><p>Событие является внутренним для домена. Application-слой может преобразовать его в публичный UserRegisteredEvent и использовать для запуска разрешённых межмодульных сценариев.</p></div>
+      </article>
+      <aside class="stats-panel">
+        <div><strong>0</strong><span>дочерних пакетов</span></div>
+        <div><strong>3</strong><span>элементов</span></div>
+      </aside>
+    </section>
+
+    <section class="content-section">
+      <div class="section-heading"><h2>Дочерние пакеты</h2><span>0</span></div>
+      <div class="card-grid"><div class="empty-state">Вложенных пакетов нет</div></div>
+    </section>
+
+    <section class="content-section">
+      <div class="section-heading"><h2>Классы и интерфейсы</h2><span>3</span></div>
+      <div class="element-list">
+            <a class="element-card" href="../content/Class_ozf2iQWGAqAAZh_2.html">
+              <div class="card-icon element-icon">◇</div>
+              <div>
+                <div class="card-title">UserAccountUpdatedEvent</div>
+                <div class="type-badge">Класс</div>
+                <div class="card-description">Фиксирует факт успешного изменения данных аккаунта пользователя. Может возникать после изменения имени, фамилии или завершённой смены подтверждённого email.
+
+Событие не содержит пароль, passwordHash, pendingEmail или данные токенов. Application-слой получает необходимый безопасный снимок User и преобразует событие в публичный UserAccountUpdatedEvent.</div>
+              </div>
+              <span class="open-arrow">›</span>
+            </a>
+            
+            <a class="element-card" href="../content/Class_ADP2iQWGAqAAZh_u.html">
+              <div class="card-icon element-icon">◇</div>
+              <div>
+                <div class="card-title">UserActivatedDomainEvent</div>
+                <div class="type-badge">Класс</div>
+                <div class="card-description">Фиксирует факт активации аккаунта после успешного подтверждения первоначального email. Событие создаётся только после допустимого перехода пользователя из состояния PENDING_EMAIL_VERIFICATION в ACTIVE.
+
+Application-слой может преобразовать событие в публичный UserActivatedEvent.</div>
+              </div>
+              <span class="open-arrow">›</span>
+            </a>
+            
+            <a class="element-card" href="../content/Class_gKP2iQWGAqAAZh_o.html">
+              <div class="card-icon element-icon">◇</div>
+              <div>
+                <div class="card-title">UserRegisteredDomainEvent</div>
+                <div class="type-badge">Класс</div>
+                <div class="card-description">Фиксирует факт успешного создания агрегата User. В момент возникновения пользователь имеет статус PENDING_EMAIL_VERIFICATION и ещё не может выполнять вход.
+
+Событие является внутренним для домена. Application-слой может преобразовать его в публичный UserRegisteredEvent и использовать для запуска разрешённых межмодульных сценариев.</div>
+              </div>
+              <span class="open-arrow">›</span>
+            </a>
+            </div>
+    </section>
+  </main>
+</body>
+</html>

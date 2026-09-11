@@ -1,0 +1,73 @@
+<!doctype html>
+<html lang="ru">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>identity.application.service.verification</title>
+  <link rel="stylesheet" href="package.css">
+</head>
+<body>
+  <main class="page">
+    <nav class="breadcrumb"><span>Identity</span><span>›</span><span>application › service › verification</span></nav>
+    <header class="package-header">
+      <div>
+        <div class="eyebrow">PACKAGE</div>
+        <h1>verification</h1>
+        <code>identity.application.service.verification</code>
+      </div>
+      <a class="secondary" href="../content/Package_cvCTiQWGAqAAZies.html">Исходная спецификация VP</a>
+    </header>
+
+    <section class="summary-grid">
+      <article class="description-panel">
+        <h2>Назначение пакета</h2>
+        <div class="description"><p>Реализует подтверждение email и повторную выдачу одноразового проверочного токена</p></div>
+      </article>
+      <aside class="stats-panel">
+        <div><strong>0</strong><span>дочерних пакетов</span></div>
+        <div><strong>2</strong><span>элементов</span></div>
+      </aside>
+    </section>
+
+    <section class="content-section">
+      <div class="section-heading"><h2>Дочерние пакеты</h2><span>0</span></div>
+      <div class="card-grid"><div class="empty-state">Вложенных пакетов нет</div></div>
+    </section>
+
+    <section class="content-section">
+      <div class="section-heading"><h2>Классы и интерфейсы</h2><span>2</span></div>
+      <div class="element-list">
+            <a class="element-card" href="../content/Class_3y_QSQWGAqAAZjTy.html">
+              <div class="card-icon element-icon">◇</div>
+              <div>
+                <div class="card-title">ConfirmEmailService</div>
+                <div class="type-badge">Класс</div>
+                <div class="card-description">Реализация ConfirmEmailUseCase.
+
+Вычисляет hash полученного токена, загружает EmailVerification и проверяет возможность его использования.
+
+Для регистрации активирует User, а для изменения email подтверждает pendingEmail. После сохранения aggregate публикует соответствующее публичное событие, выпускает токены и возвращает AuthenticationResult.
+
+Сервис не вызывает LoginService и использует общие output ports аутентификации напрямую.</div>
+              </div>
+              <span class="open-arrow">›</span>
+            </a>
+            
+            <a class="element-card" href="../content/Class_sPIwSQWGAqAAZjUU.html">
+              <div class="card-icon element-icon">◇</div>
+              <div>
+                <div class="card-title">ResendEmailVerificationService</div>
+                <div class="type-badge">Класс</div>
+                <div class="card-description">Реализация ResendEmailVerificationUseCase.
+
+Находит пользователя, инвалидирует предыдущую активную проверку, создаёт новый проверочный токен и инициирует отправку письма.
+
+Для неизвестного email и недоступной операции возвращает тот же внешний результат, чтобы не раскрывать наличие аккаунта.</div>
+              </div>
+              <span class="open-arrow">›</span>
+            </a>
+            </div>
+    </section>
+  </main>
+</body>
+</html>

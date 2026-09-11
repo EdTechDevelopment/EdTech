@@ -1,0 +1,107 @@
+<!doctype html>
+<html lang="ru">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>identity.infrastructure.security.token</title>
+  <link rel="stylesheet" href="package.css">
+</head>
+<body>
+  <main class="page">
+    <nav class="breadcrumb"><span>Identity</span><span>›</span><span>infrastructure › security › token</span></nav>
+    <header class="package-header">
+      <div>
+        <div class="eyebrow">PACKAGE</div>
+        <h1>token</h1>
+        <code>identity.infrastructure.security.token</code>
+      </div>
+      <a class="secondary" href="../content/Package_x1liSQWGAqAAZjjV.html">Исходная спецификация VP</a>
+    </header>
+
+    <section class="summary-grid">
+      <article class="description-panel">
+        <h2>Назначение пакета</h2>
+        <div class="description"><p>Содержит технические реализации выпуска access JWT, генерации refresh token и генерации одноразовых токенов подтверждения email.</p><p>Открытые refresh и verification tokens не сохраняются в базе данных.</p></div>
+      </article>
+      <aside class="stats-panel">
+        <div><strong>0</strong><span>дочерних пакетов</span></div>
+        <div><strong>5</strong><span>элементов</span></div>
+      </aside>
+    </section>
+
+    <section class="content-section">
+      <div class="section-heading"><h2>Дочерние пакеты</h2><span>0</span></div>
+      <div class="card-grid"><div class="empty-state">Вложенных пакетов нет</div></div>
+    </section>
+
+    <section class="content-section">
+      <div class="section-heading"><h2>Классы и интерфейсы</h2><span>5</span></div>
+      <div class="element-list">
+            <a class="element-card" href="../content/Class_SAVaSQWGAqAAZj4c.html">
+              <div class="card-icon element-icon">◇</div>
+              <div>
+                <div class="card-title">SecureRefreshTokenIssuer</div>
+                <div class="type-badge">Класс</div>
+                <div class="card-description">Генерирует криптографически стойкий URL-safe refresh token через SecureRandom.
+
+При отсутствии familyId создаёт новую token family. При ротации сохраняет существующую familyId.
+
+Возвращает открытое значение, SHA-256 hash, идентификаторы и срок действия токена.</div>
+              </div>
+              <span class="open-arrow">›</span>
+            </a>
+            
+            <a class="element-card" href="../content/Class_Sw7aSQWGAqAAZj6E.html">
+              <div class="card-icon element-icon">◇</div>
+              <div>
+                <div class="card-title">SecureVerificationTokenGenerator</div>
+                <div class="type-badge">Класс</div>
+                <div class="card-description">Генерирует криптографически стойкий одноразовый токен подтверждения email.
+
+Использует SecureRandom и URL-safe Base64 без padding. Открытое значение передаётся только в ссылку подтверждения.</div>
+              </div>
+              <span class="open-arrow">›</span>
+            </a>
+            
+            <a class="element-card" href="../content/Class_qp9aSQWGAqAAZj5F.html">
+              <div class="card-icon element-icon">◇</div>
+              <div>
+                <div class="card-title">Sha256RefreshTokenHasher</div>
+                <div class="type-badge">Класс</div>
+                <div class="card-description">Вычисляет SHA-256 hash полученного refresh token.
+
+Hash используется для поиска сохранённого RefreshTokenState. Открытое значение токена в PostgreSQL не хранится.</div>
+              </div>
+              <span class="open-arrow">›</span>
+            </a>
+            
+            <a class="element-card" href="../content/Class_2uvaSQWGAqAAZj6q.html">
+              <div class="card-icon element-icon">◇</div>
+              <div>
+                <div class="card-title">Sha256VerificationTokenHasher</div>
+                <div class="type-badge">Класс</div>
+                <div class="card-description">Вычисляет SHA-256 hash одноразового токена подтверждения email.
+
+Возвращает доменный value object VerificationTokenHash. Открытое значение токена не сохраняется.</div>
+              </div>
+              <span class="open-arrow">›</span>
+            </a>
+            
+            <a class="element-card" href="../content/Class_cRpaSQWGAqAAZj3x.html">
+              <div class="card-icon element-icon">◇</div>
+              <div>
+                <div class="card-title">SpringJwtAccessTokenIssuer</div>
+                <div class="type-badge">Класс</div>
+                <div class="card-description">Выпускает короткоживущий access JWT через Spring Security JwtEncoder.
+
+JWT содержит sub, roles, iss, aud, iat и exp. Email в JWT не включается, потому что он может измениться.
+
+Токен подписывается RS256. Приватный ключ поступает из внешней конфигурации.</div>
+              </div>
+              <span class="open-arrow">›</span>
+            </a>
+            </div>
+    </section>
+  </main>
+</body>
+</html>

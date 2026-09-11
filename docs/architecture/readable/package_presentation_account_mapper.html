@@ -1,0 +1,57 @@
+<!doctype html>
+<html lang="ru">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>identity.presentation.account.mapper</title>
+  <link rel="stylesheet" href="package.css">
+</head>
+<body>
+  <main class="page">
+    <nav class="breadcrumb"><span>Identity</span><span>›</span><span>presentation › account › mapper</span></nav>
+    <header class="package-header">
+      <div>
+        <div class="eyebrow">PACKAGE</div>
+        <h1>mapper</h1>
+        <code>identity.presentation.account.mapper</code>
+      </div>
+      <a class="secondary" href="../content/Package__M0hCQWGAqAAZgu8.html">Исходная спецификация VP</a>
+    </header>
+
+    <section class="summary-grid">
+      <article class="description-panel">
+        <h2>Назначение пакета</h2>
+        <div class="description"><p>Содержит преобразования HTTP-моделей account в модели application и обратно.</p><p>Mapper добавляет в application-команду userId, полученный контроллером из подтверждённого JWT, и переносит изменяемые данные из request.</p><p>Пакет не выполняет проверку уникальности email, не загружает User и не применяет к нему изменения.</p></div>
+      </article>
+      <aside class="stats-panel">
+        <div><strong>0</strong><span>дочерних пакетов</span></div>
+        <div><strong>1</strong><span>элементов</span></div>
+      </aside>
+    </section>
+
+    <section class="content-section">
+      <div class="section-heading"><h2>Дочерние пакеты</h2><span>0</span></div>
+      <div class="card-grid"><div class="empty-state">Вложенных пакетов нет</div></div>
+    </section>
+
+    <section class="content-section">
+      <div class="section-heading"><h2>Классы и интерфейсы</h2><span>1</span></div>
+      <div class="element-list">
+            <a class="element-card" href="../content/Class_v_6rCQWGAqAAZhFS.html">
+              <div class="card-icon element-icon">◇</div>
+              <div>
+                <div class="card-title">UserPresentationMapper</div>
+                <div class="type-badge">Класс</div>
+                <div class="card-description">Преобразует UpdateCurrentUserRequest и идентификатор текущего пользователя в UpdateCurrentUserCommand.
+
+Преобразует результат application-сценария в UserResponse. Не выполняет бизнес-проверки, не загружает User и не обращается к внешним системам.
+
+Конкретный способ реализации преобразований выбирает разработчик.</div>
+              </div>
+              <span class="open-arrow">›</span>
+            </a>
+            </div>
+    </section>
+  </main>
+</body>
+</html>

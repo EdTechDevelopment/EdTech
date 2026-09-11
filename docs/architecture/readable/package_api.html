@@ -1,0 +1,85 @@
+<!doctype html>
+<html lang="ru">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>identity.api</title>
+  <link rel="stylesheet" href="package.css">
+</head>
+<body>
+  <main class="page">
+    <nav class="breadcrumb"><span>Identity</span><span>›</span><span>api</span></nav>
+    <header class="package-header">
+      <div>
+        <div class="eyebrow">PACKAGE</div>
+        <h1>api</h1>
+        <code>identity.api</code>
+      </div>
+      <a class="secondary" href="../content/Package_rBiXMQWGAqAAZxH_.html">Исходная спецификация VP</a>
+    </header>
+
+    <section class="summary-grid">
+      <article class="description-panel">
+        <h2>Назначение пакета</h2>
+        <div class="description"><p>Публичный Java API модуля Identity для взаимодействия с другими backend-модулями.</p><p>Предоставляет безопасные сведения о пользователях: идентификатор, имя, фамилию, email, роли и статус аккаунта.</p><p>Tutoring и Scheduling обращаются к Identity только через этот пакет. Внутренние доменные сущности, пароль, сессии и проверочные токены через API не раскрываются.</p></div>
+      </article>
+      <aside class="stats-panel">
+        <div><strong>3</strong><span>дочерних пакетов</span></div>
+        <div><strong>0</strong><span>элементов</span></div>
+      </aside>
+    </section>
+
+    <section class="content-section">
+      <div class="section-heading"><h2>Дочерние пакеты</h2><span>3</span></div>
+      <div class="card-grid">
+            <a class="package-card" href="package_api_event.html">
+              <div class="card-icon folder-icon">▰</div>
+              <div>
+                <div class="card-title">event</div>
+                <div class="card-path">identity.api.event</div>
+                <div class="card-description">Публичное событие регистрации пользователя.
+
+Публикуется после успешного сохранения нового аккаунта.
+
+Tutoring обрабатывает событие, чтобы найти ожидающее приглашение по email и связать его с зарегистрированным userId. Приглашение остаётся в статусе PENDING до явного принятия учеником.</div>
+              </div>
+              <span class="card-count">3</span>
+            </a>
+            
+            <a class="package-card" href="package_api_model.html">
+              <div class="card-icon folder-icon">▰</div>
+              <div>
+                <div class="card-title">model</div>
+                <div class="card-path">identity.api.model</div>
+                <div class="card-description">Безопасное неизменяемое представление пользователя для межмодульного взаимодействия.
+
+Содержит идентификатор, подтверждённый email, имя, фамилию, роли и состояние аккаунта.
+
+Не содержит passwordHash, pendingEmail, JWT, refresh-токены, проверочные токены и persistence records.</div>
+              </div>
+              <span class="card-count">3</span>
+            </a>
+            
+            <a class="package-card" href="package_api_query.html">
+              <div class="card-icon folder-icon">▰</div>
+              <div>
+                <div class="card-title">query</div>
+                <div class="card-path">identity.api.query</div>
+                <div class="card-description">Публичный синхронный интерфейс чтения данных пользователей.
+
+Используется модулями Tutoring и Scheduling для получения безопасного представления пользователя и проверки его ролей.
+
+Интерфейс не изменяет состояние Identity и не возвращает внутренние доменные сущности.</div>
+              </div>
+              <span class="card-count">1</span>
+            </a>
+            </div>
+    </section>
+
+    <section class="content-section">
+      <div class="section-heading"><h2>Классы и интерфейсы</h2><span>0</span></div>
+      <div class="element-list"><div class="empty-state">Классов и интерфейсов непосредственно в этом пакете нет</div></div>
+    </section>
+  </main>
+</body>
+</html>

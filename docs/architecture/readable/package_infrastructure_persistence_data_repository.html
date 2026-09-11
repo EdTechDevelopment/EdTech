@@ -1,0 +1,85 @@
+<!doctype html>
+<html lang="ru">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>identity.infrastructure.persistence.data.repository</title>
+  <link rel="stylesheet" href="package.css">
+</head>
+<body>
+  <main class="page">
+    <nav class="breadcrumb"><span>Identity</span><span>›</span><span>infrastructure › persistence › data › repository</span></nav>
+    <header class="package-header">
+      <div>
+        <div class="eyebrow">PACKAGE</div>
+        <h1>repository</h1>
+        <code>identity.infrastructure.persistence.data.repository</code>
+      </div>
+      <a class="secondary" href="../content/Package_hKBiSQWGAqAAZjh7.html">Исходная спецификация VP</a>
+    </header>
+
+    <section class="summary-grid">
+      <article class="description-panel">
+        <h2>Назначение пакета</h2>
+        <div class="description"><p>Содержит низкоуровневые компоненты доступа к PostgreSQL через DSLContext.</p><p>Repository выполняет SQL и возвращает jOOQ records или persistence data. Он не зависит от domain и не реализует application output ports.</p></div>
+      </article>
+      <aside class="stats-panel">
+        <div><strong>0</strong><span>дочерних пакетов</span></div>
+        <div><strong>3</strong><span>элементов</span></div>
+      </aside>
+    </section>
+
+    <section class="content-section">
+      <div class="section-heading"><h2>Дочерние пакеты</h2><span>0</span></div>
+      <div class="card-grid"><div class="empty-state">Вложенных пакетов нет</div></div>
+    </section>
+
+    <section class="content-section">
+      <div class="section-heading"><h2>Классы и интерфейсы</h2><span>3</span></div>
+      <div class="element-list">
+            <a class="element-card" href="../content/Class_5u_ySQWGAqAAZjrS.html">
+              <div class="card-icon element-icon">◇</div>
+              <div>
+                <div class="card-title">EmailVerificationJooqRepository</div>
+                <div class="type-badge">Класс</div>
+                <div class="card-description">Выполняет SQL-операции с проверками email через DSLContext.
+
+Поиск по token hash при подтверждении получает блокировку строки FOR UPDATE. Это предотвращает одновременное использование одноразового токена двумя запросами.
+
+Repository не зависит от EmailVerification и других domain-классов.</div>
+              </div>
+              <span class="open-arrow">›</span>
+            </a>
+            
+            <a class="element-card" href="../content/Class__TiKSQWGAqAAZjs7.html">
+              <div class="card-icon element-icon">◇</div>
+              <div>
+                <div class="card-title">RefreshTokenJooqRepository</div>
+                <div class="type-badge">Класс</div>
+                <div class="card-description">Выполняет SQL-операции с состоянием refresh token через DSLContext.
+
+Поиск токена для refresh получает блокировку строки FOR UPDATE. Это предотвращает успешную параллельную ротацию одного refresh token.
+
+Методы изменения возвращают количество затронутых строк для технической проверки результата.</div>
+              </div>
+              <span class="open-arrow">›</span>
+            </a>
+            
+            <a class="element-card" href="../content/Class_Q51ySQWGAqAAZjo4.html">
+              <div class="card-icon element-icon">◇</div>
+              <div>
+                <div class="card-title">UserJooqRepository</div>
+                <div class="type-badge">Класс</div>
+                <div class="card-description">Низкоуровневый компонент SQL-доступа к пользователям, email и ролям через DSLContext.
+
+Возвращает только jOOQ records и UserPersistenceData. Не создаёт доменный User и не зависит от domain.
+
+Операции сохранения пользователя, email и ролей выполняются в транзакции application-сервиса.</div>
+              </div>
+              <span class="open-arrow">›</span>
+            </a>
+            </div>
+    </section>
+  </main>
+</body>
+</html>

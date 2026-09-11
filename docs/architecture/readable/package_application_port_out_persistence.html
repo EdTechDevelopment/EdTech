@@ -1,0 +1,85 @@
+<!doctype html>
+<html lang="ru">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>identity.application.port.out.persistence</title>
+  <link rel="stylesheet" href="package.css">
+</head>
+<body>
+  <main class="page">
+    <nav class="breadcrumb"><span>Identity</span><span>›</span><span>application › port › out › persistence</span></nav>
+    <header class="package-header">
+      <div>
+        <div class="eyebrow">PACKAGE</div>
+        <h1>persistence</h1>
+        <code>identity.application.port.out.persistence</code>
+      </div>
+      <a class="secondary" href="../content/Package__IqjiQWGAqAAZiY_.html">Исходная спецификация VP</a>
+    </header>
+
+    <section class="summary-grid">
+      <article class="description-panel">
+        <h2>Назначение пакета</h2>
+        <div class="description"><p>Содержит абстракции сохранения и поиска доменных объектов User, EmailVerification и внутреннего состояния refresh token.</p><p>Интерфейсы не содержат jOOQ records, SQL и деталей PostgreSQL.</p></div>
+      </article>
+      <aside class="stats-panel">
+        <div><strong>0</strong><span>дочерних пакетов</span></div>
+        <div><strong>3</strong><span>элементов</span></div>
+      </aside>
+    </section>
+
+    <section class="content-section">
+      <div class="section-heading"><h2>Дочерние пакеты</h2><span>0</span></div>
+      <div class="card-grid"><div class="empty-state">Вложенных пакетов нет</div></div>
+    </section>
+
+    <section class="content-section">
+      <div class="section-heading"><h2>Классы и интерфейсы</h2><span>3</span></div>
+      <div class="element-list">
+            <a class="element-card" href="../content/Class_oc_fiQWGAqAAZjCk.html">
+              <div class="card-icon element-icon">◇</div>
+              <div>
+                <div class="card-title">EmailVerificationRepository</div>
+                <div class="type-badge">Класс</div>
+                <div class="card-description">Выходной порт хранения aggregate EmailVerification.
+
+Позволяет найти проверку по hash токена, найти активную проверку пользователя определённого назначения и сохранить изменённое состояние.
+
+Интерфейс не содержит jOOQ records и SQL.</div>
+              </div>
+              <span class="open-arrow">›</span>
+            </a>
+            
+            <a class="element-card" href="../content/Class_bhLfiQWGAqAAZjEQ.html">
+              <div class="card-icon element-icon">◇</div>
+              <div>
+                <div class="card-title">RefreshTokenRepository</div>
+                <div class="type-badge">Класс</div>
+                <div class="card-description">Выходной порт хранения состояния refresh token.
+
+Хранит только hash токена и служебное состояние. Поддерживает сохранение, отзыв, ротацию и отзыв всей token family.
+
+Конкретная реализация через PostgreSQL и jOOQ находится в infrastructure.</div>
+              </div>
+              <span class="open-arrow">›</span>
+            </a>
+            
+            <a class="element-card" href="../content/Class_GMzviQWGAqAAZi_I.html">
+              <div class="card-icon element-icon">◇</div>
+              <div>
+                <div class="card-title">UserRepository</div>
+                <div class="type-badge">Класс</div>
+                <div class="card-description">Выходной порт хранения aggregate User.
+
+Предоставляет application только доменные объекты и не раскрывает SQL, jOOQ records или структуру таблиц.
+
+Проверка existsByEmailOrPendingEmail учитывает основной и ожидающий подтверждения email.</div>
+              </div>
+              <span class="open-arrow">›</span>
+            </a>
+            </div>
+    </section>
+  </main>
+</body>
+</html>

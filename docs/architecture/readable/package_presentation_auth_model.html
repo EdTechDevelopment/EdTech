@@ -1,0 +1,87 @@
+<!doctype html>
+<html lang="ru">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>identity.presentation.auth.model</title>
+  <link rel="stylesheet" href="package.css">
+</head>
+<body>
+  <main class="page">
+    <nav class="breadcrumb"><span>Identity</span><span>›</span><span>presentation › auth › model</span></nav>
+    <header class="package-header">
+      <div>
+        <div class="eyebrow">PACKAGE</div>
+        <h1>model</h1>
+        <code>identity.presentation.auth.model</code>
+      </div>
+      <a class="secondary" href="../content/Package_ww5BCQWGAqAAZgr0.html">Исходная спецификация VP</a>
+    </header>
+
+    <section class="summary-grid">
+      <article class="description-panel">
+        <h2>Назначение пакета</h2>
+        <div class="description"><p>Объединяет HTTP-модели сценариев регистрации и аутентификации.</p><p>Модели этого пакета описывают данные, которыми обмениваются frontend</p><p>и backend. Они не являются доменными сущностями, application-командами</p><p>или структурами хранения данных.</p><p>Полный состав полей, обязательность, форматы и ограничения моделей</p><p>определяются OpenAPI-контрактом.</p></div>
+      </article>
+      <aside class="stats-panel">
+        <div><strong>2</strong><span>дочерних пакетов</span></div>
+        <div><strong>0</strong><span>элементов</span></div>
+      </aside>
+    </section>
+
+    <section class="content-section">
+      <div class="section-heading"><h2>Дочерние пакеты</h2><span>2</span></div>
+      <div class="card-grid">
+            <a class="package-card" href="package_presentation_auth_model_request.html">
+              <div class="card-icon folder-icon">▰</div>
+              <div>
+                <div class="card-title">request</div>
+                <div class="card-path">identity.presentation.auth.model.request</div>
+                <div class="card-description">Содержит модели входящих HTTP-запросов регистрации, входа,
+
+подтверждения email и повторной отправки письма.
+
+Request-модели отражают структуру входящего JSON и содержат только
+
+данные, которые клиент имеет право передавать.
+
+В request-моделях разрешается указывать аннотации структурной
+
+валидации: обязательность поля, длину строки и формат email.
+
+Проверка уникальности email, состояния пользователя, правильности
+
+пароля и действительности токена не относится к этому пакету.</div>
+              </div>
+              <span class="card-count">4</span>
+            </a>
+            
+            <a class="package-card" href="package_presentation_auth_model_response.html">
+              <div class="card-icon folder-icon">▰</div>
+              <div>
+                <div class="card-title">response</div>
+                <div class="card-path">identity.presentation.auth.model.response</div>
+                <div class="card-description">Содержит HTTP-ответы сценариев регистрации, подтверждения email,
+
+входа и обновления токенов.
+
+Response-модели содержат только данные, разрешённые для frontend.
+
+Они не должны раскрывать passwordHash, проверочные токены, внутреннее
+
+состояние refresh-сессии и другие технические данные Identity.
+
+Полный формат JSON определяется OpenAPI-контрактом.</div>
+              </div>
+              <span class="card-count">2</span>
+            </a>
+            </div>
+    </section>
+
+    <section class="content-section">
+      <div class="section-heading"><h2>Классы и интерфейсы</h2><span>0</span></div>
+      <div class="element-list"><div class="empty-state">Классов и интерфейсов непосредственно в этом пакете нет</div></div>
+    </section>
+  </main>
+</body>
+</html>

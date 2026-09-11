@@ -1,0 +1,57 @@
+<!doctype html>
+<html lang="ru">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>identity.infrastructure.messaging.event</title>
+  <link rel="stylesheet" href="package.css">
+</head>
+<body>
+  <main class="page">
+    <nav class="breadcrumb"><span>Identity</span><span>›</span><span>infrastructure › messaging › event</span></nav>
+    <header class="package-header">
+      <div>
+        <div class="eyebrow">PACKAGE</div>
+        <h1>event</h1>
+        <code>identity.infrastructure.messaging.event</code>
+      </div>
+      <a class="secondary" href="../content/Package_qiHiSQWGAqAAZjlG.html">Исходная спецификация VP</a>
+    </header>
+
+    <section class="summary-grid">
+      <article class="description-panel">
+        <h2>Назначение пакета</h2>
+        <div class="description"><p>Содержит реализацию публикации публичных событий Identity через механизм событий Spring.</p><p>Публикуются только события из identity.api.event.</p></div>
+      </article>
+      <aside class="stats-panel">
+        <div><strong>0</strong><span>дочерних пакетов</span></div>
+        <div><strong>1</strong><span>элементов</span></div>
+      </aside>
+    </section>
+
+    <section class="content-section">
+      <div class="section-heading"><h2>Дочерние пакеты</h2><span>0</span></div>
+      <div class="card-grid"><div class="empty-state">Вложенных пакетов нет</div></div>
+    </section>
+
+    <section class="content-section">
+      <div class="section-heading"><h2>Классы и интерфейсы</h2><span>1</span></div>
+      <div class="element-list">
+            <a class="element-card" href="../content/Class_Z1eGSQWGAqAAZkDm.html">
+              <div class="card-icon element-icon">◇</div>
+              <div>
+                <div class="card-title">SpringIntegrationEventPublisher</div>
+                <div class="type-badge">Класс</div>
+                <div class="card-description">Публикует публичные события Identity через Spring ApplicationEventPublisher.
+
+Получает только события из identity.api.event. Внутренние domain events перед публикацией преобразуются IdentityApiMapper.
+
+Подписчики других модулей обрабатывают события после успешной фиксации транзакции.</div>
+              </div>
+              <span class="open-arrow">›</span>
+            </a>
+            </div>
+    </section>
+  </main>
+</body>
+</html>

@@ -1,0 +1,83 @@
+<!doctype html>
+<html lang="ru">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>identity.api.event</title>
+  <link rel="stylesheet" href="package.css">
+</head>
+<body>
+  <main class="page">
+    <nav class="breadcrumb"><span>Identity</span><span>›</span><span>api › event</span></nav>
+    <header class="package-header">
+      <div>
+        <div class="eyebrow">PACKAGE</div>
+        <h1>event</h1>
+        <code>identity.api.event</code>
+      </div>
+      <a class="secondary" href="../content/Package_YVzG8QWGAqAAZgg9.html">Исходная спецификация VP</a>
+    </header>
+
+    <section class="summary-grid">
+      <article class="description-panel">
+        <h2>Назначение пакета</h2>
+        <div class="description"><p>Публичное событие регистрации пользователя.</p><p>Публикуется после успешного сохранения нового аккаунта.</p><p>Tutoring обрабатывает событие, чтобы найти ожидающее приглашение по email и связать его с зарегистрированным userId. Приглашение остаётся в статусе PENDING до явного принятия учеником.</p></div>
+      </article>
+      <aside class="stats-panel">
+        <div><strong>0</strong><span>дочерних пакетов</span></div>
+        <div><strong>3</strong><span>элементов</span></div>
+      </aside>
+    </section>
+
+    <section class="content-section">
+      <div class="section-heading"><h2>Дочерние пакеты</h2><span>0</span></div>
+      <div class="card-grid"><div class="empty-state">Вложенных пакетов нет</div></div>
+    </section>
+
+    <section class="content-section">
+      <div class="section-heading"><h2>Классы и интерфейсы</h2><span>3</span></div>
+      <div class="element-list">
+            <a class="element-card" href="../content/Class_MI328QWGAqAAZgqo.html">
+              <div class="card-icon element-icon">◇</div>
+              <div>
+                <div class="card-title">UserAccountUpdatedEvent</div>
+                <div class="type-badge">Класс</div>
+                <div class="card-description">Публичное событие изменения общих данных аккаунта.
+
+Публикуется после изменения имени, фамилии или подтверждённой смены email.
+
+Может использоваться другими модулями для обновления локальной read model.</div>
+              </div>
+              <span class="open-arrow">›</span>
+            </a>
+            
+            <a class="element-card" href="../content/Class_gYX28QWGAqAAZgqg.html">
+              <div class="card-icon element-icon">◇</div>
+              <div>
+                <div class="card-title">UserActivatedEvent</div>
+                <div class="type-badge">Класс</div>
+                <div class="card-description">Публичное событие активации аккаунта.
+
+Публикуется после успешного подтверждения email и перехода пользователя в состояние ACTIVE.</div>
+              </div>
+              <span class="open-arrow">›</span>
+            </a>
+            
+            <a class="element-card" href="../content/Class_dMEW8QWGAqAAZgnv.html">
+              <div class="card-icon element-icon">◇</div>
+              <div>
+                <div class="card-title">UserRegisteredEvent</div>
+                <div class="type-badge">Класс</div>
+                <div class="card-description">Публичное событие регистрации пользователя.
+
+Публикуется после успешного сохранения нового аккаунта.
+
+Tutoring обрабатывает событие, чтобы найти ожидающее приглашение по email и связать его с зарегистрированным userId. Приглашение остаётся в статусе PENDING до явного принятия учеником.</div>
+              </div>
+              <span class="open-arrow">›</span>
+            </a>
+            </div>
+    </section>
+  </main>
+</body>
+</html>

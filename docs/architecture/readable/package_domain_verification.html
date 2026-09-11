@@ -1,0 +1,91 @@
+<!doctype html>
+<html lang="ru">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>identity.domain.verification</title>
+  <link rel="stylesheet" href="package.css">
+</head>
+<body>
+  <main class="page">
+    <nav class="breadcrumb"><span>Identity</span><span>›</span><span>domain › verification</span></nav>
+    <header class="package-header">
+      <div>
+        <div class="eyebrow">PACKAGE</div>
+        <h1>verification</h1>
+        <code>identity.domain.verification</code>
+      </div>
+      <a class="secondary" href="../content/Package_rQEWiQWGAqAAZh4O.html">Исходная спецификация VP</a>
+    </header>
+
+    <section class="summary-grid">
+      <article class="description-panel">
+        <h2>Назначение пакета</h2>
+        <div class="description"><p>Определяет агрегат EmailVerification и связанные с ним доменные типы. Агрегат управляет жизненным циклом одноразового подтверждения email: хранит только хэш токена, назначение подтверждения, целевой адрес, срок действия, время использования и время аннулирования.</p><p>EmailVerification ссылается на агрегат User только через userId и не получает объектную или ORM-связь с User. Изменение User после проверки токена координируется application-сервисом.</p></div>
+      </article>
+      <aside class="stats-panel">
+        <div><strong>0</strong><span>дочерних пакетов</span></div>
+        <div><strong>4</strong><span>элементов</span></div>
+      </aside>
+    </section>
+
+    <section class="content-section">
+      <div class="section-heading"><h2>Дочерние пакеты</h2><span>0</span></div>
+      <div class="card-grid"><div class="empty-state">Вложенных пакетов нет</div></div>
+    </section>
+
+    <section class="content-section">
+      <div class="section-heading"><h2>Классы и интерфейсы</h2><span>4</span></div>
+      <div class="element-list">
+            <a class="element-card" href="../content/Class_OOA_iQWGAqAAZiHn.html">
+              <div class="card-icon element-icon">◇</div>
+              <div>
+                <div class="card-title">EmailVerification</div>
+                <div class="type-badge">Класс</div>
+                <div class="card-description">Корень агрегата подтверждения email. Представляет одно подтверждение первоначального адреса или изменения текущего адреса пользователя.
+
+Агрегат хранит только хэш токена и запрещает повторное использование, использование после истечения срока действия и использование после аннулирования. Срок действия нового подтверждения составляет 24 часа.
+
+EmailVerification не активирует User и не изменяет его email напрямую. После успешного использования подтверждения application-сервис загружает User по userId и вызывает соответствующую доменную операцию.</div>
+              </div>
+              <span class="open-arrow">›</span>
+            </a>
+            
+            <a class="element-card" href="../content/Class_tdQ_iQWGAqAAZiH9.html">
+              <div class="card-icon element-icon">◇</div>
+              <div>
+                <div class="card-title">InvalidVerificationException</div>
+                <div class="type-badge">Класс</div>
+                <div class="card-description">Возникает, когда EmailVerification невозможно использовать: срок действия истёк, подтверждение уже использовано или оно было аннулировано.
+
+Application-слой преобразует такие случаи в единую внешнюю ошибку INVALID_VERIFICATION_TOKEN, чтобы не раскрывать технические подробности проверки токена.</div>
+              </div>
+              <span class="open-arrow">›</span>
+            </a>
+            
+            <a class="element-card" href="../content/Class_ceQ_iQWGAqAAZiH1.html">
+              <div class="card-icon element-icon">◇</div>
+              <div>
+                <div class="card-title">VerificationPurpose</div>
+                <div class="type-badge">Класс</div>
+                <div class="card-description">Определяет назначение подтверждения email. Назначение используется application-сервисом для выбора допустимой операции над агрегатом User после успешной проверки токена.</div>
+              </div>
+              <span class="open-arrow">›</span>
+            </a>
+            
+            <a class="element-card" href="../content/Class_ENA_iQWGAqAAZiHt.html">
+              <div class="card-icon element-icon">◇</div>
+              <div>
+                <div class="card-title">VerificationTokenHash</div>
+                <div class="type-badge">Класс</div>
+                <div class="card-description">Неизменяемый объект-значение, представляющий хэш одноразового verification token. Открытый токен существует только на границе сценария и никогда не сохраняется внутри доменной модели или базы данных.
+
+Объект не определяет конкретный алгоритм хэширования. Генерация и хэширование токена выполняются через выходные порты application-слоя.</div>
+              </div>
+              <span class="open-arrow">›</span>
+            </a>
+            </div>
+    </section>
+  </main>
+</body>
+</html>
