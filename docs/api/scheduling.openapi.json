@@ -3,7 +3,7 @@
   "info": {
     "title": "EdTech tutoring API",
     "version": "1.0.0",
-    "description": "Контракт регистрации, сессионной аутентификации, профилей, приглашений и расписания по утверждённому ТЗ."
+    "description": "Контракт регистрации, JWT-аутентификации, профилей, приглашений и расписания. Access JWT передаётся как Bearer token, refresh token — только в HttpOnly cookie."
   },
   "servers": [
     {
@@ -12,7 +12,7 @@
   ],
   "security": [
     {
-      "sessionCookie": []
+      "bearerAuth": []
     }
   ],
   "tags": [
@@ -41,7 +41,7 @@
         ],
         "summary": "Зарегистрировать пользователя",
         "security": [],
-        "description": "Обязательны email, пароль, имя, фамилия и минимум одна роль. Создаёт аккаунт PENDING_EMAIL_VERIFICATION без сессии.",
+        "description": "Обязательны email, пароль, имя, фамилия и минимум одна роль. Создаёт аккаунт PENDING_EMAIL_VERIFICATION без access и refresh token.",
         "requestBody": {
           "required": true,
           "content": {
@@ -126,19 +126,37 @@
         },
         "responses": {
           "200": {
-            "description": "Email подтверждён, сессия создана.",
+            "description": "Email подтверждён. Выпущен access JWT и установлена refresh cookie.",
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/MeResponse"
+                  "$ref": "#/components/schemas/TokenResponse"
                 }
               }
             },
             "headers": {
               "Set-Cookie": {
-                "description": "Создаёт или обновляет серверную сессию.",
+                "description": "Устанавливает или ротирует refresh token в HttpOnly cookie REFRESH_TOKEN. В production cookie имеет Secure; атрибуты SameSite и Path задаются сервером.",
                 "schema": {
                   "type": "string"
+                }
+              },
+              "Cache-Control": {
+                "description": "Ответ с токеном не должен сохраняться HTTP-кэшами.",
+                "schema": {
+                  "type": "string",
+                  "enum": [
+                    "no-store"
+                  ]
+                }
+              },
+              "Pragma": {
+                "description": "Совместимый запрет кэширования ответа с токеном.",
+                "schema": {
+                  "type": "string",
+                  "enum": [
+                    "no-cache"
+                  ]
                 }
               }
             }
@@ -251,19 +269,37 @@
         },
         "responses": {
           "200": {
-            "description": "Сессия создана.",
+            "description": "Выпущен access JWT и установлена refresh cookie.",
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/MeResponse"
+                  "$ref": "#/components/schemas/TokenResponse"
                 }
               }
             },
             "headers": {
               "Set-Cookie": {
-                "description": "Создаёт или обновляет серверную сессию.",
+                "description": "Устанавливает или ротирует refresh token в HttpOnly cookie REFRESH_TOKEN. В production cookie имеет Secure; атрибуты SameSite и Path задаются сервером.",
                 "schema": {
                   "type": "string"
+                }
+              },
+              "Cache-Control": {
+                "description": "Ответ с токеном не должен сохраняться HTTP-кэшами.",
+                "schema": {
+                  "type": "string",
+                  "enum": [
+                    "no-store"
+                  ]
+                }
+              },
+              "Pragma": {
+                "description": "Совместимый запрет кэширования ответа с токеном.",
+                "schema": {
+                  "type": "string",
+                  "enum": [
+                    "no-cache"
+                  ]
                 }
               }
             }
@@ -321,26 +357,113 @@
         }
       }
     },
+    "/auth/refresh": {
+      "post": {
+        "operationId": "refreshAccessToken",
+        "tags": [
+          "Auth"
+        ],
+        "summary": "Обновить access token",
+        "security": [
+          {
+            "refreshCookie": []
+          }
+        ],
+        "description": "Читает refresh token только из HttpOnly cookie, проверяет его и при включённой ротации устанавливает новую refresh cookie. Тело запроса отсутствует.",
+        "responses": {
+          "200": {
+            "description": "Выпущен новый access JWT.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TokenResponse"
+                }
+              }
+            },
+            "headers": {
+              "Set-Cookie": {
+                "description": "Устанавливает или ротирует refresh token в HttpOnly cookie REFRESH_TOKEN. В production cookie имеет Secure; атрибуты SameSite и Path задаются сервером.",
+                "schema": {
+                  "type": "string"
+                }
+              },
+              "Cache-Control": {
+                "description": "Ответ с токеном не должен сохраняться HTTP-кэшами.",
+                "schema": {
+                  "type": "string",
+                  "enum": [
+                    "no-store"
+                  ]
+                }
+              },
+              "Pragma": {
+                "description": "Совместимый запрет кэширования ответа с токеном.",
+                "schema": {
+                  "type": "string",
+                  "enum": [
+                    "no-cache"
+                  ]
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Не аутентифицирован.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Действие запрещено.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Внутренняя ошибка.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/auth/logout": {
       "post": {
         "operationId": "logout",
         "tags": [
           "Auth"
         ],
-        "summary": "Завершить текущую сессию",
+        "summary": "Завершить текущую аутентификацию",
         "security": [
           {
-            "sessionCookie": []
+            "refreshCookie": []
           }
         ],
-        "parameters": [
-          {
-            "$ref": "#/components/parameters/CsrfHeader"
-          }
-        ],
+        "description": "Отзывает refresh token, переданный в HttpOnly cookie, и удаляет cookie. Тело запроса отсутствует.",
         "responses": {
           "204": {
-            "description": "Сессия завершена."
+            "description": "Refresh token отозван, cookie удалена.",
+            "headers": {
+              "Set-Cookie": {
+                "description": "Удаляет refresh token cookie REFRESH_TOKEN с Max-Age=0.",
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
           },
           "401": {
             "description": "Не аутентифицирован.",
@@ -421,11 +544,6 @@
           "Profiles"
         ],
         "summary": "Изменить общие данные текущего пользователя",
-        "parameters": [
-          {
-            "$ref": "#/components/parameters/CsrfHeader"
-          }
-        ],
         "description": "При смене email текущий адрес сохраняется в email, а новый записывается в pendingEmail до подтверждения.",
         "requestBody": {
           "required": true,
@@ -608,11 +726,6 @@
           "Profiles"
         ],
         "summary": "Создать или заменить свой профиль репетитора",
-        "parameters": [
-          {
-            "$ref": "#/components/parameters/CsrfHeader"
-          }
-        ],
         "requestBody": {
           "required": true,
           "content": {
@@ -753,11 +866,6 @@
           "Profiles"
         ],
         "summary": "Создать или заменить свой профиль ученика",
-        "parameters": [
-          {
-            "$ref": "#/components/parameters/CsrfHeader"
-          }
-        ],
         "requestBody": {
           "required": true,
           "content": {
@@ -839,11 +947,6 @@
           "Invitations"
         ],
         "summary": "Пригласить ученика по email",
-        "parameters": [
-          {
-            "$ref": "#/components/parameters/CsrfHeader"
-          }
-        ],
         "requestBody": {
           "required": true,
           "content": {
@@ -1023,9 +1126,6 @@
               "maxLength": 100,
               "description": "Непрозрачный идентификатор StudentInvitation."
             }
-          },
-          {
-            "$ref": "#/components/parameters/CsrfHeader"
           }
         ],
         "responses": {
@@ -1103,9 +1203,6 @@
               "maxLength": 100,
               "description": "Непрозрачный идентификатор StudentInvitation."
             }
-          },
-          {
-            "$ref": "#/components/parameters/CsrfHeader"
           }
         ],
         "responses": {
@@ -1324,9 +1421,6 @@
               "maxLength": 100,
               "description": "Непрозрачный идентификатор User."
             }
-          },
-          {
-            "$ref": "#/components/parameters/CsrfHeader"
           }
         ],
         "description": "Атомарно отменяет будущие индивидуальные уроки с причиной STUDENT_UNLINKED, удаляет ученика из будущих групповых уроков и меняет группу из одного участника на INDIVIDUAL.",
@@ -1570,11 +1664,6 @@
           "Scheduling"
         ],
         "summary": "Создать урок",
-        "parameters": [
-          {
-            "$ref": "#/components/parameters/CsrfHeader"
-          }
-        ],
         "requestBody": {
           "required": true,
           "content": {
@@ -1749,9 +1838,6 @@
               "maxLength": 100,
               "description": "Непрозрачный идентификатор LessonOccurrence."
             }
-          },
-          {
-            "$ref": "#/components/parameters/CsrfHeader"
           }
         ],
         "requestBody": {
@@ -1856,9 +1942,6 @@
               "maxLength": 100,
               "description": "Непрозрачный идентификатор LessonOccurrence."
             }
-          },
-          {
-            "$ref": "#/components/parameters/CsrfHeader"
           }
         ],
         "requestBody": {
@@ -1963,9 +2046,6 @@
               "maxLength": 100,
               "description": "Непрозрачный идентификатор LessonOccurrence."
             }
-          },
-          {
-            "$ref": "#/components/parameters/CsrfHeader"
           }
         ],
         "requestBody": {
@@ -2227,24 +2307,20 @@
   },
   "components": {
     "securitySchemes": {
-      "sessionCookie": {
+      "bearerAuth": {
+        "type": "http",
+        "scheme": "bearer",
+        "bearerFormat": "JWT",
+        "description": "Короткоживущий access JWT из TokenResponse."
+      },
+      "refreshCookie": {
         "type": "apiKey",
         "in": "cookie",
-        "name": "SESSION",
-        "description": "Серверная HTTP-сессия."
+        "name": "REFRESH_TOKEN",
+        "description": "Refresh token в HttpOnly cookie. Используется только endpoint-ами refresh и logout."
       }
     },
     "parameters": {
-      "CsrfHeader": {
-        "name": "X-XSRF-TOKEN",
-        "in": "header",
-        "required": true,
-        "schema": {
-          "type": "string",
-          "minLength": 1
-        },
-        "description": "Значение cookie XSRF-TOKEN."
-      },
       "Cursor": {
         "name": "cursor",
         "in": "query",
@@ -2665,6 +2741,40 @@
         "example": {
           "email": "anna@example.com",
           "password": "example-password"
+        }
+      },
+      "TokenResponse": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "accessToken": {
+            "type": "string",
+            "minLength": 20,
+            "maxLength": 8192,
+            "description": "Короткоживущий JWT access token. Frontend передаёт его как Authorization: Bearer <token>."
+          },
+          "tokenType": {
+            "type": "string",
+            "enum": [
+              "Bearer"
+            ]
+          },
+          "expiresInSeconds": {
+            "type": "integer",
+            "minimum": 1,
+            "description": "Число секунд до окончания срока действия access token."
+          }
+        },
+        "required": [
+          "accessToken",
+          "tokenType",
+          "expiresInSeconds"
+        ],
+        "description": "Refresh token не включается в JSON и передаётся только через HttpOnly cookie.",
+        "example": {
+          "accessToken": "eyJhbGciOiJSUzI1NiJ9.eyJzdWIiOiJ1XzAwMiJ9.example-signature",
+          "tokenType": "Bearer",
+          "expiresInSeconds": 900
         }
       },
       "UpdateMeRequest": {
@@ -5151,6 +5261,7 @@
           "UNAUTHENTICATED",
           "INVALID_CREDENTIALS",
           "EMAIL_NOT_VERIFIED",
+          "INVALID_REFRESH_TOKEN",
           "FORBIDDEN",
           "NOT_FOUND",
           "PROFILE_NOT_FOUND",

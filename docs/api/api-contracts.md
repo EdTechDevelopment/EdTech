@@ -4,8 +4,11 @@
 
 ## Общие соглашения
 
-- Аутентификация: серверная cookie `SESSION`.
-- Изменяющие защищённые запросы передают `X-XSRF-TOKEN` из cookie `XSRF-TOKEN`.
+- Защищённые бизнес-endpoint'ы принимают access JWT в заголовке `Authorization: Bearer <token>`.
+- Access JWT возвращается в `TokenResponse`, имеет короткий срок жизни и не передаётся через cookie.
+- Refresh token не возвращается в JSON: сервер устанавливает его в HttpOnly cookie `REFRESH_TOKEN`.
+- Cookie с refresh token отправляется только на `/auth/refresh` и `/auth/logout`; в production используется `Secure`, а `SameSite` и `Path` задаются серверной конфигурацией.
+- Запросы с Bearer access token не используют отдельный CSRF-токен. Защита refresh-cookie endpoint'ов обеспечивается согласованными `SameSite`, CORS и проверкой Origin на сервере.
 - Время: RFC 3339 с offset, ответы в UTC.
 - Деньги: decimal-строка в RUB, например `"1500.00"`.
 - Пагинация: `cursor + limit`, по умолчанию 50, максимум 100.
@@ -19,7 +22,8 @@
 | `POST` | `/api/v1/auth/email-verification/confirm` | Подтвердить email |
 | `POST` | `/api/v1/auth/email-verification/resend` | Повторно отправить подтверждение |
 | `POST` | `/api/v1/auth/login` | Войти |
-| `POST` | `/api/v1/auth/logout` | Завершить текущую сессию |
+| `POST` | `/api/v1/auth/refresh` | Обновить access token |
+| `POST` | `/api/v1/auth/logout` | Завершить текущую аутентификацию |
 | `GET` | `/api/v1/me` | Получить текущего пользователя и профили |
 | `PATCH` | `/api/v1/me` | Изменить общие данные текущего пользователя |
 | `GET` | `/api/v1/subjects` | Получить справочник предметов |
@@ -49,7 +53,10 @@
 - Пользователь может иметь обе роли и по одному профилю каждой роли.
 - При регистрации обязательны email, пароль, имя, фамилия и минимум одна роль.
 - Исходный пароль присутствует только в запросах регистрации и входа. API никогда не возвращает пароль или `passwordHash`.
-- Регистрация не создаёт сессию до подтверждения email.
+- Регистрация не выдаёт access или refresh token до подтверждения email.
+- Подтверждение email и login возвращают `TokenResponse` и устанавливают refresh cookie.
+- `POST /auth/refresh` возвращает новый access JWT; refresh token может ротироваться.
+- Logout отзывает refresh token и удаляет cookie. Уже выданный access JWT действует до окончания короткого срока жизни.
 - `pendingEmail` содержит новый адрес, ожидающий подтверждения, либо `null`; это не логический флаг.
 - Возраст не хранится в `User` и при необходимости вычисляется из `StudentProfile.birthDate`.
 - `TeacherProfile` и `StudentProfile` связаны с аккаунтом по `userId` в доменной модели Tutoring. Вложенный `user` в DTO ответа — композиция данных для frontend, а не владение аккаунтом со стороны профиля.
@@ -78,6 +85,7 @@
 | `ConfirmEmailRequest` | object | `token` |
 | `ResendEmailVerificationRequest` | object | `email` |
 | `LoginRequest` | object | `email`, `password` |
+| `TokenResponse` | object | `accessToken`, `tokenType`, `expiresInSeconds` |
 | `UpdateMeRequest` | object | `firstName?`, `lastName?`, `email?` |
 | `SubjectResponse` | object | `code`, `name` |
 | `SubjectListResponse` | object | `items` |
@@ -111,7 +119,7 @@
 | `CancelLessonRequest` | object | `reason`, `comment?` |
 | `SetLessonStatusRequest` | object | `status` |
 | `FieldError` | object | `field`, `code`, `message` |
-| `ErrorCode` | enum | `VALIDATION_ERROR`, `UNKNOWN_SUBJECT`, `UNAUTHENTICATED`, `INVALID_CREDENTIALS`, `EMAIL_NOT_VERIFIED`, `FORBIDDEN`, `NOT_FOUND`, `PROFILE_NOT_FOUND`, `EMAIL_ALREADY_EXISTS`, `INVALID_VERIFICATION_TOKEN`, `INVITATION_ALREADY_PENDING`, `INVITATION_EXPIRED`, `INVALID_INVITATION_STATE`, `ALREADY_LINKED`, `STUDENT_NOT_LINKED`, `LESSON_OVERLAP`, `INVALID_LESSON_STATE`, `RATE_LIMIT_EXCEEDED`, `INTERNAL_ERROR` |
+| `ErrorCode` | enum | `VALIDATION_ERROR`, `UNKNOWN_SUBJECT`, `UNAUTHENTICATED`, `INVALID_CREDENTIALS`, `EMAIL_NOT_VERIFIED`, `INVALID_REFRESH_TOKEN`, `FORBIDDEN`, `NOT_FOUND`, `PROFILE_NOT_FOUND`, `EMAIL_ALREADY_EXISTS`, `INVALID_VERIFICATION_TOKEN`, `INVITATION_ALREADY_PENDING`, `INVITATION_EXPIRED`, `INVALID_INVITATION_STATE`, `ALREADY_LINKED`, `STUDENT_NOT_LINKED`, `LESSON_OVERLAP`, `INVALID_LESSON_STATE`, `RATE_LIMIT_EXCEEDED`, `INTERNAL_ERROR` |
 | `ApiError` | object | `code`, `message`, `fieldErrors`, `requestId` |
 
 ## Контракты аккаунта
@@ -138,7 +146,19 @@
 | `lastName` | string | От 1 до 100 символов после `trim` |
 | `roles` | `UserRole[]` | От 1 до 2 уникальных значений: `TEACHER`, `STUDENT` |
 
-После регистрации сервер хранит bcrypt-хэш пароля, создаёт пользователя со статусом `PENDING_EMAIL_VERIFICATION`, отправляет письмо и отвечает `202 VerificationPendingResponse`. Сессия появляется только после подтверждения email.
+После регистрации сервер хранит bcrypt-хэш пароля, создаёт пользователя со статусом `PENDING_EMAIL_VERIFICATION`, отправляет письмо и отвечает `202 VerificationPendingResponse`. Access и refresh token появляются только после подтверждения email или успешного login.
+
+### `TokenResponse`
+
+```json
+{
+  "accessToken": "eyJhbGciOiJSUzI1NiJ9.eyJzdWIiOiJ1XzAwMiJ9.example-signature",
+  "tokenType": "Bearer",
+  "expiresInSeconds": 900
+}
+```
+
+Refresh token отсутствует в JSON и доступен frontend только как автоматически отправляемая HttpOnly cookie. Frontend не должен пытаться прочитать эту cookie из JavaScript.
 
 ### `UserResponse`
 
@@ -157,7 +177,7 @@
 }
 ```
 
-Все поля ответа обязательны. `pendingEmail` и `emailVerifiedAt` могут быть `null`. Множество ролей сериализуется в JSON-массив. `password`, `passwordHash`, токены и сведения о серверной сессии в ответ не входят.
+Все поля ответа обязательны. `pendingEmail` и `emailVerifiedAt` могут быть `null`. Множество ролей сериализуется в JSON-массив. `password`, `passwordHash`, access JWT и refresh token в ответ пользователя не входят.
 
 ### `UpdateMeRequest`
 
@@ -182,7 +202,7 @@
 
 Зарегистрировать пользователя.
 
-Обязательны email, пароль, имя, фамилия и минимум одна роль. Создаёт аккаунт PENDING_EMAIL_VERIFICATION без сессии.
+Обязательны email, пароль, имя, фамилия и минимум одна роль. Создаёт аккаунт PENDING_EMAIL_VERIFICATION без access и refresh token.
 
 **Авторизация:** Не требуется.
 
@@ -214,7 +234,7 @@
 
 **Ответы:**
 
-- `200` — Email подтверждён, сессия создана.
+- `200` — Email подтверждён. Выпущен access JWT и установлена refresh cookie.
 - `400` — Ошибка формата или валидации.
 - `409` — Конфликт состояния.
 - `500` — Внутренняя ошибка.
@@ -252,28 +272,51 @@
 
 **Ответы:**
 
-- `200` — Сессия создана.
+- `200` — Выпущен access JWT и установлена refresh cookie.
 - `400` — Ошибка формата или валидации.
 - `401` — Не аутентифицирован.
 - `403` — Действие запрещено.
 - `429` — Слишком много запросов.
 - `500` — Внутренняя ошибка.
 
-### `POST /api/v1/auth/logout`
+### `POST /api/v1/auth/refresh`
 
-Завершить текущую сессию.
+Обновить access token.
 
-**Авторизация:** Серверная сессия `SESSION`.
+Читает refresh token только из HttpOnly cookie, проверяет его и при включённой ротации устанавливает новую refresh cookie. Тело запроса отсутствует.
+
+**Авторизация:** Refresh token в HttpOnly cookie `REFRESH_TOKEN`.
 
 **Параметры:**
 
-- `X-XSRF-TOKEN` (header, обязательный)
+- Нет.
 
 **Тело запроса:** Тело отсутствует.
 
 **Ответы:**
 
-- `204` — Сессия завершена.
+- `200` — Выпущен новый access JWT.
+- `401` — Не аутентифицирован.
+- `403` — Действие запрещено.
+- `500` — Внутренняя ошибка.
+
+### `POST /api/v1/auth/logout`
+
+Завершить текущую аутентификацию.
+
+Отзывает refresh token, переданный в HttpOnly cookie, и удаляет cookie. Тело запроса отсутствует.
+
+**Авторизация:** Refresh token в HttpOnly cookie `REFRESH_TOKEN`.
+
+**Параметры:**
+
+- Нет.
+
+**Тело запроса:** Тело отсутствует.
+
+**Ответы:**
+
+- `204` — Refresh token отозван, cookie удалена.
 - `401` — Не аутентифицирован.
 - `403` — Действие запрещено.
 - `500` — Внутренняя ошибка.
@@ -282,7 +325,7 @@
 
 Получить текущего пользователя и профили.
 
-**Авторизация:** Серверная сессия `SESSION`.
+**Авторизация:** Access JWT в заголовке `Authorization: Bearer <token>`.
 
 **Параметры:**
 
@@ -302,11 +345,11 @@
 
 При смене email текущий адрес сохраняется в email, а новый записывается в pendingEmail до подтверждения.
 
-**Авторизация:** Серверная сессия `SESSION`.
+**Авторизация:** Access JWT в заголовке `Authorization: Bearer <token>`.
 
 **Параметры:**
 
-- `X-XSRF-TOKEN` (header, обязательный)
+- Нет.
 
 **Тело запроса:** `UpdateMeRequest`
 
@@ -323,7 +366,7 @@
 
 Получить справочник предметов.
 
-**Авторизация:** Серверная сессия `SESSION`.
+**Авторизация:** Access JWT в заголовке `Authorization: Bearer <token>`.
 
 **Параметры:**
 
@@ -341,7 +384,7 @@
 
 Получить свой профиль репетитора.
 
-**Авторизация:** Серверная сессия `SESSION`.
+**Авторизация:** Access JWT в заголовке `Authorization: Bearer <token>`.
 
 **Параметры:**
 
@@ -361,11 +404,11 @@
 
 Создать или заменить свой профиль репетитора.
 
-**Авторизация:** Серверная сессия `SESSION`.
+**Авторизация:** Access JWT в заголовке `Authorization: Bearer <token>`.
 
 **Параметры:**
 
-- `X-XSRF-TOKEN` (header, обязательный)
+- Нет.
 
 **Тело запроса:** `TeacherProfileUpsertRequest`
 
@@ -382,7 +425,7 @@
 
 Получить свой профиль ученика.
 
-**Авторизация:** Серверная сессия `SESSION`.
+**Авторизация:** Access JWT в заголовке `Authorization: Bearer <token>`.
 
 **Параметры:**
 
@@ -402,11 +445,11 @@
 
 Создать или заменить свой профиль ученика.
 
-**Авторизация:** Серверная сессия `SESSION`.
+**Авторизация:** Access JWT в заголовке `Authorization: Bearer <token>`.
 
 **Параметры:**
 
-- `X-XSRF-TOKEN` (header, обязательный)
+- Нет.
 
 **Тело запроса:** `StudentProfileUpsertRequest`
 
@@ -423,11 +466,11 @@
 
 Пригласить ученика по email.
 
-**Авторизация:** Серверная сессия `SESSION`.
+**Авторизация:** Access JWT в заголовке `Authorization: Bearer <token>`.
 
 **Параметры:**
 
-- `X-XSRF-TOKEN` (header, обязательный)
+- Нет.
 
 **Тело запроса:** `CreateStudentInvitationRequest`
 
@@ -445,7 +488,7 @@
 
 Получить входящие приглашения.
 
-**Авторизация:** Серверная сессия `SESSION`.
+**Авторизация:** Access JWT в заголовке `Authorization: Bearer <token>`.
 
 **Параметры:**
 
@@ -467,12 +510,11 @@
 
 Принять приглашение.
 
-**Авторизация:** Серверная сессия `SESSION`.
+**Авторизация:** Access JWT в заголовке `Authorization: Bearer <token>`.
 
 **Параметры:**
 
 - `invitationId` (path, обязательный)
-- `X-XSRF-TOKEN` (header, обязательный)
 
 **Тело запроса:** Тело отсутствует.
 
@@ -489,12 +531,11 @@
 
 Отклонить приглашение.
 
-**Авторизация:** Серверная сессия `SESSION`.
+**Авторизация:** Access JWT в заголовке `Authorization: Bearer <token>`.
 
 **Параметры:**
 
 - `invitationId` (path, обязательный)
-- `X-XSRF-TOKEN` (header, обязательный)
 
 **Тело запроса:** Тело отсутствует.
 
@@ -511,7 +552,7 @@
 
 Получить своих учеников.
 
-**Авторизация:** Серверная сессия `SESSION`.
+**Авторизация:** Access JWT в заголовке `Authorization: Bearer <token>`.
 
 **Параметры:**
 
@@ -532,7 +573,7 @@
 
 Получить карточку и статистику ученика.
 
-**Авторизация:** Серверная сессия `SESSION`.
+**Авторизация:** Access JWT в заголовке `Authorization: Bearer <token>`.
 
 **Параметры:**
 
@@ -554,12 +595,11 @@
 
 Атомарно отменяет будущие индивидуальные уроки с причиной STUDENT_UNLINKED, удаляет ученика из будущих групповых уроков и меняет группу из одного участника на INDIVIDUAL.
 
-**Авторизация:** Серверная сессия `SESSION`.
+**Авторизация:** Access JWT в заголовке `Authorization: Bearer <token>`.
 
 **Параметры:**
 
 - `studentUserId` (path, обязательный)
-- `X-XSRF-TOKEN` (header, обязательный)
 
 **Тело запроса:** Тело отсутствует.
 
@@ -576,7 +616,7 @@
 
 Получить своих репетиторов.
 
-**Авторизация:** Серверная сессия `SESSION`.
+**Авторизация:** Access JWT в заголовке `Authorization: Bearer <token>`.
 
 **Параметры:**
 
@@ -599,7 +639,7 @@
 
 Окно [from,to), максимум 93 суток; startAt < to AND endAt > from. Сортировка startAt, id.
 
-**Авторизация:** Серверная сессия `SESSION`.
+**Авторизация:** Access JWT в заголовке `Authorization: Bearer <token>`.
 
 **Параметры:**
 
@@ -626,11 +666,11 @@
 
 Создать урок.
 
-**Авторизация:** Серверная сессия `SESSION`.
+**Авторизация:** Access JWT в заголовке `Authorization: Bearer <token>`.
 
 **Параметры:**
 
-- `X-XSRF-TOKEN` (header, обязательный)
+- Нет.
 
 **Тело запроса:** `CreateLessonRequest`
 
@@ -648,7 +688,7 @@
 
 Получить свой урок как репетитор.
 
-**Авторизация:** Серверная сессия `SESSION`.
+**Авторизация:** Access JWT в заголовке `Authorization: Bearer <token>`.
 
 **Параметры:**
 
@@ -668,12 +708,11 @@
 
 Изменить будущий запланированный урок.
 
-**Авторизация:** Серверная сессия `SESSION`.
+**Авторизация:** Access JWT в заголовке `Authorization: Bearer <token>`.
 
 **Параметры:**
 
 - `lessonId` (path, обязательный)
-- `X-XSRF-TOKEN` (header, обязательный)
 
 **Тело запроса:** `UpdateLessonRequest`
 
@@ -691,12 +730,11 @@
 
 Отменить будущий урок.
 
-**Авторизация:** Серверная сессия `SESSION`.
+**Авторизация:** Access JWT в заголовке `Authorization: Bearer <token>`.
 
 **Параметры:**
 
 - `lessonId` (path, обязательный)
-- `X-XSRF-TOKEN` (header, обязательный)
 
 **Тело запроса:** `CancelLessonRequest`
 
@@ -714,12 +752,11 @@
 
 Отметить урок проведённым или пропущенным.
 
-**Авторизация:** Серверная сессия `SESSION`.
+**Авторизация:** Access JWT в заголовке `Authorization: Bearer <token>`.
 
 **Параметры:**
 
 - `lessonId` (path, обязательный)
-- `X-XSRF-TOKEN` (header, обязательный)
 
 **Тело запроса:** `SetLessonStatusRequest`
 
@@ -739,7 +776,7 @@
 
 Окно [from,to), максимум 93 суток; startAt < to AND endAt > from. Не возвращает price и cancelledByUserId.
 
-**Авторизация:** Серверная сессия `SESSION`.
+**Авторизация:** Access JWT в заголовке `Authorization: Bearer <token>`.
 
 **Параметры:**
 
@@ -765,7 +802,7 @@
 
 Получить свой урок как ученик.
 
-**Авторизация:** Серверная сессия `SESSION`.
+**Авторизация:** Access JWT в заголовке `Authorization: Bearer <token>`.
 
 **Параметры:**
 

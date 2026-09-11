@@ -22,6 +22,11 @@
     "email": "anna@example.com",
     "password": "example-password"
   },
+  "TokenResponse": {
+    "accessToken": "eyJhbGciOiJSUzI1NiJ9.eyJzdWIiOiJ1XzAwMiJ9.example-signature",
+    "tokenType": "Bearer",
+    "expiresInSeconds": 900
+  },
   "UserResponse": {
     "id": "u_002",
     "email": "anna@example.com",
