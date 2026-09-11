@@ -1,0 +1,67 @@
+<!doctype html>
+<html lang="ru">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>identity.domain</title>
+  <link rel="stylesheet" href="package.css">
+</head>
+<body>
+  <main class="page">
+    <nav class="breadcrumb"><span>Identity</span><span>›</span><span>domain</span></nav>
+    <header class="package-header">
+      <div>
+        <div class="eyebrow">PACKAGE</div>
+        <h1>domain</h1>
+        <code>identity.domain</code>
+      </div>
+      <a class="secondary" href="../content/Package_em_XMQWGAqAAZxIi.html">Исходная спецификация VP</a>
+    </header>
+
+    <section class="summary-grid">
+      <article class="description-panel">
+        <h2>Назначение пакета</h2>
+        <div class="description"><p>Центральная бизнес-модель модуля Identity.</p><p>Содержит сущности, value object, перечисления, бизнес-правила, допустимые изменения состояния, доменные события и доменные исключения.</p><p>Domain является чистым Java-кодом и не зависит от Spring, HTTP, jOOQ, PostgreSQL, SMTP и Spring Session.</p></div>
+      </article>
+      <aside class="stats-panel">
+        <div><strong>2</strong><span>дочерних пакетов</span></div>
+        <div><strong>0</strong><span>элементов</span></div>
+      </aside>
+    </section>
+
+    <section class="content-section">
+      <div class="section-heading"><h2>Дочерние пакеты</h2><span>2</span></div>
+      <div class="card-grid">
+            <a class="package-card" href="package_domain_user.html">
+              <div class="card-icon folder-icon">▰</div>
+              <div>
+                <div class="card-title">user</div>
+                <div class="card-path">identity.domain.user</div>
+                <div class="card-description">Определяет границу агрегата User и объединяет связанные с ним доменные объекты, события и исключения. Агрегат отвечает за состояние аккаунта пользователя, подтверждение текущего email, изменение email, обновление имени, назначенные роли и допустимые переходы статуса.
+
+Все изменения состояния аккаунта выполняются через корень агрегата User. Внешний код не должен изменять отдельные поля или вложенные объекты напрямую.</div>
+              </div>
+              <span class="card-count">3</span>
+            </a>
+            
+            <a class="package-card" href="package_domain_verification.html">
+              <div class="card-icon folder-icon">▰</div>
+              <div>
+                <div class="card-title">verification</div>
+                <div class="card-path">identity.domain.verification</div>
+                <div class="card-description">Определяет агрегат EmailVerification и связанные с ним доменные типы. Агрегат управляет жизненным циклом одноразового подтверждения email: хранит только хэш токена, назначение подтверждения, целевой адрес, срок действия, время использования и время аннулирования.
+
+EmailVerification ссылается на агрегат User только через userId и не получает объектную или ORM-связь с User. Изменение User после проверки токена координируется application-сервисом.</div>
+              </div>
+              <span class="card-count">4</span>
+            </a>
+            </div>
+    </section>
+
+    <section class="content-section">
+      <div class="section-heading"><h2>Классы и интерфейсы</h2><span>0</span></div>
+      <div class="element-list"><div class="empty-state">Классов и интерфейсов непосредственно в этом пакете нет</div></div>
+    </section>
+  </main>
+</body>
+</html>

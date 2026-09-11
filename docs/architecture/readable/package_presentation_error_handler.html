@@ -1,0 +1,81 @@
+<!doctype html>
+<html lang="ru">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>identity.presentation.error.handler</title>
+  <link rel="stylesheet" href="package.css">
+</head>
+<body>
+  <main class="page">
+    <nav class="breadcrumb"><span>Identity</span><span>›</span><span>presentation › error › handler</span></nav>
+    <header class="package-header">
+      <div>
+        <div class="eyebrow">PACKAGE</div>
+        <h1>handler</h1>
+        <code>identity.presentation.error.handler</code>
+      </div>
+      <a class="secondary" href="../content/Package_iTGhCQWGAqAAZgwL.html">Исходная спецификация VP</a>
+    </header>
+
+    <section class="summary-grid">
+      <article class="description-panel">
+        <h2>Назначение пакета</h2>
+        <div class="description"><p>Содержит обработчики, которые преобразуют исключения HTTP-валидации и application-сценариев Identity в ApiError и соответствующий HTTP-статус.</p></div>
+      </article>
+      <aside class="stats-panel">
+        <div><strong>0</strong><span>дочерних пакетов</span></div>
+        <div><strong>3</strong><span>элементов</span></div>
+      </aside>
+    </section>
+
+    <section class="content-section">
+      <div class="section-heading"><h2>Дочерние пакеты</h2><span>0</span></div>
+      <div class="card-grid"><div class="empty-state">Вложенных пакетов нет</div></div>
+    </section>
+
+    <section class="content-section">
+      <div class="section-heading"><h2>Классы и интерфейсы</h2><span>3</span></div>
+      <div class="element-list">
+            <a class="element-card" href="../content/Class_CXgbCQWGAqAAZhFg.html">
+              <div class="card-icon element-icon">◇</div>
+              <div>
+                <div class="card-title">IdentityExceptionHandler</div>
+                <div class="type-badge">Класс</div>
+                <div class="card-description">Преобразует ошибки HTTP-валидации и application-сценариев Identity в единый ApiError.
+
+Обрабатывает неверные учётные данные, неподтверждённый email, конфликт email, неверный проверочный токен, неверный refresh token, отсутствие авторизации и недопустимое состояние аккаунта.
+
+Не содержит бизнес-логику и только отображает уже определённую ошибку в HTTP.</div>
+              </div>
+              <span class="open-arrow">›</span>
+            </a>
+            
+            <a class="element-card" href="../content/Class_k5_GSQWGAqAAZkG_.html">
+              <div class="card-icon element-icon">◇</div>
+              <div>
+                <div class="card-title">RestAccessDeniedHandler</div>
+                <div class="type-badge">Класс</div>
+                <div class="card-description">Формирует единый ApiError при недостаточных правах аутентифицированного пользователя.
+
+Возвращает HTTP 403 и ErrorCode.FORBIDDEN. Обработчик не изменяет правила авторизации.</div>
+              </div>
+              <span class="open-arrow">›</span>
+            </a>
+            
+            <a class="element-card" href="../content/Class_liXGSQWGAqAAZkGT.html">
+              <div class="card-icon element-icon">◇</div>
+              <div>
+                <div class="card-title">RestAuthenticationEntryPoint</div>
+                <div class="type-badge">Класс</div>
+                <div class="card-description">Формирует единый ApiError для запроса без корректной аутентификации.
+
+Возвращает HTTP 401 и ErrorCode.UNAUTHENTICATED. Обработчик не проверяет JWT самостоятельно и не содержит бизнес-логику.</div>
+              </div>
+              <span class="open-arrow">›</span>
+            </a>
+            </div>
+    </section>
+  </main>
+</body>
+</html>

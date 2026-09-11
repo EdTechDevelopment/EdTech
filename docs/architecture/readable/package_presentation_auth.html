@@ -1,0 +1,133 @@
+<!doctype html>
+<html lang="ru">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>identity.presentation.auth</title>
+  <link rel="stylesheet" href="package.css">
+</head>
+<body>
+  <main class="page">
+    <nav class="breadcrumb"><span>Identity</span><span>›</span><span>presentation › auth</span></nav>
+    <header class="package-header">
+      <div>
+        <div class="eyebrow">PACKAGE</div>
+        <h1>auth</h1>
+        <code>identity.presentation.auth</code>
+      </div>
+      <a class="secondary" href="../content/Package_8PQBCQWGAqAAZgqk.html">Исходная спецификация VP</a>
+    </header>
+
+    <section class="summary-grid">
+      <article class="description-panel">
+        <h2>Назначение пакета</h2>
+        <div class="description"><p>Группа HTTP-сценариев, связанных с регистрацией и аутентификацией</p><p>пользователя.</p><p>Пакет обслуживает регистрацию, подтверждение email, повторную отправку</p><p>письма подтверждения, вход, обновление токенов и выход.</p><p>Auth отвечает только за HTTP-представление этих сценариев. Он принимает</p><p>учётные данные и токены от клиента, передаёт их application use cases</p><p>и формирует соответствующий HTTP-ответ.</p><p>Пакет не сравнивает пароль с хэшем, не создаёт JWT, не проверяет</p><p>подпись JWT, не сохраняет refresh token и не загружает пользователя</p><p>из базы данных.</p></div>
+      </article>
+      <aside class="stats-panel">
+        <div><strong>4</strong><span>дочерних пакетов</span></div>
+        <div><strong>0</strong><span>элементов</span></div>
+      </aside>
+    </section>
+
+    <section class="content-section">
+      <div class="section-heading"><h2>Дочерние пакеты</h2><span>4</span></div>
+      <div class="card-grid">
+            <a class="package-card" href="package_presentation_auth_controller.html">
+              <div class="card-icon folder-icon">▰</div>
+              <div>
+                <div class="card-title">controller</div>
+                <div class="card-path">identity.presentation.auth.controller</div>
+                <div class="card-description">Содержит REST-контроллеры сценариев регистрации и аутентификации.
+
+Контроллеры определяют URL, HTTP-метод, ожидаемый request и возвращаемый
+
+response. Они извлекают данные из JSON, заголовков и cookie, после чего
+
+передают выполнение входному application-порту.
+
+Контроллер может выбрать HTTP-статус, установить или удалить cookie
+
+и передать результат mapper-классу.
+
+Контроллер не должен содержать SQL, транзакции, бизнес-проверки,
+
+криптографические операции, генерацию токенов или непосредственные
+
+вызовы infrastructure.</div>
+              </div>
+              <span class="card-count">2</span>
+            </a>
+            
+            <a class="package-card" href="package_presentation_auth_cookie.html">
+              <div class="card-icon folder-icon">▰</div>
+              <div>
+                <div class="card-title">cookie</div>
+                <div class="card-path">identity.presentation.auth.cookie</div>
+                <div class="card-description">Содержит HTTP-логику передачи refresh token через cookie.
+
+Пакет получает готовое значение refresh token от application и
+
+создаёт безопасную HttpOnly cookie для браузера. При logout пакет
+
+формирует cookie, удаляющую refresh token на стороне клиента.
+
+Пакет не создаёт JWT, не проверяет его подпись, не выполняет ротацию,
+
+не отзывает токен и не сохраняет refresh-сессию. Эти операции
+
+выполняются application и infrastructure.</div>
+              </div>
+              <span class="card-count">1</span>
+            </a>
+            
+            <a class="package-card" href="package_presentation_auth_mapper.html">
+              <div class="card-icon folder-icon">▰</div>
+              <div>
+                <div class="card-title">mapper</div>
+                <div class="card-path">identity.presentation.auth.mapper</div>
+                <div class="card-description">Содержит преобразования между HTTP-моделями auth и моделями application.
+
+Mapper преобразует request DTO в application command и application
+
+result в response DTO. Преобразование должно быть детерминированным
+
+и не иметь внешних побочных эффектов.
+
+Mapper не обращается к repository, базе данных, JWT-провайдеру,
+
+SMTP и другим backend-модулям. Он не проверяет бизнес-правила
+
+и не управляет транзакциями.</div>
+              </div>
+              <span class="card-count">1</span>
+            </a>
+            
+            <a class="package-card" href="package_presentation_auth_model.html">
+              <div class="card-icon folder-icon">▰</div>
+              <div>
+                <div class="card-title">model</div>
+                <div class="card-path">identity.presentation.auth.model</div>
+                <div class="card-description">Объединяет HTTP-модели сценариев регистрации и аутентификации.
+
+Модели этого пакета описывают данные, которыми обмениваются frontend
+
+и backend. Они не являются доменными сущностями, application-командами
+
+или структурами хранения данных.
+
+Полный состав полей, обязательность, форматы и ограничения моделей
+
+определяются OpenAPI-контрактом.</div>
+              </div>
+              <span class="card-count">2</span>
+            </a>
+            </div>
+    </section>
+
+    <section class="content-section">
+      <div class="section-heading"><h2>Классы и интерфейсы</h2><span>0</span></div>
+      <div class="element-list"><div class="empty-state">Классов и интерфейсов непосредственно в этом пакете нет</div></div>
+    </section>
+  </main>
+</body>
+</html>

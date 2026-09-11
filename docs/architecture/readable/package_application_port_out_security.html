@@ -1,0 +1,115 @@
+<!doctype html>
+<html lang="ru">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>identity.application.port.out.security</title>
+  <link rel="stylesheet" href="package.css">
+</head>
+<body>
+  <main class="page">
+    <nav class="breadcrumb"><span>Identity</span><span>›</span><span>application › port › out › security</span></nav>
+    <header class="package-header">
+      <div>
+        <div class="eyebrow">PACKAGE</div>
+        <h1>security</h1>
+        <code>identity.application.port.out.security</code>
+      </div>
+      <a class="secondary" href="../content/Package_3SqjiQWGAqAAZiZE.html">Исходная спецификация VP</a>
+    </header>
+
+    <section class="summary-grid">
+      <article class="description-panel">
+        <h2>Назначение пакета</h2>
+        <div class="description"><p>Содержит абстракции хеширования паролей, генерации проверочных токенов, выпуска JWT и управления значениями refresh token.</p><p>Конкретные алгоритмы и библиотеки выбираются в infrastructure.</p></div>
+      </article>
+      <aside class="stats-panel">
+        <div><strong>0</strong><span>дочерних пакетов</span></div>
+        <div><strong>6</strong><span>элементов</span></div>
+      </aside>
+    </section>
+
+    <section class="content-section">
+      <div class="section-heading"><h2>Дочерние пакеты</h2><span>0</span></div>
+      <div class="card-grid"><div class="empty-state">Вложенных пакетов нет</div></div>
+    </section>
+
+    <section class="content-section">
+      <div class="section-heading"><h2>Классы и интерфейсы</h2><span>6</span></div>
+      <div class="element-list">
+            <a class="element-card" href="../content/Class_X2gASQWGAqAAZjID.html">
+              <div class="card-icon element-icon">◇</div>
+              <div>
+                <div class="card-title">AccessTokenIssuer</div>
+                <div class="type-badge">Класс</div>
+                <div class="card-description">Выходной порт выпуска короткоживущего access JWT.
+
+Получает идентификатор пользователя, его роли и время выпуска. Конкретный алгоритм подписи, набор claims и длительность токена определяются в infrastructure.</div>
+              </div>
+              <span class="open-arrow">›</span>
+            </a>
+            
+            <a class="element-card" href="../content/Class_50D_iQWGAqAAZjGR.html">
+              <div class="card-icon element-icon">◇</div>
+              <div>
+                <div class="card-title">PasswordHasher</div>
+                <div class="type-badge">Класс</div>
+                <div class="card-description">Выходной порт безопасного хеширования и проверки паролей.
+
+Скрывает от application конкретный алгоритм и его параметры. Реализация может использовать BCrypt в infrastructure.</div>
+              </div>
+              <span class="open-arrow">›</span>
+            </a>
+            
+            <a class="element-card" href="../content/Class_MHVASQWGAqAAZjJ4.html">
+              <div class="card-icon element-icon">◇</div>
+              <div>
+                <div class="card-title">RefreshTokenHasher</div>
+                <div class="type-badge">Класс</div>
+                <div class="card-description">Выходной порт вычисления hash полученного refresh token.
+
+Hash используется для поиска RefreshTokenState, поскольку открытое значение refresh token в базе данных не хранится.</div>
+              </div>
+              <span class="open-arrow">›</span>
+            </a>
+            
+            <a class="element-card" href="../content/Class_I_BASQWGAqAAZjJU.html">
+              <div class="card-icon element-icon">◇</div>
+              <div>
+                <div class="card-title">RefreshTokenIssuer</div>
+                <div class="type-badge">Класс</div>
+                <div class="card-description">Выходной порт выпуска refresh token.
+
+При отсутствии familyId создаёт новую token family. При ротации выпускает токен в существующей family.
+
+Возвращает открытое значение, hash, идентификаторы и срок действия токена.</div>
+              </div>
+              <span class="open-arrow">›</span>
+            </a>
+            
+            <a class="element-card" href="../content/Class_c_b_iQWGAqAAZjHF.html">
+              <div class="card-icon element-icon">◇</div>
+              <div>
+                <div class="card-title">VerificationTokenGenerator</div>
+                <div class="type-badge">Класс</div>
+                <div class="card-description">Выходной порт генерации криптографически стойкого одноразового токена подтверждения email.
+
+Возвращает открытое значение, которое передаётся получателю письма. Это значение не сохраняется в базе данных.</div>
+              </div>
+              <span class="open-arrow">›</span>
+            </a>
+            
+            <a class="element-card" href="../content/Class_Lx3_iQWGAqAAZjHj.html">
+              <div class="card-icon element-icon">◇</div>
+              <div>
+                <div class="card-title">VerificationTokenHasher</div>
+                <div class="type-badge">Класс</div>
+                <div class="card-description">Описание элемента пока не заполнено.</div>
+              </div>
+              <span class="open-arrow">›</span>
+            </a>
+            </div>
+    </section>
+  </main>
+</body>
+</html>

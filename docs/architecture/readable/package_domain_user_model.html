@@ -1,0 +1,105 @@
+<!doctype html>
+<html lang="ru">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>identity.domain.user.model</title>
+  <link rel="stylesheet" href="package.css">
+</head>
+<body>
+  <main class="page">
+    <nav class="breadcrumb"><span>Identity</span><span>›</span><span>domain › user › model</span></nav>
+    <header class="package-header">
+      <div>
+        <div class="eyebrow">PACKAGE</div>
+        <h1>model</h1>
+        <code>identity.domain.user.model</code>
+      </div>
+      <a class="secondary" href="../content/Package_QU2WiQWGAqAAZh5B.html">Исходная спецификация VP</a>
+    </header>
+
+    <section class="summary-grid">
+      <article class="description-panel">
+        <h2>Назначение пакета</h2>
+        <div class="description"><p>Содержит корень агрегата User, принадлежащие ему объекты-значения и перечисления. User является единственной точкой изменения состояния аккаунта и защищает его бизнес-инварианты.</p><p>Пакет не выполняет поиск уникального email, проверку открытого пароля, создание JWT, сохранение в базу данных или отправку писем. Эти действия координируются application-слоем через выходные порты.</p></div>
+      </article>
+      <aside class="stats-panel">
+        <div><strong>0</strong><span>дочерних пакетов</span></div>
+        <div><strong>5</strong><span>элементов</span></div>
+      </aside>
+    </section>
+
+    <section class="content-section">
+      <div class="section-heading"><h2>Дочерние пакеты</h2><span>0</span></div>
+      <div class="card-grid"><div class="empty-state">Вложенных пакетов нет</div></div>
+    </section>
+
+    <section class="content-section">
+      <div class="section-heading"><h2>Классы и интерфейсы</h2><span>5</span></div>
+      <div class="element-list">
+            <a class="element-card" href="../content/Class__E7WiQWGAqAAZh6i.html">
+              <div class="card-icon element-icon">◇</div>
+              <div>
+                <div class="card-title">Email</div>
+                <div class="type-badge">Класс</div>
+                <div class="card-description">Неизменяемый объект-значение, представляющий нормализованный email пользователя. Проверяет обязательность значения, удаляет внешние пробелы и гарантирует допустимый формат адреса.
+
+Сравнение объектов Email выполняется по значению. Объект не проверяет уникальность адреса в системе, поскольку такая проверка требует обращения к repository.</div>
+              </div>
+              <span class="open-arrow">›</span>
+            </a>
+            
+            <a class="element-card" href="../content/Class_et7WiQWGAqAAZh6o.html">
+              <div class="card-icon element-icon">◇</div>
+              <div>
+                <div class="card-title">PasswordHash</div>
+                <div class="type-badge">Класс</div>
+                <div class="card-description">Неизменяемый объект-значение, представляющий результат безопасного хэширования пароля. Гарантирует, что внутри агрегата User хранится только непустой хэш, а не открытый пароль.
+
+Объект не знает конкретный алгоритм хэширования. Создание и проверка хэша выполняются через PasswordHasher, реализация которого находится в infrastructure.</div>
+              </div>
+              <span class="open-arrow">›</span>
+            </a>
+            
+            <a class="element-card" href="../content/Class_ExQ2iQWGAqAAZh7u.html">
+              <div class="card-icon element-icon">◇</div>
+              <div>
+                <div class="card-title">User</div>
+                <div class="type-badge">Класс</div>
+                <div class="card-description">Корень агрегата аккаунта пользователя. Хранит идентификатор, текущий и ожидающий подтверждения email, хэш пароля, имя, фамилию, роли, статус и временные метки.
+
+User является единственной точкой изменения состояния аккаунта. Он проверяет наличие хотя бы одной роли, запрещает недопустимые переходы статуса, управляет двухэтапной сменой email и не позволяет аутентификацию до подтверждения адреса.
+
+Класс не хранит открытый пароль, JWT, refresh token или технические данные persistence. Уникальность email проверяется application-сервисом через UserRepository.</div>
+              </div>
+              <span class="open-arrow">›</span>
+            </a>
+            
+            <a class="element-card" href="../content/Class_3HnWiQWGAqAAZh68.html">
+              <div class="card-icon element-icon">◇</div>
+              <div>
+                <div class="card-title">UserRole</div>
+                <div class="type-badge">Класс</div>
+                <div class="card-description">Определяет бизнес-роли пользователя в системе. Один пользователь должен иметь минимум одну роль и может одновременно иметь роли преподавателя и ученика.
+
+Роль не является отдельным пользователем, профилем или механизмом авторизации Spring Security. Профили преподавателя и ученика принадлежат модулю Tutoring.</div>
+              </div>
+              <span class="open-arrow">›</span>
+            </a>
+            
+            <a class="element-card" href="../content/Class_EA_WiQWGAqAAZh7Q.html">
+              <div class="card-icon element-icon">◇</div>
+              <div>
+                <div class="card-title">UserStatus</div>
+                <div class="type-badge">Класс</div>
+                <div class="card-description">Определяет текущее состояние аккаунта пользователя. Новый аккаунт ожидает подтверждения email и становится активным только после успешного подтверждения.
+
+Допустимые переходы статуса контролируются агрегатом User. Application и infrastructure не должны изменять статус напрямую.</div>
+              </div>
+              <span class="open-arrow">›</span>
+            </a>
+            </div>
+    </section>
+  </main>
+</body>
+</html>

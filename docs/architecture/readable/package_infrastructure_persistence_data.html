@@ -1,0 +1,79 @@
+<!doctype html>
+<html lang="ru">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>identity.infrastructure.persistence.data</title>
+  <link rel="stylesheet" href="package.css">
+</head>
+<body>
+  <main class="page">
+    <nav class="breadcrumb"><span>Identity</span><span>›</span><span>infrastructure › persistence › data</span></nav>
+    <header class="package-header">
+      <div>
+        <div class="eyebrow">PACKAGE</div>
+        <h1>data</h1>
+        <code>identity.infrastructure.persistence.data</code>
+      </div>
+      <a class="secondary" href="../content/Package_Ks0iSQWGAqAAZjgp.html">Исходная спецификация VP</a>
+    </header>
+
+    <section class="summary-grid">
+      <article class="description-panel">
+        <h2>Назначение пакета</h2>
+        <div class="description"><p>Содержит двусторонние преобразования между domain или application-моделями и техническими persistence-моделями.</p><p>Mapper не выполняет SQL, не вызывает repository и не применяет бизнес-правила.</p></div>
+      </article>
+      <aside class="stats-panel">
+        <div><strong>3</strong><span>дочерних пакетов</span></div>
+        <div><strong>0</strong><span>элементов</span></div>
+      </aside>
+    </section>
+
+    <section class="content-section">
+      <div class="section-heading"><h2>Дочерние пакеты</h2><span>3</span></div>
+      <div class="card-grid">
+            <a class="package-card" href="package_infrastructure_persistence_data_generated.html">
+              <div class="card-icon folder-icon">▰</div>
+              <div>
+                <div class="card-title">generated</div>
+                <div class="card-path">identity.infrastructure.persistence.data.generated</div>
+                <div class="card-description">Содержит классы таблиц, записей и перечислений, автоматически созданные jOOQ Codegen по актуальной Flyway-схеме.
+
+Сгенерированные классы не редактируются вручную и используются только внутри infrastructure.persistence.</div>
+              </div>
+              <span class="card-count">0</span>
+            </a>
+            
+            <a class="package-card" href="package_infrastructure_persistence_data_model.html">
+              <div class="card-icon folder-icon">▰</div>
+              <div>
+                <div class="card-title">model</div>
+                <div class="card-path">identity.infrastructure.persistence.data.model</div>
+                <div class="card-description">Содержит внутренние составные модели, необходимые для передачи результатов jOOQ-запросов между data repository и persistence mapper.
+
+Эти модели не выходят из infrastructure.persistence.</div>
+              </div>
+              <span class="card-count">1</span>
+            </a>
+            
+            <a class="package-card" href="package_infrastructure_persistence_data_repository.html">
+              <div class="card-icon folder-icon">▰</div>
+              <div>
+                <div class="card-title">repository</div>
+                <div class="card-path">identity.infrastructure.persistence.data.repository</div>
+                <div class="card-description">Содержит низкоуровневые компоненты доступа к PostgreSQL через DSLContext.
+
+Repository выполняет SQL и возвращает jOOQ records или persistence data. Он не зависит от domain и не реализует application output ports.</div>
+              </div>
+              <span class="card-count">3</span>
+            </a>
+            </div>
+    </section>
+
+    <section class="content-section">
+      <div class="section-heading"><h2>Классы и интерфейсы</h2><span>0</span></div>
+      <div class="element-list"><div class="empty-state">Классов и интерфейсов непосредственно в этом пакете нет</div></div>
+    </section>
+  </main>
+</body>
+</html>

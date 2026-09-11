@@ -1,0 +1,511 @@
+<html>
+<head>
+	<META http-equiv="Content-Type" content="text/html; charset=UTF-8">
+	<link rel="stylesheet" href="report.css" type="text/css"/>
+	<title>Package Diagram - Identity Internal Architecture</title>
+	<script type="text/javascript" src="report.js"></script>
+	<script type="text/javascript" src="link_popup.js"></script>
+	<script type="text/javascript" src="tooltip.js"></script>
+</head>
+<body style="margin-left: 10px; margin-right: 10px; margin-top: 10px; margin-bottom: 10px;" onload="initPage();initDiagram();initGridDiagram();">
+	<div style="position:absolute; z-index:2; visibility:hidden;border-top: 2px #FF0000 solid;" id="spotlight_top">
+	</div>
+	<div style="position:absolute; z-index:2; visibility:hidden;border-top: 2px #FF0000 solid;" id="spotlight_bottom">
+	</div>
+	<div style="position:absolute; z-index:2; visibility:hidden;border-left: 2px #FF0000 solid;" id="spotlight_left">
+	</div>
+	<div style="position:absolute; z-index:2; visibility:hidden;border-left: 2px #FF0000 solid;" id="spotlight_right">
+	</div>
+	<canvas width="100" style="position:absolute; z-index:2; visibility:hidden" id="spotlight_c" height="100">
+	</canvas>
+	<div style="position:absolute; width:100px; height:100px; z-index:1; visibility:hidden" id="spotLightResourcesTop">
+		<table border="0" cellpadding="0" cellspacing="0">
+			<tr>
+				<td>
+<a href="#top"><img style="border:none" src="../images/icons/BackToTop.gif" alt="Back to top"/></a>				</td>
+				<td>
+<a href="javascript:clearSpotLightFromOpenSpecButton();"><img style="border:none" src="../images/icons/OpenSpecification.gif" alt="Open specification"/></a>				</td>
+			</tr>
+		</table>
+	</div>
+	<div style="position:absolute; width:100px; height:100px; z-index:1; visibility:hidden" id="spotLightResourcesRight">
+		<table border="0" cellpadding="0" cellspacing="0">
+			<tr>
+				<td>
+<a href="#top"><img style="border:none" src="../images/icons/BackToTop.gif" alt="Back to top"/></a>				</td>
+			</tr>
+			<tr>
+				<td>
+<a href="javascript:clearSpotLightFromOpenSpecButton();"><img style="border:none" src="../images/icons/OpenSpecification.gif" alt="Open specification"/></a>				</td>
+			</tr>
+		</table>
+	</div>
+	<div style="position:absolute;z-index:4;visibility:hidden" id="linkPopupMenuLayer">
+		<table border="0" width="100%" style="border-style:solid; border-width:1px; border-color:#000000; background:#FFFFFF; width:250px" id="linkPopupMenuTable">
+		</table>
+	</div>
+	<div style="position:absolute; z-index:1; visibility:hidden; " id="referenceIconLayer">
+		<table border="0" cellpadding="3" cellspacing="0" style="font-size:1;">
+			<tr>
+				<td>
+					<img src="../images/icons/Ref.gif" style="border:none" onclick="movePopupPositionToReferenceIconPosition();resetPopupForReference();switchPopupShowHideStatus();" />				</td>
+			</tr>
+		</table>
+	</div>
+	<div style="position:absolute; z-index:1; visibility:hidden; " id="subdiagramIconLayer">
+		<table border="0" cellpadding="3" cellspacing="0" style="font-size:1;">
+			<tr>
+				<td>
+					<img src="../images/icons/Subdiagram.gif" style="border:none" onclick="movePopupPositionToSubdiagramIconPosition();resetPopupForSubdiagram();switchPopupShowHideStatus();" />				</td>
+			</tr>
+		</table>
+	</div>
+	<div style="position:absolute; z-index:1; visibility:hidden; " id="transitorIconLayer">
+		<table border="0" cellpadding="3" cellspacing="0" style="font-size:1;">
+			<tr>
+				<td>
+					<img src="../images/icons/Transitor.gif" style="border:none" onclick="movePopupPositionToTransitorIconPosition();resetPopupForTransitor();switchPopupShowHideStatus();" />				</td>
+			</tr>
+		</table>
+	</div>
+	<div style="position:absolute; z-index:1; visibility:hidden; " id="documentationIconLayer">
+		<table border="0" cellpadding="3" cellspacing="0" style="font-size:1;">
+			<tr>
+				<td>
+					<img src="../images/icons/Documentation.png" style="border:none" />				</td>
+			</tr>
+		</table>
+	</div>
+	<div class="HeaderText">
+		architecture	</div>
+	<table border="0" cellpadding="0" width="100%" cellspacing="0">
+		<tr>
+			<td class="HeaderLine1">
+			</td>
+		</tr>
+		<tr>
+			<td class="HeaderLine2">
+			</td>
+		</tr>
+		<tr>
+			<td class="HeaderLine3">
+			</td>
+		</tr>
+	</table>
+	<div style="position:absolute; z-index:21; visibility:hidden" id="referencedBys">
+		<table border="0" width="100%" style="border-style:solid; border-width:1px; border-color:#000000; background:#FFFFFF; width:250px" id="referencedBysTable">
+		</table>
+	</div>
+	<div style="position:absolute; z-index:21; visibility:hidden" id="vplink">
+		<table border="1" cellpadding="0" cellspacing="0" bordercolor="#A9BFD3">
+			<tr>
+				<td>
+					<table border="0" cellpadding="0" width="100%" cellspacing="0">
+						<tr style="background:#DDDDDD">
+							<td style="font-size: 12px;" align="left">
+								<select onchange="vpLinkToggleName()" id="vplink-linkType">
+	<option value="Project Link">Project Link</option>
+	<option value="Page URL">Page URL</option>
+</select>
+							</td>
+							<td style="font-size: 12px;" align="right">
+								<input onclick="javascript: vpLinkToggleName()" id="vplink-checkbox" type="checkbox" />
+								<label for="vplink-checkbox">with Name</label>							</td>
+						</tr>
+					</table>
+				</td>
+			</tr>
+			<tr>
+				<td>
+					<textarea id="vplink-text" style="width: 348px; height: 60px; border-color: #7EADD9; outline: none;"></textarea>				</td>
+			</tr>
+		</table>
+	</div>
+	<p class="PageTitle">
+		<span id="PageTitleText">
+			Package Diagram - Identity Internal Architecture		</span>
+<a onclick="javascript: showVpLink('architecture.vpp://diagram/xg8XMQWGAqAAZxHx', 'Identity Internal Architecture\narchitecture.vpp://diagram/xg8XMQWGAqAAZxHx', 'Identity Internal Architecture', this); return false;" style="padding-left: 16px; font-size: 12px" href="#"><img src="../images/icons/link.png" border="0"> link</a>	</p>
+	<div style="position: relative; padding-bottom: 20px;">
+		<table border="0" cellpadding="0" width="100%" cellspacing="0" style="position: absolute; top: 0; left: 0; z-index: 20;" onmouseover="hideReferenceIcon(),hideSubdiagramIcon(),hideTransitorIcon(),hideLinkPopup(),hideReferencedBys();">
+			<tr>
+				<td>
+<span class="TableContent">Jump to:</span>					<select id="SelectShape" class="TableContent" onChange="scrollWin('diagram', this.value);hideLinkPopup();showSpotLight('diagram', this.value)">
+<option value="">Please select a model element</option>
+<option value="shape|546.0|464.0|140.0|100.0|Package_QJhXMQWGAqAAZxIv.html|Package_QJhXMQWGAqAAZxIv.html|QJhXMQWGAqAAZxIu" id="optionQJhXMQWGAqAAZxIu">infrastructure : Package</option>
+<option value="shape|512.0|2.0|140.0|100.0|Package_em_XMQWGAqAAZxIi.html|Package_em_XMQWGAqAAZxIi.html|um.XMQWGAqAAZxIh" id="optionum.XMQWGAqAAZxIh">domain : Package</option>
+<option value="shape|330.0|234.0|140.0|100.0|Package_tNuXMQWGAqAAZxIa.html|Package_tNuXMQWGAqAAZxIa.html|tNuXMQWGAqAAZxIZ" id="optiontNuXMQWGAqAAZxIZ">application : Package</option>
+<option value="shape|2.0|413.0|140.0|100.0|Package_pXGXMQWGAqAAZxIE.html|Package_pXGXMQWGAqAAZxIE.html|pXGXMQWGAqAAZxID" id="optionpXGXMQWGAqAAZxID">presentation : Package</option>
+<option value="shape|2.0|25.0|140.0|100.0|Package_rBiXMQWGAqAAZxH_.html|Package_rBiXMQWGAqAAZxH_.html|TBiXMQWGAqAAZxH9" id="optionTBiXMQWGAqAAZxH9">api : Package</option>
+</select>				</td>
+			</tr>
+		</table>
+		<table border="0" cellpadding="0" width="100%" cellspacing="0" style="position: relative; top: 24;">
+			<tr>
+				<td>
+					<img id="diagram" src="../images/Identity_Internal_Architecture.png" usemap="#diagram_map" class="Image" width="690" height="568"/>
+					<map name="diagram_map">
+<area imageId="diagram" coords="324.0, 286.0, 317.824, 290.0, 311.0, 290.0, 311.0, 294.41968, 131.0, 411.0, 132.45454, 413.0, 142.0, 413.0, 142.0, 420.057, 142.0, 420.057, 321.192, 304.0, 330.0, 304.0, 330.0, 290.0, 326.9091, 290.0, 324.0, 286.0" coords2="324.0, 286.0, 317.824, 290.0, 311.0, 290.0, 311.0, 294.41968, 131.0, 411.0, 132.45454, 413.0, 142.0, 413.0, 142.0, 420.057, 142.0, 420.057, 321.192, 304.0, 330.0, 304.0, 330.0, 290.0, 326.9091, 290.0, 324.0, 286.0" shape="poly" alt=":Dependency" id="areadiagram_map_48LQsQWGAqAAZxLv_default" href="Dependency_I8LQsQWGAqAAZxLu.html" onmouseover="hideReferenceIcon(),hideSubdiagramIcon(),hideTransitorIcon()" onmousedown="clearSpotLight();"/>
+<area imageId="diagram" coords="609.0, 91.0, 459.0, 234.0, 470.0, 234.0, 470.0, 243.04666, 619.0, 101.0, 609.0, 91.0" coords2="609.0, 91.0, 459.0, 234.0, 470.0, 234.0, 470.0, 243.04666, 619.0, 101.0, 609.0, 91.0" shape="poly" alt=":Dependency" id="areadiagram_map_1cPQsQWGAqAAZxM1_default" href="Dependency_FcPQsQWGAqAAZxM0.html" onmouseover="hideReferenceIcon(),hideSubdiagramIcon(),hideTransitorIcon()" onmousedown="clearSpotLight();"/>
+<area imageId="diagram" coords="601.0, 102.0, 601.0, 464.0, 615.0, 464.0, 615.0, 102.0" coords2="601.0, 102.0, 601.0, 464.0, 615.0, 464.0, 615.0, 102.0" shape="poly" alt=":Dependency" id="areadiagram_map_sYYwsQWGAqAAZxM8_default" href="Dependency_4YYwsQWGAqAAZxM7.html" onmouseover="hideReferenceIcon(),hideSubdiagramIcon(),hideTransitorIcon()" onmousedown="clearSpotLight();"/>
+<area imageId="diagram" coords="471.0, 323.0, 470.0, 323.72726, 470.0, 334.0, 461.76224, 334.0, 544.0, 474.0, 546.0, 472.54544, 546.0, 464.0, 553.8252, 464.0, 471.0, 323.0" coords2="471.0, 323.0, 470.0, 323.72726, 470.0, 334.0, 461.76224, 334.0, 544.0, 474.0, 546.0, 472.54544, 546.0, 464.0, 553.8252, 464.0, 471.0, 323.0" shape="poly" alt=":Dependency" id="areadiagram_map_c0kwsQWGAqAAZxNG_default" href="Dependency_k0kwsQWGAqAAZxNF.html" onmouseover="hideReferenceIcon(),hideSubdiagramIcon(),hideTransitorIcon()" onmousedown="clearSpotLight();"/>
+<area imageId="diagram" coords="142.0, 116.74627, 142.0, 125.0, 131.72728, 125.0, 131.0, 126.0, 330.0, 241.83582, 330.0, 234.0, 338.54544, 234.0, 340.0, 232.0, 142.0, 116.74627" coords2="142.0, 116.74627, 142.0, 125.0, 131.72728, 125.0, 131.0, 126.0, 330.0, 241.83582, 330.0, 234.0, 338.54544, 234.0, 340.0, 232.0, 142.0, 116.74627" shape="poly" alt=":Dependency" id="areadiagram_map_Qgsp8QWGAqAAZg5O_default" href="Dependency_zAsp8QWGAqAAZg5N.html" onmouseover="hideReferenceIcon(),hideSubdiagramIcon(),hideTransitorIcon()" onmousedown="clearSpotLight();"/>
+<area imageId="diagram" docContent="&amp;lt;head&amp;gt;
+    
+  &amp;lt;/head&amp;gt;
+  &amp;lt;body style=&amp;quot;margin-left:0;color:#000000;font-weight:normal;font-size:12px;font-family:Dialog;margin-right:0;&amp;quot;&amp;gt;
+    &amp;lt;p style=&amp;quot;margin-top:0pt;margin-left:0pt;margin-bottom:.0001pt;margin-right:0pt;&amp;quot;&amp;gt;
+      &amp;#1058;&amp;#1077;&amp;#1093;&amp;#1085;&amp;#1080;&amp;#1095;&amp;#1077;&amp;#1089;&amp;#1082;&amp;#1080;&amp;#1081; &amp;#1089;&amp;#1083;&amp;#1086;&amp;#1081; &amp;#1084;&amp;#1086;&amp;#1076;&amp;#1091;&amp;#1083;&amp;#1103; Identity.
+    &amp;lt;/p&amp;gt;
+    &amp;lt;p style=&amp;quot;margin-top:0pt;margin-left:0pt;margin-bottom:.0001pt;margin-right:0pt;&amp;quot;&amp;gt;
+      &amp;nbsp;
+    &amp;lt;/p&amp;gt;
+    &amp;lt;p style=&amp;quot;margin-top:0pt;margin-left:0pt;margin-bottom:.0001pt;margin-right:0pt;&amp;quot;&amp;gt;
+      &amp;#1056;&amp;#1077;&amp;#1072;&amp;#1083;&amp;#1080;&amp;#1079;&amp;#1091;&amp;#1077;&amp;#1090; output-&amp;#1087;&amp;#1086;&amp;#1088;&amp;#1090;&amp;#1099; application &amp;#1080; &amp;#1089;&amp;#1074;&amp;#1103;&amp;#1079;&amp;#1099;&amp;#1074;&amp;#1072;&amp;#1077;&amp;#1090; &amp;#1073;&amp;#1080;&amp;#1079;&amp;#1085;&amp;#1077;&amp;#1089;-&amp;#1082;&amp;#1086;&amp;#1076; &amp;#1089; PostgreSQL, 
+      jOOQ, BCrypt, Spring Security,JWT , SMTP &amp;#1080; &amp;#1089;&amp;#1080;&amp;#1089;&amp;#1090;&amp;#1077;&amp;#1084;&amp;#1085;&amp;#1099;&amp;#1084; &amp;#1074;&amp;#1088;&amp;#1077;&amp;#1084;&amp;#1077;&amp;#1085;&amp;#1077;&amp;#1084;.
+    &amp;lt;/p&amp;gt;
+    &amp;lt;p style=&amp;quot;margin-top:0pt;margin-left:0pt;margin-bottom:.0001pt;margin-right:0pt;&amp;quot;&amp;gt;
+      &amp;nbsp;
+    &amp;lt;/p&amp;gt;
+    &amp;lt;p style=&amp;quot;margin-top:0pt;margin-left:0pt;margin-bottom:.0001pt;margin-right:0pt;&amp;quot;&amp;gt;
+      Infrastructure &amp;#1079;&amp;#1072;&amp;#1074;&amp;#1080;&amp;#1089;&amp;#1080;&amp;#1090; &amp;#1086;&amp;#1090; application &amp;#1080; domain, &amp;#1087;&amp;#1086;&amp;#1089;&amp;#1082;&amp;#1086;&amp;#1083;&amp;#1100;&amp;#1082;&amp;#1091; &amp;#1088;&amp;#1077;&amp;#1072;&amp;#1083;&amp;#1080;&amp;#1079;&amp;#1091;&amp;#1077;&amp;#1090; 
+      &amp;#1086;&amp;#1073;&amp;#1098;&amp;#1103;&amp;#1074;&amp;#1083;&amp;#1077;&amp;#1085;&amp;#1085;&amp;#1099;&amp;#1077; &amp;#1080;&amp;#1084;&amp;#1080; &amp;#1080;&amp;#1085;&amp;#1090;&amp;#1077;&amp;#1088;&amp;#1092;&amp;#1077;&amp;#1081;&amp;#1089;&amp;#1099; &amp;#1080; &amp;#1087;&amp;#1088;&amp;#1077;&amp;#1086;&amp;#1073;&amp;#1088;&amp;#1072;&amp;#1079;&amp;#1091;&amp;#1077;&amp;#1090; &amp;#1089;&amp;#1086;&amp;#1093;&amp;#1088;&amp;#1072;&amp;#1085;&amp;#1105;&amp;#1085;&amp;#1085;&amp;#1099;&amp;#1077; &amp;#1076;&amp;#1072;&amp;#1085;&amp;#1085;&amp;#1099;&amp;#1077; &amp;#1074; &amp;#1076;&amp;#1086;&amp;#1084;&amp;#1077;&amp;#1085;&amp;#1085;&amp;#1099;&amp;#1077; 
+      &amp;#1086;&amp;#1073;&amp;#1098;&amp;#1077;&amp;#1082;&amp;#1090;&amp;#1099;.
+    &amp;lt;/p&amp;gt;
+  &amp;lt;/body&amp;gt;" coords="546, 464, 686, 564" coords2="546, 464, 686, 564" shape="rect" alt="infrastructure:Package" id="areadiagram_map_QJhXMQWGAqAAZxIu_default" href="Package_QJhXMQWGAqAAZxIv.html" onmouseover="storeReferenceAndSubdiagramInfos('diagram','546, 464, 686, 564',new Array(),new Array(),new Array(),new Array(),new Array(),new Array('PackageDiagram_aWrCSQWGAqAAZjeE.html/infrastructure Package Diagram/PackageDiagram'),new Array(),new Array(),new Array()),hideReferenceIcon(),showSubdiagramIcon('diagram', '546, 464, 686, 564'),hideTransitorIcon(),showTooltip(this)" onmousedown="clearSpotLight();" onmouseout="hideTooltip()"/>
+<area imageId="diagram" docContent="&amp;lt;head&amp;gt;
+    
+  &amp;lt;/head&amp;gt;
+  &amp;lt;body style=&amp;quot;margin-left:0;color:#000000;font-weight:normal;font-size:12px;font-family:Dialog;margin-right:0;&amp;quot;&amp;gt;
+    &amp;lt;p style=&amp;quot;margin-top:0pt;margin-left:0pt;margin-bottom:.0001pt;margin-right:0pt;&amp;quot;&amp;gt;
+      &amp;#1062;&amp;#1077;&amp;#1085;&amp;#1090;&amp;#1088;&amp;#1072;&amp;#1083;&amp;#1100;&amp;#1085;&amp;#1072;&amp;#1103; &amp;#1073;&amp;#1080;&amp;#1079;&amp;#1085;&amp;#1077;&amp;#1089;-&amp;#1084;&amp;#1086;&amp;#1076;&amp;#1077;&amp;#1083;&amp;#1100; &amp;#1084;&amp;#1086;&amp;#1076;&amp;#1091;&amp;#1083;&amp;#1103; Identity.
+    &amp;lt;/p&amp;gt;
+    &amp;lt;p style=&amp;quot;margin-top:0pt;margin-left:0pt;margin-bottom:.0001pt;margin-right:0pt;&amp;quot;&amp;gt;
+      &amp;nbsp;
+    &amp;lt;/p&amp;gt;
+    &amp;lt;p style=&amp;quot;margin-top:0pt;margin-left:0pt;margin-bottom:.0001pt;margin-right:0pt;&amp;quot;&amp;gt;
+      &amp;#1057;&amp;#1086;&amp;#1076;&amp;#1077;&amp;#1088;&amp;#1078;&amp;#1080;&amp;#1090; &amp;#1089;&amp;#1091;&amp;#1097;&amp;#1085;&amp;#1086;&amp;#1089;&amp;#1090;&amp;#1080;, value object, &amp;#1087;&amp;#1077;&amp;#1088;&amp;#1077;&amp;#1095;&amp;#1080;&amp;#1089;&amp;#1083;&amp;#1077;&amp;#1085;&amp;#1080;&amp;#1103;, &amp;#1073;&amp;#1080;&amp;#1079;&amp;#1085;&amp;#1077;&amp;#1089;-&amp;#1087;&amp;#1088;&amp;#1072;&amp;#1074;&amp;#1080;&amp;#1083;&amp;#1072;, 
+      &amp;#1076;&amp;#1086;&amp;#1087;&amp;#1091;&amp;#1089;&amp;#1090;&amp;#1080;&amp;#1084;&amp;#1099;&amp;#1077; &amp;#1080;&amp;#1079;&amp;#1084;&amp;#1077;&amp;#1085;&amp;#1077;&amp;#1085;&amp;#1080;&amp;#1103; &amp;#1089;&amp;#1086;&amp;#1089;&amp;#1090;&amp;#1086;&amp;#1103;&amp;#1085;&amp;#1080;&amp;#1103;, &amp;#1076;&amp;#1086;&amp;#1084;&amp;#1077;&amp;#1085;&amp;#1085;&amp;#1099;&amp;#1077; &amp;#1089;&amp;#1086;&amp;#1073;&amp;#1099;&amp;#1090;&amp;#1080;&amp;#1103; &amp;#1080; &amp;#1076;&amp;#1086;&amp;#1084;&amp;#1077;&amp;#1085;&amp;#1085;&amp;#1099;&amp;#1077; &amp;#1080;&amp;#1089;&amp;#1082;&amp;#1083;&amp;#1102;&amp;#1095;&amp;#1077;&amp;#1085;&amp;#1080;&amp;#1103;.
+    &amp;lt;/p&amp;gt;
+    &amp;lt;p style=&amp;quot;margin-top:0pt;margin-left:0pt;margin-bottom:.0001pt;margin-right:0pt;&amp;quot;&amp;gt;
+      &amp;nbsp;
+    &amp;lt;/p&amp;gt;
+    &amp;lt;p style=&amp;quot;margin-top:0pt;margin-left:0pt;margin-bottom:.0001pt;margin-right:0pt;&amp;quot;&amp;gt;
+      Domain &amp;#1103;&amp;#1074;&amp;#1083;&amp;#1103;&amp;#1077;&amp;#1090;&amp;#1089;&amp;#1103; &amp;#1095;&amp;#1080;&amp;#1089;&amp;#1090;&amp;#1099;&amp;#1084; Java-&amp;#1082;&amp;#1086;&amp;#1076;&amp;#1086;&amp;#1084; &amp;#1080; &amp;#1085;&amp;#1077; &amp;#1079;&amp;#1072;&amp;#1074;&amp;#1080;&amp;#1089;&amp;#1080;&amp;#1090; &amp;#1086;&amp;#1090; Spring, HTTP, jOOQ, 
+      PostgreSQL, SMTP &amp;#1080; Spring Session.
+    &amp;lt;/p&amp;gt;
+  &amp;lt;/body&amp;gt;" coords="512, 2, 652, 102" coords2="512, 2, 652, 102" shape="rect" alt="domain:Package" id="areadiagram_map_um.XMQWGAqAAZxIh_default" href="Package_em_XMQWGAqAAZxIi.html" onmouseover="storeReferenceAndSubdiagramInfos('diagram','512, 2, 652, 102',new Array(),new Array(),new Array(),new Array(),new Array(),new Array('PackageDiagram_cNWqiQWGAqAAZh2f.html/domain Package Diagram/PackageDiagram'),new Array(),new Array(),new Array()),hideReferenceIcon(),showSubdiagramIcon('diagram', '512, 2, 652, 102'),hideTransitorIcon(),showTooltip(this)" onmousedown="clearSpotLight();" onmouseout="hideTooltip()"/>
+<area imageId="diagram" docContent="&amp;lt;head&amp;gt;
+    
+  &amp;lt;/head&amp;gt;
+  &amp;lt;body style=&amp;quot;margin-left:0;color:#000000;font-weight:normal;font-size:12px;font-family:Dialog;margin-right:0;&amp;quot;&amp;gt;
+    &amp;lt;p style=&amp;quot;margin-top:0pt;margin-left:0pt;margin-bottom:.0001pt;margin-right:0pt;&amp;quot;&amp;gt;
+      &amp;#1055;&amp;#1088;&amp;#1080;&amp;#1082;&amp;#1083;&amp;#1072;&amp;#1076;&amp;#1085;&amp;#1086;&amp;#1081; &amp;#1089;&amp;#1083;&amp;#1086;&amp;#1081;, &amp;#1088;&amp;#1077;&amp;#1072;&amp;#1083;&amp;#1080;&amp;#1079;&amp;#1091;&amp;#1102;&amp;#1097;&amp;#1080;&amp;#1081; &amp;#1082;&amp;#1086;&amp;#1085;&amp;#1082;&amp;#1088;&amp;#1077;&amp;#1090;&amp;#1085;&amp;#1099;&amp;#1077; &amp;#1087;&amp;#1086;&amp;#1083;&amp;#1100;&amp;#1079;&amp;#1086;&amp;#1074;&amp;#1072;&amp;#1090;&amp;#1077;&amp;#1083;&amp;#1100;&amp;#1089;&amp;#1082;&amp;#1080;&amp;#1077; &amp;#1089;&amp;#1094;&amp;#1077;&amp;#1085;&amp;#1072;&amp;#1088;&amp;#1080;&amp;#1080; 
+      Identity.
+    &amp;lt;/p&amp;gt;
+    &amp;lt;p style=&amp;quot;margin-top:0pt;margin-left:0pt;margin-bottom:.0001pt;margin-right:0pt;&amp;quot;&amp;gt;
+      &amp;nbsp;
+    &amp;lt;/p&amp;gt;
+    &amp;lt;p style=&amp;quot;margin-top:0pt;margin-left:0pt;margin-bottom:.0001pt;margin-right:0pt;&amp;quot;&amp;gt;
+      &amp;#1054;&amp;#1088;&amp;#1082;&amp;#1077;&amp;#1089;&amp;#1090;&amp;#1088;&amp;#1080;&amp;#1088;&amp;#1091;&amp;#1077;&amp;#1090; &amp;#1074;&amp;#1099;&amp;#1087;&amp;#1086;&amp;#1083;&amp;#1085;&amp;#1077;&amp;#1085;&amp;#1080;&amp;#1077; &amp;#1086;&amp;#1087;&amp;#1077;&amp;#1088;&amp;#1072;&amp;#1094;&amp;#1080;&amp;#1081;, &amp;#1079;&amp;#1072;&amp;#1076;&amp;#1072;&amp;#1105;&amp;#1090; &amp;#1090;&amp;#1088;&amp;#1072;&amp;#1085;&amp;#1079;&amp;#1072;&amp;#1082;&amp;#1094;&amp;#1080;&amp;#1086;&amp;#1085;&amp;#1085;&amp;#1099;&amp;#1077; &amp;#1075;&amp;#1088;&amp;#1072;&amp;#1085;&amp;#1080;&amp;#1094;&amp;#1099;, 
+      &amp;#1074;&amp;#1099;&amp;#1079;&amp;#1099;&amp;#1074;&amp;#1072;&amp;#1077;&amp;#1090; &amp;#1076;&amp;#1086;&amp;#1084;&amp;#1077;&amp;#1085;&amp;#1085;&amp;#1091;&amp;#1102; &amp;#1084;&amp;#1086;&amp;#1076;&amp;#1077;&amp;#1083;&amp;#1100; &amp;#1080; &amp;#1086;&amp;#1073;&amp;#1088;&amp;#1072;&amp;#1097;&amp;#1072;&amp;#1077;&amp;#1090;&amp;#1089;&amp;#1103; &amp;#1082; &amp;#1074;&amp;#1085;&amp;#1077;&amp;#1096;&amp;#1085;&amp;#1080;&amp;#1084; &amp;#1090;&amp;#1077;&amp;#1093;&amp;#1085;&amp;#1086;&amp;#1083;&amp;#1086;&amp;#1075;&amp;#1080;&amp;#1103;&amp;#1084; &amp;#1095;&amp;#1077;&amp;#1088;&amp;#1077;&amp;#1079; 
+      output-&amp;#1087;&amp;#1086;&amp;#1088;&amp;#1090;&amp;#1099;.
+    &amp;lt;/p&amp;gt;
+    &amp;lt;p style=&amp;quot;margin-top:0pt;margin-left:0pt;margin-bottom:.0001pt;margin-right:0pt;&amp;quot;&amp;gt;
+      &amp;nbsp;
+    &amp;lt;/p&amp;gt;
+    &amp;lt;p style=&amp;quot;margin-top:0pt;margin-left:0pt;margin-bottom:.0001pt;margin-right:0pt;&amp;quot;&amp;gt;
+      Application &amp;#1086;&amp;#1087;&amp;#1088;&amp;#1077;&amp;#1076;&amp;#1077;&amp;#1083;&amp;#1103;&amp;#1077;&amp;#1090; &amp;#1087;&amp;#1086;&amp;#1089;&amp;#1083;&amp;#1077;&amp;#1076;&amp;#1086;&amp;#1074;&amp;#1072;&amp;#1090;&amp;#1077;&amp;#1083;&amp;#1100;&amp;#1085;&amp;#1086;&amp;#1089;&amp;#1090;&amp;#1100; &amp;#1076;&amp;#1077;&amp;#1081;&amp;#1089;&amp;#1090;&amp;#1074;&amp;#1080;&amp;#1081;, &amp;#1085;&amp;#1086; &amp;#1085;&amp;#1077; &amp;#1089;&amp;#1086;&amp;#1076;&amp;#1077;&amp;#1088;&amp;#1078;&amp;#1080;&amp;#1090; 
+      &amp;#1088;&amp;#1077;&amp;#1072;&amp;#1083;&amp;#1080;&amp;#1079;&amp;#1072;&amp;#1094;&amp;#1080;&amp;#1080; PostgreSQL, jOOQ, BCrypt, SMTP &amp;#1080;&amp;#1083;&amp;#1080; Spring Session.
+    &amp;lt;/p&amp;gt;
+  &amp;lt;/body&amp;gt;" coords="330, 234, 470, 334" coords2="330, 234, 470, 334" shape="rect" alt="application:Package" id="areadiagram_map_tNuXMQWGAqAAZxIZ_default" href="Package_tNuXMQWGAqAAZxIa.html" onmouseover="storeReferenceAndSubdiagramInfos('diagram','330, 234, 470, 334',new Array(),new Array(),new Array(),new Array(),new Array(),new Array('PackageDiagram_hJ_JiQWGAqAAZiRW.html/application Package Diagram/PackageDiagram'),new Array(),new Array(),new Array()),hideReferenceIcon(),showSubdiagramIcon('diagram', '330, 234, 470, 334'),hideTransitorIcon(),showTooltip(this)" onmousedown="clearSpotLight();" onmouseout="hideTooltip()"/>
+<area imageId="diagram" docContent="&amp;lt;head&amp;gt;
+    
+  &amp;lt;/head&amp;gt;
+  &amp;lt;body style=&amp;quot;margin-left:0;color:#000000;font-weight:normal;font-size:12px;font-family:Dialog;margin-right:0;&amp;quot;&amp;gt;
+    &amp;lt;p style=&amp;quot;margin-top:0pt;margin-left:0pt;margin-bottom:.0001pt;margin-right:0pt;&amp;quot;&amp;gt;
+      &amp;#1042;&amp;#1085;&amp;#1077;&amp;#1096;&amp;#1085;&amp;#1080;&amp;#1081; HTTP-&amp;#1080;&amp;#1085;&amp;#1090;&amp;#1077;&amp;#1088;&amp;#1092;&amp;#1077;&amp;#1081;&amp;#1089; &amp;#1084;&amp;#1086;&amp;#1076;&amp;#1091;&amp;#1083;&amp;#1103; Identity &amp;#1076;&amp;#1083;&amp;#1103; frontend.
+    &amp;lt;/p&amp;gt;
+    &amp;lt;p style=&amp;quot;margin-top:0pt;margin-left:0pt;margin-bottom:.0001pt;margin-right:0pt;&amp;quot;&amp;gt;
+      &amp;nbsp;
+    &amp;lt;/p&amp;gt;
+    &amp;lt;p style=&amp;quot;margin-top:0pt;margin-left:0pt;margin-bottom:.0001pt;margin-right:0pt;&amp;quot;&amp;gt;
+      &amp;#1055;&amp;#1088;&amp;#1080;&amp;#1085;&amp;#1080;&amp;#1084;&amp;#1072;&amp;#1077;&amp;#1090; HTTP-&amp;#1079;&amp;#1072;&amp;#1087;&amp;#1088;&amp;#1086;&amp;#1089;&amp;#1099; &amp;#1080; JSON, &amp;#1074;&amp;#1099;&amp;#1087;&amp;#1086;&amp;#1083;&amp;#1085;&amp;#1103;&amp;#1077;&amp;#1090; &amp;#1089;&amp;#1090;&amp;#1088;&amp;#1091;&amp;#1082;&amp;#1090;&amp;#1091;&amp;#1088;&amp;#1085;&amp;#1091;&amp;#1102; &amp;#1074;&amp;#1072;&amp;#1083;&amp;#1080;&amp;#1076;&amp;#1072;&amp;#1094;&amp;#1080;&amp;#1102; &amp;#1074;&amp;#1093;&amp;#1086;&amp;#1076;&amp;#1085;&amp;#1099;&amp;#1093; 
+      &amp;#1076;&amp;#1072;&amp;#1085;&amp;#1085;&amp;#1099;&amp;#1093;, &amp;#1087;&amp;#1088;&amp;#1077;&amp;#1086;&amp;#1073;&amp;#1088;&amp;#1072;&amp;#1079;&amp;#1091;&amp;#1077;&amp;#1090; request DTO &amp;#1074; application-&amp;#1082;&amp;#1086;&amp;#1084;&amp;#1072;&amp;#1085;&amp;#1076;&amp;#1099;, &amp;#1074;&amp;#1099;&amp;#1079;&amp;#1099;&amp;#1074;&amp;#1072;&amp;#1077;&amp;#1090; 
+      input-&amp;#1087;&amp;#1086;&amp;#1088;&amp;#1090;&amp;#1099; &amp;#1080; &amp;#1092;&amp;#1086;&amp;#1088;&amp;#1084;&amp;#1080;&amp;#1088;&amp;#1091;&amp;#1077;&amp;#1090; HTTP-&amp;#1086;&amp;#1090;&amp;#1074;&amp;#1077;&amp;#1090;&amp;#1099;.
+    &amp;lt;/p&amp;gt;
+    &amp;lt;p style=&amp;quot;margin-top:0pt;margin-left:0pt;margin-bottom:.0001pt;margin-right:0pt;&amp;quot;&amp;gt;
+      &amp;nbsp;
+    &amp;lt;/p&amp;gt;
+    &amp;lt;p style=&amp;quot;margin-top:0pt;margin-left:0pt;margin-bottom:.0001pt;margin-right:0pt;&amp;quot;&amp;gt;
+      &amp;#1058;&amp;#1072;&amp;#1082;&amp;#1078;&amp;#1077; &amp;#1087;&amp;#1088;&amp;#1077;&amp;#1086;&amp;#1073;&amp;#1088;&amp;#1072;&amp;#1079;&amp;#1091;&amp;#1077;&amp;#1090; &amp;#1080;&amp;#1089;&amp;#1082;&amp;#1083;&amp;#1102;&amp;#1095;&amp;#1077;&amp;#1085;&amp;#1080;&amp;#1103; application &amp;#1080; domain &amp;#1074; &amp;#1077;&amp;#1076;&amp;#1080;&amp;#1085;&amp;#1099;&amp;#1081; &amp;#1092;&amp;#1086;&amp;#1088;&amp;#1084;&amp;#1072;&amp;#1090; 
+      ApiError.
+    &amp;lt;/p&amp;gt;
+  &amp;lt;/body&amp;gt;" coords="2, 413, 142, 513" coords2="2, 413, 142, 513" shape="rect" alt="presentation:Package" id="areadiagram_map_pXGXMQWGAqAAZxID_default" href="Package_pXGXMQWGAqAAZxIE.html" onmouseover="storeReferenceAndSubdiagramInfos('diagram','2, 413, 142, 513',new Array(),new Array(),new Array(),new Array(),new Array(),new Array('PackageDiagram_3EgBCQWGAqAAZgqD.html/presentation Package Diagram/PackageDiagram'),new Array(),new Array(),new Array()),hideReferenceIcon(),showSubdiagramIcon('diagram', '2, 413, 142, 513'),hideTransitorIcon(),showTooltip(this)" onmousedown="clearSpotLight();" onmouseout="hideTooltip()"/>
+<area imageId="diagram" docContent="&amp;lt;head&amp;gt;
+    
+  &amp;lt;/head&amp;gt;
+  &amp;lt;body style=&amp;quot;margin-left:0;color:#000000;font-weight:normal;font-size:12px;font-family:Dialog;margin-right:0;&amp;quot;&amp;gt;
+    &amp;lt;p style=&amp;quot;margin-top:0pt;margin-left:0pt;margin-bottom:.0001pt;margin-right:0pt;&amp;quot;&amp;gt;
+      &amp;#1055;&amp;#1091;&amp;#1073;&amp;#1083;&amp;#1080;&amp;#1095;&amp;#1085;&amp;#1099;&amp;#1081; Java API &amp;#1084;&amp;#1086;&amp;#1076;&amp;#1091;&amp;#1083;&amp;#1103; Identity &amp;#1076;&amp;#1083;&amp;#1103; &amp;#1074;&amp;#1079;&amp;#1072;&amp;#1080;&amp;#1084;&amp;#1086;&amp;#1076;&amp;#1077;&amp;#1081;&amp;#1089;&amp;#1090;&amp;#1074;&amp;#1080;&amp;#1103; &amp;#1089; &amp;#1076;&amp;#1088;&amp;#1091;&amp;#1075;&amp;#1080;&amp;#1084;&amp;#1080; 
+      backend-&amp;#1084;&amp;#1086;&amp;#1076;&amp;#1091;&amp;#1083;&amp;#1103;&amp;#1084;&amp;#1080;.
+    &amp;lt;/p&amp;gt;
+    &amp;lt;p style=&amp;quot;margin-top:0pt;margin-left:0pt;margin-bottom:.0001pt;margin-right:0pt;&amp;quot;&amp;gt;
+      &amp;nbsp;
+    &amp;lt;/p&amp;gt;
+    &amp;lt;p style=&amp;quot;margin-top:0pt;margin-left:0pt;margin-bottom:.0001pt;margin-right:0pt;&amp;quot;&amp;gt;
+      &amp;#1055;&amp;#1088;&amp;#1077;&amp;#1076;&amp;#1086;&amp;#1089;&amp;#1090;&amp;#1072;&amp;#1074;&amp;#1083;&amp;#1103;&amp;#1077;&amp;#1090; &amp;#1073;&amp;#1077;&amp;#1079;&amp;#1086;&amp;#1087;&amp;#1072;&amp;#1089;&amp;#1085;&amp;#1099;&amp;#1077; &amp;#1089;&amp;#1074;&amp;#1077;&amp;#1076;&amp;#1077;&amp;#1085;&amp;#1080;&amp;#1103; &amp;#1086; &amp;#1087;&amp;#1086;&amp;#1083;&amp;#1100;&amp;#1079;&amp;#1086;&amp;#1074;&amp;#1072;&amp;#1090;&amp;#1077;&amp;#1083;&amp;#1103;&amp;#1093;: &amp;#1080;&amp;#1076;&amp;#1077;&amp;#1085;&amp;#1090;&amp;#1080;&amp;#1092;&amp;#1080;&amp;#1082;&amp;#1072;&amp;#1090;&amp;#1086;&amp;#1088;, &amp;#1080;&amp;#1084;&amp;#1103;, 
+      &amp;#1092;&amp;#1072;&amp;#1084;&amp;#1080;&amp;#1083;&amp;#1080;&amp;#1102;, email, &amp;#1088;&amp;#1086;&amp;#1083;&amp;#1080; &amp;#1080; &amp;#1089;&amp;#1090;&amp;#1072;&amp;#1090;&amp;#1091;&amp;#1089; &amp;#1072;&amp;#1082;&amp;#1082;&amp;#1072;&amp;#1091;&amp;#1085;&amp;#1090;&amp;#1072;.
+    &amp;lt;/p&amp;gt;
+    &amp;lt;p style=&amp;quot;margin-top:0pt;margin-left:0pt;margin-bottom:.0001pt;margin-right:0pt;&amp;quot;&amp;gt;
+      &amp;nbsp;
+    &amp;lt;/p&amp;gt;
+    &amp;lt;p style=&amp;quot;margin-top:0pt;margin-left:0pt;margin-bottom:.0001pt;margin-right:0pt;&amp;quot;&amp;gt;
+      Tutoring &amp;#1080; Scheduling &amp;#1086;&amp;#1073;&amp;#1088;&amp;#1072;&amp;#1097;&amp;#1072;&amp;#1102;&amp;#1090;&amp;#1089;&amp;#1103; &amp;#1082; Identity &amp;#1090;&amp;#1086;&amp;#1083;&amp;#1100;&amp;#1082;&amp;#1086; &amp;#1095;&amp;#1077;&amp;#1088;&amp;#1077;&amp;#1079; &amp;#1101;&amp;#1090;&amp;#1086;&amp;#1090; &amp;#1087;&amp;#1072;&amp;#1082;&amp;#1077;&amp;#1090;. 
+      &amp;#1042;&amp;#1085;&amp;#1091;&amp;#1090;&amp;#1088;&amp;#1077;&amp;#1085;&amp;#1085;&amp;#1080;&amp;#1077; &amp;#1076;&amp;#1086;&amp;#1084;&amp;#1077;&amp;#1085;&amp;#1085;&amp;#1099;&amp;#1077; &amp;#1089;&amp;#1091;&amp;#1097;&amp;#1085;&amp;#1086;&amp;#1089;&amp;#1090;&amp;#1080;, &amp;#1087;&amp;#1072;&amp;#1088;&amp;#1086;&amp;#1083;&amp;#1100;, &amp;#1089;&amp;#1077;&amp;#1089;&amp;#1089;&amp;#1080;&amp;#1080; &amp;#1080; &amp;#1087;&amp;#1088;&amp;#1086;&amp;#1074;&amp;#1077;&amp;#1088;&amp;#1086;&amp;#1095;&amp;#1085;&amp;#1099;&amp;#1077; &amp;#1090;&amp;#1086;&amp;#1082;&amp;#1077;&amp;#1085;&amp;#1099; &amp;#1095;&amp;#1077;&amp;#1088;&amp;#1077;&amp;#1079; 
+      API &amp;#1085;&amp;#1077; &amp;#1088;&amp;#1072;&amp;#1089;&amp;#1082;&amp;#1088;&amp;#1099;&amp;#1074;&amp;#1072;&amp;#1102;&amp;#1090;&amp;#1089;&amp;#1103;.
+    &amp;lt;/p&amp;gt;
+  &amp;lt;/body&amp;gt;" coords="2, 25, 142, 125" coords2="2, 25, 142, 125" shape="rect" alt="api:Package" id="areadiagram_map_TBiXMQWGAqAAZxH9_default" href="Package_rBiXMQWGAqAAZxH_.html" onmouseover="storeReferenceAndSubdiagramInfos('diagram','2, 25, 142, 125',new Array(),new Array(),new Array(),new Array(),new Array(),new Array('ComponentDiagram_fmawsQWGAqAAZxNe.html/api Component Diagram/ComponentDiagram'),new Array(),new Array(),new Array()),hideReferenceIcon(),showSubdiagramIcon('diagram', '2, 25, 142, 125'),hideTransitorIcon(),showTooltip(this)" onmousedown="clearSpotLight();" onmouseout="hideTooltip()"/>
+</map>
+				</td>
+			</tr>
+		</table>
+		<p>
+		</p>
+	</div>
+	<table border="0" cellpadding="0" width="100%" cellspacing="0">
+		<tr>
+			<td class="Category">
+				Model Elements			</td>
+		</tr>
+		<tr>
+			<td style="height: 5px">
+			</td>
+		</tr>
+	</table>
+	<table border="0" cellpadding="0" width="100%" cellspacing="0">
+		<tr>
+			<td colSpan="4" class="TableHeaderLine">
+			</td>
+		</tr>
+		<tr>
+			<td colSpan="4" class="TableHeaderLine1">
+			</td>
+		</tr>
+		<tr class="TableHeader">
+			<td class="TableCellSpaceHolder10Px">
+			</td>
+			<td width="30%">
+<span class="TableHeaderText">Name</span>			</td>
+			<td class="TableCellSpaceHolder20Px">
+			</td>
+			<td>
+<span class="TableHeaderText">Description</span>			</td>
+		</tr>
+		<tr>
+			<td colSpan="4" class="TableHeaderLine2">
+			</td>
+		</tr>
+		<tr class="TableRow1">
+			<td>
+			</td>
+			<td>
+				<span class="TableContent">
+					<div style="float: left; width: 18px !important;height: 18px !important;background-image:url(../images/icons/Package.png) !important; background-image:url(''); filter:progid:DXImageTransform.Microsoft.AlphaImageLoader(src='../images/icons/Package.png'); background-repeat: no-repeat; background-size: contain;">
+					</div>
+					&nbsp; <a href="Package_QJhXMQWGAqAAZxIv.html" class="ItemLink">infrastructure : Package</a>				</span>
+			</td>
+			<td>
+			</td>
+			<td style="padding: 5px 0">
+<span class="TableContent Documentation"><head>
+    
+  </head>
+  <body style="margin-left:0;color:#000000;font-weight:normal;font-size:12px;font-family:Dialog;margin-right:0;">
+    <p style="margin-top:0pt;margin-left:0pt;margin-bottom:.0001pt;margin-right:0pt;">
+      &#1058;&#1077;&#1093;&#1085;&#1080;&#1095;&#1077;&#1089;&#1082;&#1080;&#1081; &#1089;&#1083;&#1086;&#1081; &#1084;&#1086;&#1076;&#1091;&#1083;&#1103; Identity.
+    </p>
+    <p style="margin-top:0pt;margin-left:0pt;margin-bottom:.0001pt;margin-right:0pt;">
+      &nbsp;
+    </p>
+    <p style="margin-top:0pt;margin-left:0pt;margin-bottom:.0001pt;margin-right:0pt;">
+      &#1056;&#1077;&#1072;&#1083;&#1080;&#1079;&#1091;&#1077;&#1090; output-&#1087;&#1086;&#1088;&#1090;&#1099; application &#1080; &#1089;&#1074;&#1103;&#1079;&#1099;&#1074;&#1072;&#1077;&#1090; &#1073;&#1080;&#1079;&#1085;&#1077;&#1089;-&#1082;&#1086;&#1076; &#1089; PostgreSQL, 
+      jOOQ, BCrypt, Spring Security,JWT , SMTP &#1080; &#1089;&#1080;&#1089;&#1090;&#1077;&#1084;&#1085;&#1099;&#1084; &#1074;&#1088;&#1077;&#1084;&#1077;&#1085;&#1077;&#1084;.
+    </p>
+    <p style="margin-top:0pt;margin-left:0pt;margin-bottom:.0001pt;margin-right:0pt;">
+      &nbsp;
+    </p>
+    <p style="margin-top:0pt;margin-left:0pt;margin-bottom:.0001pt;margin-right:0pt;">
+      Infrastructure &#1079;&#1072;&#1074;&#1080;&#1089;&#1080;&#1090; &#1086;&#1090; application &#1080; domain, &#1087;&#1086;&#1089;&#1082;&#1086;&#1083;&#1100;&#1082;&#1091; &#1088;&#1077;&#1072;&#1083;&#1080;&#1079;&#1091;&#1077;&#1090; 
+      &#1086;&#1073;&#1098;&#1103;&#1074;&#1083;&#1077;&#1085;&#1085;&#1099;&#1077; &#1080;&#1084;&#1080; &#1080;&#1085;&#1090;&#1077;&#1088;&#1092;&#1077;&#1081;&#1089;&#1099; &#1080; &#1087;&#1088;&#1077;&#1086;&#1073;&#1088;&#1072;&#1079;&#1091;&#1077;&#1090; &#1089;&#1086;&#1093;&#1088;&#1072;&#1085;&#1105;&#1085;&#1085;&#1099;&#1077; &#1076;&#1072;&#1085;&#1085;&#1099;&#1077; &#1074; &#1076;&#1086;&#1084;&#1077;&#1085;&#1085;&#1099;&#1077; 
+      &#1086;&#1073;&#1098;&#1077;&#1082;&#1090;&#1099;.
+    </p>
+  </body></span>			</td>
+		</tr>
+		<tr class="TableRow2">
+			<td>
+			</td>
+			<td>
+				<span class="TableContent">
+					<div style="float: left; width: 18px !important;height: 18px !important;background-image:url(../images/icons/Package.png) !important; background-image:url(''); filter:progid:DXImageTransform.Microsoft.AlphaImageLoader(src='../images/icons/Package.png'); background-repeat: no-repeat; background-size: contain;">
+					</div>
+					&nbsp; <a href="Package_em_XMQWGAqAAZxIi.html" class="ItemLink">domain : Package</a>				</span>
+			</td>
+			<td>
+			</td>
+			<td style="padding: 5px 0">
+<span class="TableContent Documentation"><head>
+    
+  </head>
+  <body style="margin-left:0;color:#000000;font-weight:normal;font-size:12px;font-family:Dialog;margin-right:0;">
+    <p style="margin-top:0pt;margin-left:0pt;margin-bottom:.0001pt;margin-right:0pt;">
+      &#1062;&#1077;&#1085;&#1090;&#1088;&#1072;&#1083;&#1100;&#1085;&#1072;&#1103; &#1073;&#1080;&#1079;&#1085;&#1077;&#1089;-&#1084;&#1086;&#1076;&#1077;&#1083;&#1100; &#1084;&#1086;&#1076;&#1091;&#1083;&#1103; Identity.
+    </p>
+    <p style="margin-top:0pt;margin-left:0pt;margin-bottom:.0001pt;margin-right:0pt;">
+      &nbsp;
+    </p>
+    <p style="margin-top:0pt;margin-left:0pt;margin-bottom:.0001pt;margin-right:0pt;">
+      &#1057;&#1086;&#1076;&#1077;&#1088;&#1078;&#1080;&#1090; &#1089;&#1091;&#1097;&#1085;&#1086;&#1089;&#1090;&#1080;, value object, &#1087;&#1077;&#1088;&#1077;&#1095;&#1080;&#1089;&#1083;&#1077;&#1085;&#1080;&#1103;, &#1073;&#1080;&#1079;&#1085;&#1077;&#1089;-&#1087;&#1088;&#1072;&#1074;&#1080;&#1083;&#1072;, 
+      &#1076;&#1086;&#1087;&#1091;&#1089;&#1090;&#1080;&#1084;&#1099;&#1077; &#1080;&#1079;&#1084;&#1077;&#1085;&#1077;&#1085;&#1080;&#1103; &#1089;&#1086;&#1089;&#1090;&#1086;&#1103;&#1085;&#1080;&#1103;, &#1076;&#1086;&#1084;&#1077;&#1085;&#1085;&#1099;&#1077; &#1089;&#1086;&#1073;&#1099;&#1090;&#1080;&#1103; &#1080; &#1076;&#1086;&#1084;&#1077;&#1085;&#1085;&#1099;&#1077; &#1080;&#1089;&#1082;&#1083;&#1102;&#1095;&#1077;&#1085;&#1080;&#1103;.
+    </p>
+    <p style="margin-top:0pt;margin-left:0pt;margin-bottom:.0001pt;margin-right:0pt;">
+      &nbsp;
+    </p>
+    <p style="margin-top:0pt;margin-left:0pt;margin-bottom:.0001pt;margin-right:0pt;">
+      Domain &#1103;&#1074;&#1083;&#1103;&#1077;&#1090;&#1089;&#1103; &#1095;&#1080;&#1089;&#1090;&#1099;&#1084; Java-&#1082;&#1086;&#1076;&#1086;&#1084; &#1080; &#1085;&#1077; &#1079;&#1072;&#1074;&#1080;&#1089;&#1080;&#1090; &#1086;&#1090; Spring, HTTP, jOOQ, 
+      PostgreSQL, SMTP &#1080; Spring Session.
+    </p>
+  </body></span>			</td>
+		</tr>
+		<tr class="TableRow1">
+			<td>
+			</td>
+			<td>
+				<span class="TableContent">
+					<div style="float: left; width: 18px !important;height: 18px !important;background-image:url(../images/icons/Package.png) !important; background-image:url(''); filter:progid:DXImageTransform.Microsoft.AlphaImageLoader(src='../images/icons/Package.png'); background-repeat: no-repeat; background-size: contain;">
+					</div>
+					&nbsp; <a href="Package_tNuXMQWGAqAAZxIa.html" class="ItemLink">application : Package</a>				</span>
+			</td>
+			<td>
+			</td>
+			<td style="padding: 5px 0">
+<span class="TableContent Documentation"><head>
+    
+  </head>
+  <body style="margin-left:0;color:#000000;font-weight:normal;font-size:12px;font-family:Dialog;margin-right:0;">
+    <p style="margin-top:0pt;margin-left:0pt;margin-bottom:.0001pt;margin-right:0pt;">
+      &#1055;&#1088;&#1080;&#1082;&#1083;&#1072;&#1076;&#1085;&#1086;&#1081; &#1089;&#1083;&#1086;&#1081;, &#1088;&#1077;&#1072;&#1083;&#1080;&#1079;&#1091;&#1102;&#1097;&#1080;&#1081; &#1082;&#1086;&#1085;&#1082;&#1088;&#1077;&#1090;&#1085;&#1099;&#1077; &#1087;&#1086;&#1083;&#1100;&#1079;&#1086;&#1074;&#1072;&#1090;&#1077;&#1083;&#1100;&#1089;&#1082;&#1080;&#1077; &#1089;&#1094;&#1077;&#1085;&#1072;&#1088;&#1080;&#1080; 
+      Identity.
+    </p>
+    <p style="margin-top:0pt;margin-left:0pt;margin-bottom:.0001pt;margin-right:0pt;">
+      &nbsp;
+    </p>
+    <p style="margin-top:0pt;margin-left:0pt;margin-bottom:.0001pt;margin-right:0pt;">
+      &#1054;&#1088;&#1082;&#1077;&#1089;&#1090;&#1088;&#1080;&#1088;&#1091;&#1077;&#1090; &#1074;&#1099;&#1087;&#1086;&#1083;&#1085;&#1077;&#1085;&#1080;&#1077; &#1086;&#1087;&#1077;&#1088;&#1072;&#1094;&#1080;&#1081;, &#1079;&#1072;&#1076;&#1072;&#1105;&#1090; &#1090;&#1088;&#1072;&#1085;&#1079;&#1072;&#1082;&#1094;&#1080;&#1086;&#1085;&#1085;&#1099;&#1077; &#1075;&#1088;&#1072;&#1085;&#1080;&#1094;&#1099;, 
+      &#1074;&#1099;&#1079;&#1099;&#1074;&#1072;&#1077;&#1090; &#1076;&#1086;&#1084;&#1077;&#1085;&#1085;&#1091;&#1102; &#1084;&#1086;&#1076;&#1077;&#1083;&#1100; &#1080; &#1086;&#1073;&#1088;&#1072;&#1097;&#1072;&#1077;&#1090;&#1089;&#1103; &#1082; &#1074;&#1085;&#1077;&#1096;&#1085;&#1080;&#1084; &#1090;&#1077;&#1093;&#1085;&#1086;&#1083;&#1086;&#1075;&#1080;&#1103;&#1084; &#1095;&#1077;&#1088;&#1077;&#1079; 
+      output-&#1087;&#1086;&#1088;&#1090;&#1099;.
+    </p>
+    <p style="margin-top:0pt;margin-left:0pt;margin-bottom:.0001pt;margin-right:0pt;">
+      &nbsp;
+    </p>
+    <p style="margin-top:0pt;margin-left:0pt;margin-bottom:.0001pt;margin-right:0pt;">
+      Application &#1086;&#1087;&#1088;&#1077;&#1076;&#1077;&#1083;&#1103;&#1077;&#1090; &#1087;&#1086;&#1089;&#1083;&#1077;&#1076;&#1086;&#1074;&#1072;&#1090;&#1077;&#1083;&#1100;&#1085;&#1086;&#1089;&#1090;&#1100; &#1076;&#1077;&#1081;&#1089;&#1090;&#1074;&#1080;&#1081;, &#1085;&#1086; &#1085;&#1077; &#1089;&#1086;&#1076;&#1077;&#1088;&#1078;&#1080;&#1090; 
+      &#1088;&#1077;&#1072;&#1083;&#1080;&#1079;&#1072;&#1094;&#1080;&#1080; PostgreSQL, jOOQ, BCrypt, SMTP &#1080;&#1083;&#1080; Spring Session.
+    </p>
+  </body></span>			</td>
+		</tr>
+		<tr class="TableRow2">
+			<td>
+			</td>
+			<td>
+				<span class="TableContent">
+					<div style="float: left; width: 18px !important;height: 18px !important;background-image:url(../images/icons/Package.png) !important; background-image:url(''); filter:progid:DXImageTransform.Microsoft.AlphaImageLoader(src='../images/icons/Package.png'); background-repeat: no-repeat; background-size: contain;">
+					</div>
+					&nbsp; <a href="Package_pXGXMQWGAqAAZxIE.html" class="ItemLink">presentation : Package</a>				</span>
+			</td>
+			<td>
+			</td>
+			<td style="padding: 5px 0">
+<span class="TableContent Documentation"><head>
+    
+  </head>
+  <body style="margin-left:0;color:#000000;font-weight:normal;font-size:12px;font-family:Dialog;margin-right:0;">
+    <p style="margin-top:0pt;margin-left:0pt;margin-bottom:.0001pt;margin-right:0pt;">
+      &#1042;&#1085;&#1077;&#1096;&#1085;&#1080;&#1081; HTTP-&#1080;&#1085;&#1090;&#1077;&#1088;&#1092;&#1077;&#1081;&#1089; &#1084;&#1086;&#1076;&#1091;&#1083;&#1103; Identity &#1076;&#1083;&#1103; frontend.
+    </p>
+    <p style="margin-top:0pt;margin-left:0pt;margin-bottom:.0001pt;margin-right:0pt;">
+      &nbsp;
+    </p>
+    <p style="margin-top:0pt;margin-left:0pt;margin-bottom:.0001pt;margin-right:0pt;">
+      &#1055;&#1088;&#1080;&#1085;&#1080;&#1084;&#1072;&#1077;&#1090; HTTP-&#1079;&#1072;&#1087;&#1088;&#1086;&#1089;&#1099; &#1080; JSON, &#1074;&#1099;&#1087;&#1086;&#1083;&#1085;&#1103;&#1077;&#1090; &#1089;&#1090;&#1088;&#1091;&#1082;&#1090;&#1091;&#1088;&#1085;&#1091;&#1102; &#1074;&#1072;&#1083;&#1080;&#1076;&#1072;&#1094;&#1080;&#1102; &#1074;&#1093;&#1086;&#1076;&#1085;&#1099;&#1093; 
+      &#1076;&#1072;&#1085;&#1085;&#1099;&#1093;, &#1087;&#1088;&#1077;&#1086;&#1073;&#1088;&#1072;&#1079;&#1091;&#1077;&#1090; request DTO &#1074; application-&#1082;&#1086;&#1084;&#1072;&#1085;&#1076;&#1099;, &#1074;&#1099;&#1079;&#1099;&#1074;&#1072;&#1077;&#1090; 
+      input-&#1087;&#1086;&#1088;&#1090;&#1099; &#1080; &#1092;&#1086;&#1088;&#1084;&#1080;&#1088;&#1091;&#1077;&#1090; HTTP-&#1086;&#1090;&#1074;&#1077;&#1090;&#1099;.
+    </p>
+    <p style="margin-top:0pt;margin-left:0pt;margin-bottom:.0001pt;margin-right:0pt;">
+      &nbsp;
+    </p>
+    <p style="margin-top:0pt;margin-left:0pt;margin-bottom:.0001pt;margin-right:0pt;">
+      &#1058;&#1072;&#1082;&#1078;&#1077; &#1087;&#1088;&#1077;&#1086;&#1073;&#1088;&#1072;&#1079;&#1091;&#1077;&#1090; &#1080;&#1089;&#1082;&#1083;&#1102;&#1095;&#1077;&#1085;&#1080;&#1103; application &#1080; domain &#1074; &#1077;&#1076;&#1080;&#1085;&#1099;&#1081; &#1092;&#1086;&#1088;&#1084;&#1072;&#1090; 
+      ApiError.
+    </p>
+  </body></span>			</td>
+		</tr>
+		<tr class="TableRow1">
+			<td>
+			</td>
+			<td>
+				<span class="TableContent">
+					<div style="float: left; width: 18px !important;height: 18px !important;background-image:url(../images/icons/Package.png) !important; background-image:url(''); filter:progid:DXImageTransform.Microsoft.AlphaImageLoader(src='../images/icons/Package.png'); background-repeat: no-repeat; background-size: contain;">
+					</div>
+					&nbsp; <a href="Package_rBiXMQWGAqAAZxH_.html" class="ItemLink">api : Package</a>				</span>
+			</td>
+			<td>
+			</td>
+			<td style="padding: 5px 0">
+<span class="TableContent Documentation"><head>
+    
+  </head>
+  <body style="margin-left:0;color:#000000;font-weight:normal;font-size:12px;font-family:Dialog;margin-right:0;">
+    <p style="margin-top:0pt;margin-left:0pt;margin-bottom:.0001pt;margin-right:0pt;">
+      &#1055;&#1091;&#1073;&#1083;&#1080;&#1095;&#1085;&#1099;&#1081; Java API &#1084;&#1086;&#1076;&#1091;&#1083;&#1103; Identity &#1076;&#1083;&#1103; &#1074;&#1079;&#1072;&#1080;&#1084;&#1086;&#1076;&#1077;&#1081;&#1089;&#1090;&#1074;&#1080;&#1103; &#1089; &#1076;&#1088;&#1091;&#1075;&#1080;&#1084;&#1080; 
+      backend-&#1084;&#1086;&#1076;&#1091;&#1083;&#1103;&#1084;&#1080;.
+    </p>
+    <p style="margin-top:0pt;margin-left:0pt;margin-bottom:.0001pt;margin-right:0pt;">
+      &nbsp;
+    </p>
+    <p style="margin-top:0pt;margin-left:0pt;margin-bottom:.0001pt;margin-right:0pt;">
+      &#1055;&#1088;&#1077;&#1076;&#1086;&#1089;&#1090;&#1072;&#1074;&#1083;&#1103;&#1077;&#1090; &#1073;&#1077;&#1079;&#1086;&#1087;&#1072;&#1089;&#1085;&#1099;&#1077; &#1089;&#1074;&#1077;&#1076;&#1077;&#1085;&#1080;&#1103; &#1086; &#1087;&#1086;&#1083;&#1100;&#1079;&#1086;&#1074;&#1072;&#1090;&#1077;&#1083;&#1103;&#1093;: &#1080;&#1076;&#1077;&#1085;&#1090;&#1080;&#1092;&#1080;&#1082;&#1072;&#1090;&#1086;&#1088;, &#1080;&#1084;&#1103;, 
+      &#1092;&#1072;&#1084;&#1080;&#1083;&#1080;&#1102;, email, &#1088;&#1086;&#1083;&#1080; &#1080; &#1089;&#1090;&#1072;&#1090;&#1091;&#1089; &#1072;&#1082;&#1082;&#1072;&#1091;&#1085;&#1090;&#1072;.
+    </p>
+    <p style="margin-top:0pt;margin-left:0pt;margin-bottom:.0001pt;margin-right:0pt;">
+      &nbsp;
+    </p>
+    <p style="margin-top:0pt;margin-left:0pt;margin-bottom:.0001pt;margin-right:0pt;">
+      Tutoring &#1080; Scheduling &#1086;&#1073;&#1088;&#1072;&#1097;&#1072;&#1102;&#1090;&#1089;&#1103; &#1082; Identity &#1090;&#1086;&#1083;&#1100;&#1082;&#1086; &#1095;&#1077;&#1088;&#1077;&#1079; &#1101;&#1090;&#1086;&#1090; &#1087;&#1072;&#1082;&#1077;&#1090;. 
+      &#1042;&#1085;&#1091;&#1090;&#1088;&#1077;&#1085;&#1085;&#1080;&#1077; &#1076;&#1086;&#1084;&#1077;&#1085;&#1085;&#1099;&#1077; &#1089;&#1091;&#1097;&#1085;&#1086;&#1089;&#1090;&#1080;, &#1087;&#1072;&#1088;&#1086;&#1083;&#1100;, &#1089;&#1077;&#1089;&#1089;&#1080;&#1080; &#1080; &#1087;&#1088;&#1086;&#1074;&#1077;&#1088;&#1086;&#1095;&#1085;&#1099;&#1077; &#1090;&#1086;&#1082;&#1077;&#1085;&#1099; &#1095;&#1077;&#1088;&#1077;&#1079; 
+      API &#1085;&#1077; &#1088;&#1072;&#1089;&#1082;&#1088;&#1099;&#1074;&#1072;&#1102;&#1090;&#1089;&#1103;.
+    </p>
+  </body></span>			</td>
+		</tr>
+	</table>
+	<table border="0" cellpadding="0" width="100%" cellspacing="0">
+		<tr>
+			<td class="TableCellSpaceHolder1PxTall">
+			</td>
+		</tr>
+		<tr>
+			<td class="TableFooter">
+			</td>
+		</tr>
+	</table>
+	<div style="height: 20px">
+	</div>
+	<table border="0" cellpadding="0" width="100%" cellspacing="0">
+		<tr>
+			<td class="FooterLine">
+			</td>
+		</tr>
+	</table>
+	<div class="HeaderText">
+		architecture	</div>
+</body>
+</html>

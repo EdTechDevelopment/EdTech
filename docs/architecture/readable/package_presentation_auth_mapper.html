@@ -1,0 +1,61 @@
+<!doctype html>
+<html lang="ru">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>identity.presentation.auth.mapper</title>
+  <link rel="stylesheet" href="package.css">
+</head>
+<body>
+  <main class="page">
+    <nav class="breadcrumb"><span>Identity</span><span>›</span><span>presentation › auth › mapper</span></nav>
+    <header class="package-header">
+      <div>
+        <div class="eyebrow">PACKAGE</div>
+        <h1>mapper</h1>
+        <code>identity.presentation.auth.mapper</code>
+      </div>
+      <a class="secondary" href="../content/Package_ql5BCQWGAqAAZgr_.html">Исходная спецификация VP</a>
+    </header>
+
+    <section class="summary-grid">
+      <article class="description-panel">
+        <h2>Назначение пакета</h2>
+        <div class="description"><p>Содержит преобразования между HTTP-моделями auth и моделями application.</p><p>Mapper преобразует request DTO в application command и application</p><p>result в response DTO. Преобразование должно быть детерминированным</p><p>и не иметь внешних побочных эффектов.</p><p>Mapper не обращается к repository, базе данных, JWT-провайдеру,</p><p>SMTP и другим backend-модулям. Он не проверяет бизнес-правила</p><p>и не управляет транзакциями.</p></div>
+      </article>
+      <aside class="stats-panel">
+        <div><strong>0</strong><span>дочерних пакетов</span></div>
+        <div><strong>1</strong><span>элементов</span></div>
+      </aside>
+    </section>
+
+    <section class="content-section">
+      <div class="section-heading"><h2>Дочерние пакеты</h2><span>0</span></div>
+      <div class="card-grid"><div class="empty-state">Вложенных пакетов нет</div></div>
+    </section>
+
+    <section class="content-section">
+      <div class="section-heading"><h2>Классы и интерфейсы</h2><span>1</span></div>
+      <div class="element-list">
+            <a class="element-card" href="../content/Class_1te1CQWGAqAAZg_d.html">
+              <div class="card-icon element-icon">◇</div>
+              <div>
+                <div class="card-title">AuthPresentationMapper</div>
+                <div class="type-badge">Класс</div>
+                <div class="card-description">Преобразует HTTP-запросы регистрации и авторизации в соответствующие
+
+application-команды.
+
+Преобразует результаты регистрации и аутентификации в HTTP-ответы.
+
+Конкретный способ реализации, включая ручное преобразование или
+
+MapStruct, выбирает разработчик.</div>
+              </div>
+              <span class="open-arrow">›</span>
+            </a>
+            </div>
+    </section>
+  </main>
+</body>
+</html>

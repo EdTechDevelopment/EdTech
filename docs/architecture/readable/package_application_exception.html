@@ -1,0 +1,139 @@
+<!doctype html>
+<html lang="ru">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>identity.application.exception</title>
+  <link rel="stylesheet" href="package.css">
+</head>
+<body>
+  <main class="page">
+    <nav class="breadcrumb"><span>Identity</span><span>›</span><span>application › exception</span></nav>
+    <header class="package-header">
+      <div>
+        <div class="eyebrow">PACKAGE</div>
+        <h1>exception</h1>
+        <code>identity.application.exception</code>
+      </div>
+      <a class="secondary" href="../content/Package_C5opiQWGAqAAZiSt.html">Исходная спецификация VP</a>
+    </header>
+
+    <section class="summary-grid">
+      <article class="description-panel">
+        <h2>Назначение пакета</h2>
+        <div class="description"><p>Содержит ошибки прикладных сценариев Identity.</p><p>Эти исключения образуют стабильную границу между application и presentation. Application преобразует внутренние доменные ошибки в ошибки, понятные вызывающему слою.</p></div>
+      </article>
+      <aside class="stats-panel">
+        <div><strong>0</strong><span>дочерних пакетов</span></div>
+        <div><strong>8</strong><span>элементов</span></div>
+      </aside>
+    </section>
+
+    <section class="content-section">
+      <div class="section-heading"><h2>Дочерние пакеты</h2><span>0</span></div>
+      <div class="card-grid"><div class="empty-state">Вложенных пакетов нет</div></div>
+    </section>
+
+    <section class="content-section">
+      <div class="section-heading"><h2>Классы и интерфейсы</h2><span>8</span></div>
+      <div class="element-list">
+            <a class="element-card" href="../content/Class__XCISQWGAqAAZjaX.html">
+              <div class="card-icon element-icon">◇</div>
+              <div>
+                <div class="card-title">AccountOperationNotAllowedException</div>
+                <div class="type-badge">Класс</div>
+                <div class="card-description">Запрошенная операция запрещена текущим состоянием аккаунта.
+
+Используется как application-представление нарушения доменного состояния, которое presentation может преобразовать в единый HTTP-ответ.</div>
+              </div>
+              <span class="open-arrow">›</span>
+            </a>
+            
+            <a class="element-card" href="../content/Class_NhiISQWGAqAAZja7.html">
+              <div class="card-icon element-icon">◇</div>
+              <div>
+                <div class="card-title">EmailAlreadyExistsException</div>
+                <div class="type-badge">Класс</div>
+                <div class="card-description">Переданный email уже используется как основной или ожидающий подтверждения адрес другого пользователя.
+
+Возникает при регистрации или запросе изменения email.</div>
+              </div>
+              <span class="open-arrow">›</span>
+            </a>
+            
+            <a class="element-card" href="../content/Class_tRsISQWGAqAAZjaJ.html">
+              <div class="card-icon element-icon">◇</div>
+              <div>
+                <div class="card-title">EmailVerificationRequiredException</div>
+                <div class="type-badge">Класс</div>
+                <div class="card-description">Аутентификация пользователя запрещена, потому что основной email ещё не подтверждён.
+
+Presentation преобразует исключение в стабильный код ошибки, понятный frontend.</div>
+              </div>
+              <span class="open-arrow">›</span>
+            </a>
+            
+            <a class="element-card" href="../content/Class_N8SISQWGAqAAZjbh.html">
+              <div class="card-icon element-icon">◇</div>
+              <div>
+                <div class="card-title">InvalidCredentialsException</div>
+                <div class="type-badge">Класс</div>
+                <div class="card-description">Переданные учётные данные не прошли проверку.
+
+Одинаковое исключение используется для неизвестного email и неверного пароля, чтобы не раскрывать существование аккаунта.</div>
+              </div>
+              <span class="open-arrow">›</span>
+            </a>
+            
+            <a class="element-card" href="../content/Class_M4iISQWGAqAAZjaj.html">
+              <div class="card-icon element-icon">◇</div>
+              <div>
+                <div class="card-title">InvalidRefreshTokenException</div>
+                <div class="type-badge">Класс</div>
+                <div class="card-description">Refresh token неизвестен, просрочен, отозван или был повторно использован.
+
+При обнаружении повторного использования application может дополнительно отозвать всю связанную token family.</div>
+              </div>
+              <span class="open-arrow">›</span>
+            </a>
+            
+            <a class="element-card" href="../content/Class_4XiISQWGAqAAZjbT.html">
+              <div class="card-icon element-icon">◇</div>
+              <div>
+                <div class="card-title">InvalidUseCaseInputException</div>
+                <div class="type-badge">Класс</div>
+                <div class="card-description">Application-команда или query содержат некорректные или неподдерживаемые данные.
+
+Исключение используется для ошибок прикладной валидации, которые не относятся к формату HTTP-запроса и не являются нарушением состояния конкретного aggregate.</div>
+              </div>
+              <span class="open-arrow">›</span>
+            </a>
+            
+            <a class="element-card" href="../content/Class_NqiISQWGAqAAZjav.html">
+              <div class="card-icon element-icon">◇</div>
+              <div>
+                <div class="card-title">InvalidVerificationTokenException</div>
+                <div class="type-badge">Класс</div>
+                <div class="card-description">Проверочный токен неизвестен, просрочен, уже использован или был инвалидирован.
+
+Исключение не раскрывает точную причину недействительности токена.</div>
+              </div>
+              <span class="open-arrow">›</span>
+            </a>
+            
+            <a class="element-card" href="../content/Class_stiISQWGAqAAZjbH.html">
+              <div class="card-icon element-icon">◇</div>
+              <div>
+                <div class="card-title">UserNotFoundException</div>
+                <div class="type-badge">Класс</div>
+                <div class="card-description">Пользователь, необходимый для выполнения прикладного сценария, не найден.
+
+Presentation преобразует исключение в соответствующий HTTP-ответ без раскрытия внутренних persistence-данных.</div>
+              </div>
+              <span class="open-arrow">›</span>
+            </a>
+            </div>
+    </section>
+  </main>
+</body>
+</html>

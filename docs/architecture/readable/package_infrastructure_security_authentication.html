@@ -1,0 +1,57 @@
+<!doctype html>
+<html lang="ru">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>identity.infrastructure.security.authentication</title>
+  <link rel="stylesheet" href="package.css">
+</head>
+<body>
+  <main class="page">
+    <nav class="breadcrumb"><span>Identity</span><span>›</span><span>infrastructure › security › authentication</span></nav>
+    <header class="package-header">
+      <div>
+        <div class="eyebrow">PACKAGE</div>
+        <h1>authentication</h1>
+        <code>identity.infrastructure.security.authentication</code>
+      </div>
+      <a class="secondary" href="../content/Package_UiliSQWGAqAAZji9.html">Исходная спецификация VP</a>
+    </header>
+
+    <section class="summary-grid">
+      <article class="description-panel">
+        <h2>Назначение пакета</h2>
+        <div class="description"><p>Содержит преобразование проверенного JWT в стандартную модель аутентификации Spring Security.</p><p>Пакет извлекает userId и роли из claims, но не загружает User из базы данных при каждом HTTP-запросе.</p></div>
+      </article>
+      <aside class="stats-panel">
+        <div><strong>0</strong><span>дочерних пакетов</span></div>
+        <div><strong>1</strong><span>элементов</span></div>
+      </aside>
+    </section>
+
+    <section class="content-section">
+      <div class="section-heading"><h2>Дочерние пакеты</h2><span>0</span></div>
+      <div class="card-grid"><div class="empty-state">Вложенных пакетов нет</div></div>
+    </section>
+
+    <section class="content-section">
+      <div class="section-heading"><h2>Классы и интерфейсы</h2><span>1</span></div>
+      <div class="element-list">
+            <a class="element-card" href="../content/Class_N9U6SQWGAqAAZj8m.html">
+              <div class="card-icon element-icon">◇</div>
+              <div>
+                <div class="card-title">IdentityJwtAuthenticationConverter</div>
+                <div class="type-badge">Класс</div>
+                <div class="card-description">Преобразует проверенный Spring Security Jwt в стандартный JwtAuthenticationToken.
+
+Использует claim sub как идентификатор пользователя и преобразует значения roles в GrantedAuthority.
+
+Не обращается к UserRepository и не загружает пользователя из базы данных при каждом запросе.</div>
+              </div>
+              <span class="open-arrow">›</span>
+            </a>
+            </div>
+    </section>
+  </main>
+</body>
+</html>

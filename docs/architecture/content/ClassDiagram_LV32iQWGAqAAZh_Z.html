@@ -1,0 +1,425 @@
+<html>
+<head>
+	<META http-equiv="Content-Type" content="text/html; charset=UTF-8">
+	<link rel="stylesheet" href="report.css" type="text/css"/>
+	<title>Class Diagram - event Class Diagram2</title>
+	<script type="text/javascript" src="report.js"></script>
+	<script type="text/javascript" src="link_popup.js"></script>
+	<script type="text/javascript" src="tooltip.js"></script>
+</head>
+<body style="margin-left: 10px; margin-right: 10px; margin-top: 10px; margin-bottom: 10px;" onload="initPage();initDiagram();initGridDiagram();">
+	<div style="position:absolute; z-index:2; visibility:hidden;border-top: 2px #FF0000 solid;" id="spotlight_top">
+	</div>
+	<div style="position:absolute; z-index:2; visibility:hidden;border-top: 2px #FF0000 solid;" id="spotlight_bottom">
+	</div>
+	<div style="position:absolute; z-index:2; visibility:hidden;border-left: 2px #FF0000 solid;" id="spotlight_left">
+	</div>
+	<div style="position:absolute; z-index:2; visibility:hidden;border-left: 2px #FF0000 solid;" id="spotlight_right">
+	</div>
+	<canvas width="100" style="position:absolute; z-index:2; visibility:hidden" id="spotlight_c" height="100">
+	</canvas>
+	<div style="position:absolute; width:100px; height:100px; z-index:1; visibility:hidden" id="spotLightResourcesTop">
+		<table border="0" cellpadding="0" cellspacing="0">
+			<tr>
+				<td>
+<a href="#top"><img style="border:none" src="../images/icons/BackToTop.gif" alt="Back to top"/></a>				</td>
+				<td>
+<a href="javascript:clearSpotLightFromOpenSpecButton();"><img style="border:none" src="../images/icons/OpenSpecification.gif" alt="Open specification"/></a>				</td>
+			</tr>
+		</table>
+	</div>
+	<div style="position:absolute; width:100px; height:100px; z-index:1; visibility:hidden" id="spotLightResourcesRight">
+		<table border="0" cellpadding="0" cellspacing="0">
+			<tr>
+				<td>
+<a href="#top"><img style="border:none" src="../images/icons/BackToTop.gif" alt="Back to top"/></a>				</td>
+			</tr>
+			<tr>
+				<td>
+<a href="javascript:clearSpotLightFromOpenSpecButton();"><img style="border:none" src="../images/icons/OpenSpecification.gif" alt="Open specification"/></a>				</td>
+			</tr>
+		</table>
+	</div>
+	<div style="position:absolute;z-index:4;visibility:hidden" id="linkPopupMenuLayer">
+		<table border="0" width="100%" style="border-style:solid; border-width:1px; border-color:#000000; background:#FFFFFF; width:250px" id="linkPopupMenuTable">
+		</table>
+	</div>
+	<div style="position:absolute; z-index:1; visibility:hidden; " id="referenceIconLayer">
+		<table border="0" cellpadding="3" cellspacing="0" style="font-size:1;">
+			<tr>
+				<td>
+					<img src="../images/icons/Ref.gif" style="border:none" onclick="movePopupPositionToReferenceIconPosition();resetPopupForReference();switchPopupShowHideStatus();" />				</td>
+			</tr>
+		</table>
+	</div>
+	<div style="position:absolute; z-index:1; visibility:hidden; " id="subdiagramIconLayer">
+		<table border="0" cellpadding="3" cellspacing="0" style="font-size:1;">
+			<tr>
+				<td>
+					<img src="../images/icons/Subdiagram.gif" style="border:none" onclick="movePopupPositionToSubdiagramIconPosition();resetPopupForSubdiagram();switchPopupShowHideStatus();" />				</td>
+			</tr>
+		</table>
+	</div>
+	<div style="position:absolute; z-index:1; visibility:hidden; " id="transitorIconLayer">
+		<table border="0" cellpadding="3" cellspacing="0" style="font-size:1;">
+			<tr>
+				<td>
+					<img src="../images/icons/Transitor.gif" style="border:none" onclick="movePopupPositionToTransitorIconPosition();resetPopupForTransitor();switchPopupShowHideStatus();" />				</td>
+			</tr>
+		</table>
+	</div>
+	<div style="position:absolute; z-index:1; visibility:hidden; " id="documentationIconLayer">
+		<table border="0" cellpadding="3" cellspacing="0" style="font-size:1;">
+			<tr>
+				<td>
+					<img src="../images/icons/Documentation.png" style="border:none" />				</td>
+			</tr>
+		</table>
+	</div>
+	<div class="HeaderText">
+		architecture	</div>
+	<table border="0" cellpadding="0" width="100%" cellspacing="0">
+		<tr>
+			<td class="HeaderLine1">
+			</td>
+		</tr>
+		<tr>
+			<td class="HeaderLine2">
+			</td>
+		</tr>
+		<tr>
+			<td class="HeaderLine3">
+			</td>
+		</tr>
+	</table>
+	<div style="position:absolute; z-index:21; visibility:hidden" id="referencedBys">
+		<table border="0" width="100%" style="border-style:solid; border-width:1px; border-color:#000000; background:#FFFFFF; width:250px" id="referencedBysTable">
+		</table>
+	</div>
+	<div style="position:absolute; z-index:21; visibility:hidden" id="vplink">
+		<table border="1" cellpadding="0" cellspacing="0" bordercolor="#A9BFD3">
+			<tr>
+				<td>
+					<table border="0" cellpadding="0" width="100%" cellspacing="0">
+						<tr style="background:#DDDDDD">
+							<td style="font-size: 12px;" align="left">
+								<select onchange="vpLinkToggleName()" id="vplink-linkType">
+	<option value="Project Link">Project Link</option>
+	<option value="Page URL">Page URL</option>
+</select>
+							</td>
+							<td style="font-size: 12px;" align="right">
+								<input onclick="javascript: vpLinkToggleName()" id="vplink-checkbox" type="checkbox" />
+								<label for="vplink-checkbox">with Name</label>							</td>
+						</tr>
+					</table>
+				</td>
+			</tr>
+			<tr>
+				<td>
+					<textarea id="vplink-text" style="width: 348px; height: 60px; border-color: #7EADD9; outline: none;"></textarea>				</td>
+			</tr>
+		</table>
+	</div>
+	<p>
+<a href="PackageDiagram_xg8XMQWGAqAAZxHx.html" class="PageParentTitle">domain : Package</a><span class="PageParentTitle">&nbsp;.&nbsp;</span><a href="PackageDiagram_cNWqiQWGAqAAZh2f.html" class="PageParentTitle">user : Package</a><span class="PageParentTitle">&nbsp;.&nbsp;</span><a href="PackageDiagram_UoWWiQWGAqAAZh4z.html" class="PageParentTitle">event : Package</a>	</p>
+	<p class="PageTitle">
+		<span id="PageTitleText">
+			Class Diagram - event Class Diagram2		</span>
+<a onclick="javascript: showVpLink('architecture.vpp://diagram/LV32iQWGAqAAZh_Z', 'event Class Diagram2\narchitecture.vpp://diagram/LV32iQWGAqAAZh_Z', 'event Class Diagram2', this); return false;" style="padding-left: 16px; font-size: 12px" href="#"><img src="../images/icons/link.png" border="0"> link</a>	</p>
+	<div style="position: relative; padding-bottom: 20px;">
+		<table border="0" cellpadding="0" width="100%" cellspacing="0" style="position: absolute; top: 0; left: 0; z-index: 20;" onmouseover="hideReferenceIcon(),hideSubdiagramIcon(),hideTransitorIcon(),hideLinkPopup(),hideReferencedBys();">
+			<tr>
+				<td>
+<span class="TableContent">Jump to:</span>					<select id="SelectShape" class="TableContent" onChange="scrollWin('diagram', this.value);hideLinkPopup();showSpotLight('diagram', this.value)">
+<option value="">Please select a model element</option>
+<option value="shape|301.0|81.0|80.0|40.0|Class_ExQ2iQWGAqAAZh7u.html|Class_ExQ2iQWGAqAAZh7u.html|ZBgRiQWGAqAAZiNi" id="optionZBgRiQWGAqAAZiNi">User : Class</option>
+<option value="shape|3.0|212.0|200.0|40.0|Class_ozf2iQWGAqAAZh_2.html|Class_ozf2iQWGAqAAZh_2.html|ozf2iQWGAqAAZh_1" id="optionozf2iQWGAqAAZh_1">UserAccountUpdatedEvent : Class</option>
+<option value="shape|2.0|110.0|201.0|40.0|Class_ADP2iQWGAqAAZh_u.html|Class_ADP2iQWGAqAAZh_u.html|ADP2iQWGAqAAZh_t" id="optionADP2iQWGAqAAZh_t">UserActivatedDomainEvent : Class</option>
+<option value="shape|2.0|2.0|201.0|40.0|Class_gKP2iQWGAqAAZh_o.html|Class_gKP2iQWGAqAAZh_o.html|gKP2iQWGAqAAZh_n" id="optiongKP2iQWGAqAAZh_n">UserRegisteredDomainEvent : Class</option>
+</select>				</td>
+			</tr>
+		</table>
+		<table border="0" cellpadding="0" width="100%" cellspacing="0" style="position: relative; top: 24;">
+			<tr>
+				<td>
+					<img id="diagram" src="../images/event_Class_Diagram2.png" usemap="#diagram_map" class="Image" width="385" height="256"/>
+					<map name="diagram_map">
+<area imageId="diagram" coords="203.0, 34.13889, 203.0, 42.0, 192.72728, 42.0, 192.0, 43.0, 300.0, 120.0, 308.0, 109.0, 203.0, 34.13889" coords2="203.0, 34.13889, 203.0, 42.0, 192.72728, 42.0, 192.0, 43.0, 300.0, 120.0, 308.0, 109.0, 203.0, 34.13889" shape="poly" alt=":Dependency" id="areadiagram_map_ynwRiQWGAqAAZiN8_default" href="Dependency_QnwRiQWGAqAAZiN7.html" onmouseover="hideReferenceIcon(),hideSubdiagramIcon(),hideTransitorIcon()" onmousedown="clearSpotLight();"/>
+<area imageId="diagram" coords="194.0, 103.0, 194.0, 110.0, 203.0, 110.0, 203.0, 117.0, 301.0, 117.0, 301.0, 103.0" coords2="194.0, 103.0, 194.0, 110.0, 203.0, 110.0, 203.0, 117.0, 301.0, 117.0, 301.0, 103.0" shape="poly" alt=":Dependency" id="areadiagram_map_RlIRiQWGAqAAZiOA_default" href="Dependency_ilIRiQWGAqAAZiN_.html" onmouseover="hideReferenceIcon(),hideSubdiagramIcon(),hideTransitorIcon()" onmousedown="clearSpotLight();"/>
+<area imageId="diagram" coords="298.0, 98.0, 192.0, 212.0, 203.0, 212.0, 203.0, 220.92453, 308.0, 108.0, 298.0, 98.0" coords2="298.0, 98.0, 192.0, 212.0, 203.0, 212.0, 203.0, 220.92453, 308.0, 108.0, 298.0, 98.0" shape="poly" alt=":Dependency" id="areadiagram_map_GvIRiQWGAqAAZiOE_default" href="Dependency_YvIRiQWGAqAAZiOD.html" onmouseover="hideReferenceIcon(),hideSubdiagramIcon(),hideTransitorIcon()" onmousedown="clearSpotLight();"/>
+<area imageId="diagram" docContent="&amp;lt;head&amp;gt;
+    
+  &amp;lt;/head&amp;gt;
+  &amp;lt;body style=&amp;quot;margin-left:0;color:#000000;font-weight:normal;font-size:12px;font-family:Dialog;margin-right:0;&amp;quot;&amp;gt;
+    &amp;lt;p style=&amp;quot;margin-top:0pt;margin-left:0pt;margin-bottom:.0001pt;margin-right:0pt;&amp;quot;&amp;gt;
+      &amp;#1050;&amp;#1086;&amp;#1088;&amp;#1077;&amp;#1085;&amp;#1100; &amp;#1072;&amp;#1075;&amp;#1088;&amp;#1077;&amp;#1075;&amp;#1072;&amp;#1090;&amp;#1072; &amp;#1072;&amp;#1082;&amp;#1082;&amp;#1072;&amp;#1091;&amp;#1085;&amp;#1090;&amp;#1072; &amp;#1087;&amp;#1086;&amp;#1083;&amp;#1100;&amp;#1079;&amp;#1086;&amp;#1074;&amp;#1072;&amp;#1090;&amp;#1077;&amp;#1083;&amp;#1103;. &amp;#1061;&amp;#1088;&amp;#1072;&amp;#1085;&amp;#1080;&amp;#1090; &amp;#1080;&amp;#1076;&amp;#1077;&amp;#1085;&amp;#1090;&amp;#1080;&amp;#1092;&amp;#1080;&amp;#1082;&amp;#1072;&amp;#1090;&amp;#1086;&amp;#1088;, &amp;#1090;&amp;#1077;&amp;#1082;&amp;#1091;&amp;#1097;&amp;#1080;&amp;#1081; &amp;#1080; 
+      &amp;#1086;&amp;#1078;&amp;#1080;&amp;#1076;&amp;#1072;&amp;#1102;&amp;#1097;&amp;#1080;&amp;#1081; &amp;#1087;&amp;#1086;&amp;#1076;&amp;#1090;&amp;#1074;&amp;#1077;&amp;#1088;&amp;#1078;&amp;#1076;&amp;#1077;&amp;#1085;&amp;#1080;&amp;#1103; email, &amp;#1093;&amp;#1101;&amp;#1096; &amp;#1087;&amp;#1072;&amp;#1088;&amp;#1086;&amp;#1083;&amp;#1103;, &amp;#1080;&amp;#1084;&amp;#1103;, &amp;#1092;&amp;#1072;&amp;#1084;&amp;#1080;&amp;#1083;&amp;#1080;&amp;#1102;, &amp;#1088;&amp;#1086;&amp;#1083;&amp;#1080;, &amp;#1089;&amp;#1090;&amp;#1072;&amp;#1090;&amp;#1091;&amp;#1089; &amp;#1080; 
+      &amp;#1074;&amp;#1088;&amp;#1077;&amp;#1084;&amp;#1077;&amp;#1085;&amp;#1085;&amp;#1099;&amp;#1077; &amp;#1084;&amp;#1077;&amp;#1090;&amp;#1082;&amp;#1080;.
+    &amp;lt;/p&amp;gt;
+    &amp;lt;p style=&amp;quot;margin-top:0pt;margin-left:0pt;margin-bottom:.0001pt;margin-right:0pt;&amp;quot;&amp;gt;
+      &amp;nbsp;
+    &amp;lt;/p&amp;gt;
+    &amp;lt;p style=&amp;quot;margin-top:0pt;margin-left:0pt;margin-bottom:.0001pt;margin-right:0pt;&amp;quot;&amp;gt;
+      User &amp;#1103;&amp;#1074;&amp;#1083;&amp;#1103;&amp;#1077;&amp;#1090;&amp;#1089;&amp;#1103; &amp;#1077;&amp;#1076;&amp;#1080;&amp;#1085;&amp;#1089;&amp;#1090;&amp;#1074;&amp;#1077;&amp;#1085;&amp;#1085;&amp;#1086;&amp;#1081; &amp;#1090;&amp;#1086;&amp;#1095;&amp;#1082;&amp;#1086;&amp;#1081; &amp;#1080;&amp;#1079;&amp;#1084;&amp;#1077;&amp;#1085;&amp;#1077;&amp;#1085;&amp;#1080;&amp;#1103; &amp;#1089;&amp;#1086;&amp;#1089;&amp;#1090;&amp;#1086;&amp;#1103;&amp;#1085;&amp;#1080;&amp;#1103; &amp;#1072;&amp;#1082;&amp;#1082;&amp;#1072;&amp;#1091;&amp;#1085;&amp;#1090;&amp;#1072;. &amp;#1054;&amp;#1085; 
+      &amp;#1087;&amp;#1088;&amp;#1086;&amp;#1074;&amp;#1077;&amp;#1088;&amp;#1103;&amp;#1077;&amp;#1090; &amp;#1085;&amp;#1072;&amp;#1083;&amp;#1080;&amp;#1095;&amp;#1080;&amp;#1077; &amp;#1093;&amp;#1086;&amp;#1090;&amp;#1103; &amp;#1073;&amp;#1099; &amp;#1086;&amp;#1076;&amp;#1085;&amp;#1086;&amp;#1081; &amp;#1088;&amp;#1086;&amp;#1083;&amp;#1080;, &amp;#1079;&amp;#1072;&amp;#1087;&amp;#1088;&amp;#1077;&amp;#1097;&amp;#1072;&amp;#1077;&amp;#1090; &amp;#1085;&amp;#1077;&amp;#1076;&amp;#1086;&amp;#1087;&amp;#1091;&amp;#1089;&amp;#1090;&amp;#1080;&amp;#1084;&amp;#1099;&amp;#1077; &amp;#1087;&amp;#1077;&amp;#1088;&amp;#1077;&amp;#1093;&amp;#1086;&amp;#1076;&amp;#1099; 
+      &amp;#1089;&amp;#1090;&amp;#1072;&amp;#1090;&amp;#1091;&amp;#1089;&amp;#1072;, &amp;#1091;&amp;#1087;&amp;#1088;&amp;#1072;&amp;#1074;&amp;#1083;&amp;#1103;&amp;#1077;&amp;#1090; &amp;#1076;&amp;#1074;&amp;#1091;&amp;#1093;&amp;#1101;&amp;#1090;&amp;#1072;&amp;#1087;&amp;#1085;&amp;#1086;&amp;#1081; &amp;#1089;&amp;#1084;&amp;#1077;&amp;#1085;&amp;#1086;&amp;#1081; email &amp;#1080; &amp;#1085;&amp;#1077; &amp;#1087;&amp;#1086;&amp;#1079;&amp;#1074;&amp;#1086;&amp;#1083;&amp;#1103;&amp;#1077;&amp;#1090; 
+      &amp;#1072;&amp;#1091;&amp;#1090;&amp;#1077;&amp;#1085;&amp;#1090;&amp;#1080;&amp;#1092;&amp;#1080;&amp;#1082;&amp;#1072;&amp;#1094;&amp;#1080;&amp;#1102; &amp;#1076;&amp;#1086; &amp;#1087;&amp;#1086;&amp;#1076;&amp;#1090;&amp;#1074;&amp;#1077;&amp;#1088;&amp;#1078;&amp;#1076;&amp;#1077;&amp;#1085;&amp;#1080;&amp;#1103; &amp;#1072;&amp;#1076;&amp;#1088;&amp;#1077;&amp;#1089;&amp;#1072;.
+    &amp;lt;/p&amp;gt;
+    &amp;lt;p style=&amp;quot;margin-top:0pt;margin-left:0pt;margin-bottom:.0001pt;margin-right:0pt;&amp;quot;&amp;gt;
+      &amp;nbsp;
+    &amp;lt;/p&amp;gt;
+    &amp;lt;p style=&amp;quot;margin-top:0pt;margin-left:0pt;margin-bottom:.0001pt;margin-right:0pt;&amp;quot;&amp;gt;
+      &amp;#1050;&amp;#1083;&amp;#1072;&amp;#1089;&amp;#1089; &amp;#1085;&amp;#1077; &amp;#1093;&amp;#1088;&amp;#1072;&amp;#1085;&amp;#1080;&amp;#1090; &amp;#1086;&amp;#1090;&amp;#1082;&amp;#1088;&amp;#1099;&amp;#1090;&amp;#1099;&amp;#1081; &amp;#1087;&amp;#1072;&amp;#1088;&amp;#1086;&amp;#1083;&amp;#1100;, JWT, refresh token &amp;#1080;&amp;#1083;&amp;#1080; &amp;#1090;&amp;#1077;&amp;#1093;&amp;#1085;&amp;#1080;&amp;#1095;&amp;#1077;&amp;#1089;&amp;#1082;&amp;#1080;&amp;#1077; 
+      &amp;#1076;&amp;#1072;&amp;#1085;&amp;#1085;&amp;#1099;&amp;#1077; persistence. &amp;#1059;&amp;#1085;&amp;#1080;&amp;#1082;&amp;#1072;&amp;#1083;&amp;#1100;&amp;#1085;&amp;#1086;&amp;#1089;&amp;#1090;&amp;#1100; email &amp;#1087;&amp;#1088;&amp;#1086;&amp;#1074;&amp;#1077;&amp;#1088;&amp;#1103;&amp;#1077;&amp;#1090;&amp;#1089;&amp;#1103; application-&amp;#1089;&amp;#1077;&amp;#1088;&amp;#1074;&amp;#1080;&amp;#1089;&amp;#1086;&amp;#1084; 
+      &amp;#1095;&amp;#1077;&amp;#1088;&amp;#1077;&amp;#1079; UserRepository.
+    &amp;lt;/p&amp;gt;
+  &amp;lt;/body&amp;gt;" coords="301, 81, 381, 121" coords2="301, 81, 381, 121" shape="rect" alt="User:Class" id="areadiagram_map_ZBgRiQWGAqAAZiNi_default" href="Class_ExQ2iQWGAqAAZh7u.html" onmouseover="hideReferenceIcon(),hideSubdiagramIcon(),hideTransitorIcon(),showTooltip(this)" onmousedown="clearSpotLight();" onmouseout="hideTooltip()"/>
+<area imageId="diagram" docContent="&amp;lt;head&amp;gt;
+    
+  &amp;lt;/head&amp;gt;
+  &amp;lt;body style=&amp;quot;margin-left:0;color:#000000;font-weight:normal;font-size:12px;font-family:Dialog;margin-right:0;&amp;quot;&amp;gt;
+    &amp;lt;p style=&amp;quot;margin-top:0pt;margin-left:0pt;margin-bottom:.0001pt;margin-right:0pt;&amp;quot;&amp;gt;
+      &amp;#1060;&amp;#1080;&amp;#1082;&amp;#1089;&amp;#1080;&amp;#1088;&amp;#1091;&amp;#1077;&amp;#1090; &amp;#1092;&amp;#1072;&amp;#1082;&amp;#1090; &amp;#1091;&amp;#1089;&amp;#1087;&amp;#1077;&amp;#1096;&amp;#1085;&amp;#1086;&amp;#1075;&amp;#1086; &amp;#1080;&amp;#1079;&amp;#1084;&amp;#1077;&amp;#1085;&amp;#1077;&amp;#1085;&amp;#1080;&amp;#1103; &amp;#1076;&amp;#1072;&amp;#1085;&amp;#1085;&amp;#1099;&amp;#1093; &amp;#1072;&amp;#1082;&amp;#1082;&amp;#1072;&amp;#1091;&amp;#1085;&amp;#1090;&amp;#1072; &amp;#1087;&amp;#1086;&amp;#1083;&amp;#1100;&amp;#1079;&amp;#1086;&amp;#1074;&amp;#1072;&amp;#1090;&amp;#1077;&amp;#1083;&amp;#1103;. &amp;#1052;&amp;#1086;&amp;#1078;&amp;#1077;&amp;#1090; 
+      &amp;#1074;&amp;#1086;&amp;#1079;&amp;#1085;&amp;#1080;&amp;#1082;&amp;#1072;&amp;#1090;&amp;#1100; &amp;#1087;&amp;#1086;&amp;#1089;&amp;#1083;&amp;#1077; &amp;#1080;&amp;#1079;&amp;#1084;&amp;#1077;&amp;#1085;&amp;#1077;&amp;#1085;&amp;#1080;&amp;#1103; &amp;#1080;&amp;#1084;&amp;#1077;&amp;#1085;&amp;#1080;, &amp;#1092;&amp;#1072;&amp;#1084;&amp;#1080;&amp;#1083;&amp;#1080;&amp;#1080; &amp;#1080;&amp;#1083;&amp;#1080; &amp;#1079;&amp;#1072;&amp;#1074;&amp;#1077;&amp;#1088;&amp;#1096;&amp;#1105;&amp;#1085;&amp;#1085;&amp;#1086;&amp;#1081; &amp;#1089;&amp;#1084;&amp;#1077;&amp;#1085;&amp;#1099; 
+      &amp;#1087;&amp;#1086;&amp;#1076;&amp;#1090;&amp;#1074;&amp;#1077;&amp;#1088;&amp;#1078;&amp;#1076;&amp;#1105;&amp;#1085;&amp;#1085;&amp;#1086;&amp;#1075;&amp;#1086; email.
+    &amp;lt;/p&amp;gt;
+    &amp;lt;p style=&amp;quot;margin-top:0pt;margin-left:0pt;margin-bottom:.0001pt;margin-right:0pt;&amp;quot;&amp;gt;
+      &amp;nbsp;
+    &amp;lt;/p&amp;gt;
+    &amp;lt;p style=&amp;quot;margin-top:0pt;margin-left:0pt;margin-bottom:.0001pt;margin-right:0pt;&amp;quot;&amp;gt;
+      &amp;#1057;&amp;#1086;&amp;#1073;&amp;#1099;&amp;#1090;&amp;#1080;&amp;#1077; &amp;#1085;&amp;#1077; &amp;#1089;&amp;#1086;&amp;#1076;&amp;#1077;&amp;#1088;&amp;#1078;&amp;#1080;&amp;#1090; &amp;#1087;&amp;#1072;&amp;#1088;&amp;#1086;&amp;#1083;&amp;#1100;, passwordHash, pendingEmail &amp;#1080;&amp;#1083;&amp;#1080; &amp;#1076;&amp;#1072;&amp;#1085;&amp;#1085;&amp;#1099;&amp;#1077; 
+      &amp;#1090;&amp;#1086;&amp;#1082;&amp;#1077;&amp;#1085;&amp;#1086;&amp;#1074;. Application-&amp;#1089;&amp;#1083;&amp;#1086;&amp;#1081; &amp;#1087;&amp;#1086;&amp;#1083;&amp;#1091;&amp;#1095;&amp;#1072;&amp;#1077;&amp;#1090; &amp;#1085;&amp;#1077;&amp;#1086;&amp;#1073;&amp;#1093;&amp;#1086;&amp;#1076;&amp;#1080;&amp;#1084;&amp;#1099;&amp;#1081; &amp;#1073;&amp;#1077;&amp;#1079;&amp;#1086;&amp;#1087;&amp;#1072;&amp;#1089;&amp;#1085;&amp;#1099;&amp;#1081; &amp;#1089;&amp;#1085;&amp;#1080;&amp;#1084;&amp;#1086;&amp;#1082; User &amp;#1080; 
+      &amp;#1087;&amp;#1088;&amp;#1077;&amp;#1086;&amp;#1073;&amp;#1088;&amp;#1072;&amp;#1079;&amp;#1091;&amp;#1077;&amp;#1090; &amp;#1089;&amp;#1086;&amp;#1073;&amp;#1099;&amp;#1090;&amp;#1080;&amp;#1077; &amp;#1074; &amp;#1087;&amp;#1091;&amp;#1073;&amp;#1083;&amp;#1080;&amp;#1095;&amp;#1085;&amp;#1099;&amp;#1081; UserAccountUpdatedEvent.
+    &amp;lt;/p&amp;gt;
+  &amp;lt;/body&amp;gt;" coords="3, 212, 203, 252" coords2="3, 212, 203, 252" shape="rect" alt="UserAccountUpdatedEvent:Class" id="areadiagram_map_ozf2iQWGAqAAZh_1_default" href="Class_ozf2iQWGAqAAZh_2.html" onmouseover="hideReferenceIcon(),hideSubdiagramIcon(),hideTransitorIcon(),showTooltip(this)" onmousedown="clearSpotLight();" onmouseout="hideTooltip()"/>
+<area imageId="diagram" docContent="&amp;lt;head&amp;gt;
+    
+  &amp;lt;/head&amp;gt;
+  &amp;lt;body style=&amp;quot;margin-left:0;color:#000000;font-weight:normal;font-size:12px;font-family:Dialog;margin-right:0;&amp;quot;&amp;gt;
+    &amp;lt;p style=&amp;quot;margin-top:0pt;margin-left:0pt;margin-bottom:.0001pt;margin-right:0pt;&amp;quot;&amp;gt;
+      &amp;#1060;&amp;#1080;&amp;#1082;&amp;#1089;&amp;#1080;&amp;#1088;&amp;#1091;&amp;#1077;&amp;#1090; &amp;#1092;&amp;#1072;&amp;#1082;&amp;#1090; &amp;#1072;&amp;#1082;&amp;#1090;&amp;#1080;&amp;#1074;&amp;#1072;&amp;#1094;&amp;#1080;&amp;#1080; &amp;#1072;&amp;#1082;&amp;#1082;&amp;#1072;&amp;#1091;&amp;#1085;&amp;#1090;&amp;#1072; &amp;#1087;&amp;#1086;&amp;#1089;&amp;#1083;&amp;#1077; &amp;#1091;&amp;#1089;&amp;#1087;&amp;#1077;&amp;#1096;&amp;#1085;&amp;#1086;&amp;#1075;&amp;#1086; &amp;#1087;&amp;#1086;&amp;#1076;&amp;#1090;&amp;#1074;&amp;#1077;&amp;#1088;&amp;#1078;&amp;#1076;&amp;#1077;&amp;#1085;&amp;#1080;&amp;#1103; 
+      &amp;#1087;&amp;#1077;&amp;#1088;&amp;#1074;&amp;#1086;&amp;#1085;&amp;#1072;&amp;#1095;&amp;#1072;&amp;#1083;&amp;#1100;&amp;#1085;&amp;#1086;&amp;#1075;&amp;#1086; email. &amp;#1057;&amp;#1086;&amp;#1073;&amp;#1099;&amp;#1090;&amp;#1080;&amp;#1077; &amp;#1089;&amp;#1086;&amp;#1079;&amp;#1076;&amp;#1072;&amp;#1105;&amp;#1090;&amp;#1089;&amp;#1103; &amp;#1090;&amp;#1086;&amp;#1083;&amp;#1100;&amp;#1082;&amp;#1086; &amp;#1087;&amp;#1086;&amp;#1089;&amp;#1083;&amp;#1077; &amp;#1076;&amp;#1086;&amp;#1087;&amp;#1091;&amp;#1089;&amp;#1090;&amp;#1080;&amp;#1084;&amp;#1086;&amp;#1075;&amp;#1086; 
+      &amp;#1087;&amp;#1077;&amp;#1088;&amp;#1077;&amp;#1093;&amp;#1086;&amp;#1076;&amp;#1072; &amp;#1087;&amp;#1086;&amp;#1083;&amp;#1100;&amp;#1079;&amp;#1086;&amp;#1074;&amp;#1072;&amp;#1090;&amp;#1077;&amp;#1083;&amp;#1103; &amp;#1080;&amp;#1079; &amp;#1089;&amp;#1086;&amp;#1089;&amp;#1090;&amp;#1086;&amp;#1103;&amp;#1085;&amp;#1080;&amp;#1103; PENDING_EMAIL_VERIFICATION &amp;#1074; ACTIVE.
+    &amp;lt;/p&amp;gt;
+    &amp;lt;p style=&amp;quot;margin-top:0pt;margin-left:0pt;margin-bottom:.0001pt;margin-right:0pt;&amp;quot;&amp;gt;
+      &amp;nbsp;
+    &amp;lt;/p&amp;gt;
+    &amp;lt;p style=&amp;quot;margin-top:0pt;margin-left:0pt;margin-bottom:.0001pt;margin-right:0pt;&amp;quot;&amp;gt;
+      Application-&amp;#1089;&amp;#1083;&amp;#1086;&amp;#1081; &amp;#1084;&amp;#1086;&amp;#1078;&amp;#1077;&amp;#1090; &amp;#1087;&amp;#1088;&amp;#1077;&amp;#1086;&amp;#1073;&amp;#1088;&amp;#1072;&amp;#1079;&amp;#1086;&amp;#1074;&amp;#1072;&amp;#1090;&amp;#1100; &amp;#1089;&amp;#1086;&amp;#1073;&amp;#1099;&amp;#1090;&amp;#1080;&amp;#1077; &amp;#1074; &amp;#1087;&amp;#1091;&amp;#1073;&amp;#1083;&amp;#1080;&amp;#1095;&amp;#1085;&amp;#1099;&amp;#1081; 
+      UserActivatedEvent.
+    &amp;lt;/p&amp;gt;
+  &amp;lt;/body&amp;gt;" coords="2, 110, 203, 150" coords2="2, 110, 203, 150" shape="rect" alt="UserActivatedDomainEvent:Class" id="areadiagram_map_ADP2iQWGAqAAZh_t_default" href="Class_ADP2iQWGAqAAZh_u.html" onmouseover="hideReferenceIcon(),hideSubdiagramIcon(),hideTransitorIcon(),showTooltip(this)" onmousedown="clearSpotLight();" onmouseout="hideTooltip()"/>
+<area imageId="diagram" docContent="&amp;lt;head&amp;gt;
+    
+  &amp;lt;/head&amp;gt;
+  &amp;lt;body style=&amp;quot;margin-left:0;color:#000000;font-weight:normal;font-size:12px;font-family:Dialog;margin-right:0;&amp;quot;&amp;gt;
+    &amp;lt;p style=&amp;quot;margin-top:0pt;margin-left:0pt;margin-bottom:.0001pt;margin-right:0pt;&amp;quot;&amp;gt;
+      &amp;#1060;&amp;#1080;&amp;#1082;&amp;#1089;&amp;#1080;&amp;#1088;&amp;#1091;&amp;#1077;&amp;#1090; &amp;#1092;&amp;#1072;&amp;#1082;&amp;#1090; &amp;#1091;&amp;#1089;&amp;#1087;&amp;#1077;&amp;#1096;&amp;#1085;&amp;#1086;&amp;#1075;&amp;#1086; &amp;#1089;&amp;#1086;&amp;#1079;&amp;#1076;&amp;#1072;&amp;#1085;&amp;#1080;&amp;#1103; &amp;#1072;&amp;#1075;&amp;#1088;&amp;#1077;&amp;#1075;&amp;#1072;&amp;#1090;&amp;#1072; User. &amp;#1042; &amp;#1084;&amp;#1086;&amp;#1084;&amp;#1077;&amp;#1085;&amp;#1090; &amp;#1074;&amp;#1086;&amp;#1079;&amp;#1085;&amp;#1080;&amp;#1082;&amp;#1085;&amp;#1086;&amp;#1074;&amp;#1077;&amp;#1085;&amp;#1080;&amp;#1103; 
+      &amp;#1087;&amp;#1086;&amp;#1083;&amp;#1100;&amp;#1079;&amp;#1086;&amp;#1074;&amp;#1072;&amp;#1090;&amp;#1077;&amp;#1083;&amp;#1100; &amp;#1080;&amp;#1084;&amp;#1077;&amp;#1077;&amp;#1090; &amp;#1089;&amp;#1090;&amp;#1072;&amp;#1090;&amp;#1091;&amp;#1089; PENDING_EMAIL_VERIFICATION &amp;#1080; &amp;#1077;&amp;#1097;&amp;#1105; &amp;#1085;&amp;#1077; &amp;#1084;&amp;#1086;&amp;#1078;&amp;#1077;&amp;#1090; 
+      &amp;#1074;&amp;#1099;&amp;#1087;&amp;#1086;&amp;#1083;&amp;#1085;&amp;#1103;&amp;#1090;&amp;#1100; &amp;#1074;&amp;#1093;&amp;#1086;&amp;#1076;.
+    &amp;lt;/p&amp;gt;
+    &amp;lt;p style=&amp;quot;margin-top:0pt;margin-left:0pt;margin-bottom:.0001pt;margin-right:0pt;&amp;quot;&amp;gt;
+      &amp;nbsp;
+    &amp;lt;/p&amp;gt;
+    &amp;lt;p style=&amp;quot;margin-top:0pt;margin-left:0pt;margin-bottom:.0001pt;margin-right:0pt;&amp;quot;&amp;gt;
+      &amp;#1057;&amp;#1086;&amp;#1073;&amp;#1099;&amp;#1090;&amp;#1080;&amp;#1077; &amp;#1103;&amp;#1074;&amp;#1083;&amp;#1103;&amp;#1077;&amp;#1090;&amp;#1089;&amp;#1103; &amp;#1074;&amp;#1085;&amp;#1091;&amp;#1090;&amp;#1088;&amp;#1077;&amp;#1085;&amp;#1085;&amp;#1080;&amp;#1084; &amp;#1076;&amp;#1083;&amp;#1103; &amp;#1076;&amp;#1086;&amp;#1084;&amp;#1077;&amp;#1085;&amp;#1072;. Application-&amp;#1089;&amp;#1083;&amp;#1086;&amp;#1081; &amp;#1084;&amp;#1086;&amp;#1078;&amp;#1077;&amp;#1090; 
+      &amp;#1087;&amp;#1088;&amp;#1077;&amp;#1086;&amp;#1073;&amp;#1088;&amp;#1072;&amp;#1079;&amp;#1086;&amp;#1074;&amp;#1072;&amp;#1090;&amp;#1100; &amp;#1077;&amp;#1075;&amp;#1086; &amp;#1074; &amp;#1087;&amp;#1091;&amp;#1073;&amp;#1083;&amp;#1080;&amp;#1095;&amp;#1085;&amp;#1099;&amp;#1081; UserRegisteredEvent &amp;#1080; &amp;#1080;&amp;#1089;&amp;#1087;&amp;#1086;&amp;#1083;&amp;#1100;&amp;#1079;&amp;#1086;&amp;#1074;&amp;#1072;&amp;#1090;&amp;#1100; &amp;#1076;&amp;#1083;&amp;#1103; 
+      &amp;#1079;&amp;#1072;&amp;#1087;&amp;#1091;&amp;#1089;&amp;#1082;&amp;#1072; &amp;#1088;&amp;#1072;&amp;#1079;&amp;#1088;&amp;#1077;&amp;#1096;&amp;#1105;&amp;#1085;&amp;#1085;&amp;#1099;&amp;#1093; &amp;#1084;&amp;#1077;&amp;#1078;&amp;#1084;&amp;#1086;&amp;#1076;&amp;#1091;&amp;#1083;&amp;#1100;&amp;#1085;&amp;#1099;&amp;#1093; &amp;#1089;&amp;#1094;&amp;#1077;&amp;#1085;&amp;#1072;&amp;#1088;&amp;#1080;&amp;#1077;&amp;#1074;.
+    &amp;lt;/p&amp;gt;
+  &amp;lt;/body&amp;gt;" coords="2, 2, 203, 42" coords2="2, 2, 203, 42" shape="rect" alt="UserRegisteredDomainEvent:Class" id="areadiagram_map_gKP2iQWGAqAAZh_n_default" href="Class_gKP2iQWGAqAAZh_o.html" onmouseover="hideReferenceIcon(),hideSubdiagramIcon(),hideTransitorIcon(),showTooltip(this)" onmousedown="clearSpotLight();" onmouseout="hideTooltip()"/>
+</map>
+				</td>
+			</tr>
+		</table>
+		<p>
+		</p>
+	</div>
+	<table border="0" cellpadding="0" width="100%" cellspacing="0">
+		<tr>
+			<td class="Category">
+				Model Elements			</td>
+		</tr>
+		<tr>
+			<td style="height: 5px">
+			</td>
+		</tr>
+	</table>
+	<table border="0" cellpadding="0" width="100%" cellspacing="0">
+		<tr>
+			<td colSpan="4" class="TableHeaderLine">
+			</td>
+		</tr>
+		<tr>
+			<td colSpan="4" class="TableHeaderLine1">
+			</td>
+		</tr>
+		<tr class="TableHeader">
+			<td class="TableCellSpaceHolder10Px">
+			</td>
+			<td width="30%">
+<span class="TableHeaderText">Name</span>			</td>
+			<td class="TableCellSpaceHolder20Px">
+			</td>
+			<td>
+<span class="TableHeaderText">Description</span>			</td>
+		</tr>
+		<tr>
+			<td colSpan="4" class="TableHeaderLine2">
+			</td>
+		</tr>
+		<tr class="TableRow1">
+			<td>
+			</td>
+			<td>
+				<span class="TableContent">
+					<div style="float: left; width: 18px !important;height: 18px !important;background-image:url(../images/icons/Class.png) !important; background-image:url(''); filter:progid:DXImageTransform.Microsoft.AlphaImageLoader(src='../images/icons/Class.png'); background-repeat: no-repeat; background-size: contain;">
+					</div>
+					&nbsp; <a href="Class_ExQ2iQWGAqAAZh7u.html" class="ItemLink">User : Class</a>				</span>
+			</td>
+			<td>
+			</td>
+			<td style="padding: 5px 0">
+<span class="TableContent Documentation"><head>
+    
+  </head>
+  <body style="margin-left:0;color:#000000;font-weight:normal;font-size:12px;font-family:Dialog;margin-right:0;">
+    <p style="margin-top:0pt;margin-left:0pt;margin-bottom:.0001pt;margin-right:0pt;">
+      &#1050;&#1086;&#1088;&#1077;&#1085;&#1100; &#1072;&#1075;&#1088;&#1077;&#1075;&#1072;&#1090;&#1072; &#1072;&#1082;&#1082;&#1072;&#1091;&#1085;&#1090;&#1072; &#1087;&#1086;&#1083;&#1100;&#1079;&#1086;&#1074;&#1072;&#1090;&#1077;&#1083;&#1103;. &#1061;&#1088;&#1072;&#1085;&#1080;&#1090; &#1080;&#1076;&#1077;&#1085;&#1090;&#1080;&#1092;&#1080;&#1082;&#1072;&#1090;&#1086;&#1088;, &#1090;&#1077;&#1082;&#1091;&#1097;&#1080;&#1081; &#1080; 
+      &#1086;&#1078;&#1080;&#1076;&#1072;&#1102;&#1097;&#1080;&#1081; &#1087;&#1086;&#1076;&#1090;&#1074;&#1077;&#1088;&#1078;&#1076;&#1077;&#1085;&#1080;&#1103; email, &#1093;&#1101;&#1096; &#1087;&#1072;&#1088;&#1086;&#1083;&#1103;, &#1080;&#1084;&#1103;, &#1092;&#1072;&#1084;&#1080;&#1083;&#1080;&#1102;, &#1088;&#1086;&#1083;&#1080;, &#1089;&#1090;&#1072;&#1090;&#1091;&#1089; &#1080; 
+      &#1074;&#1088;&#1077;&#1084;&#1077;&#1085;&#1085;&#1099;&#1077; &#1084;&#1077;&#1090;&#1082;&#1080;.
+    </p>
+    <p style="margin-top:0pt;margin-left:0pt;margin-bottom:.0001pt;margin-right:0pt;">
+      &nbsp;
+    </p>
+    <p style="margin-top:0pt;margin-left:0pt;margin-bottom:.0001pt;margin-right:0pt;">
+      User &#1103;&#1074;&#1083;&#1103;&#1077;&#1090;&#1089;&#1103; &#1077;&#1076;&#1080;&#1085;&#1089;&#1090;&#1074;&#1077;&#1085;&#1085;&#1086;&#1081; &#1090;&#1086;&#1095;&#1082;&#1086;&#1081; &#1080;&#1079;&#1084;&#1077;&#1085;&#1077;&#1085;&#1080;&#1103; &#1089;&#1086;&#1089;&#1090;&#1086;&#1103;&#1085;&#1080;&#1103; &#1072;&#1082;&#1082;&#1072;&#1091;&#1085;&#1090;&#1072;. &#1054;&#1085; 
+      &#1087;&#1088;&#1086;&#1074;&#1077;&#1088;&#1103;&#1077;&#1090; &#1085;&#1072;&#1083;&#1080;&#1095;&#1080;&#1077; &#1093;&#1086;&#1090;&#1103; &#1073;&#1099; &#1086;&#1076;&#1085;&#1086;&#1081; &#1088;&#1086;&#1083;&#1080;, &#1079;&#1072;&#1087;&#1088;&#1077;&#1097;&#1072;&#1077;&#1090; &#1085;&#1077;&#1076;&#1086;&#1087;&#1091;&#1089;&#1090;&#1080;&#1084;&#1099;&#1077; &#1087;&#1077;&#1088;&#1077;&#1093;&#1086;&#1076;&#1099; 
+      &#1089;&#1090;&#1072;&#1090;&#1091;&#1089;&#1072;, &#1091;&#1087;&#1088;&#1072;&#1074;&#1083;&#1103;&#1077;&#1090; &#1076;&#1074;&#1091;&#1093;&#1101;&#1090;&#1072;&#1087;&#1085;&#1086;&#1081; &#1089;&#1084;&#1077;&#1085;&#1086;&#1081; email &#1080; &#1085;&#1077; &#1087;&#1086;&#1079;&#1074;&#1086;&#1083;&#1103;&#1077;&#1090; 
+      &#1072;&#1091;&#1090;&#1077;&#1085;&#1090;&#1080;&#1092;&#1080;&#1082;&#1072;&#1094;&#1080;&#1102; &#1076;&#1086; &#1087;&#1086;&#1076;&#1090;&#1074;&#1077;&#1088;&#1078;&#1076;&#1077;&#1085;&#1080;&#1103; &#1072;&#1076;&#1088;&#1077;&#1089;&#1072;.
+    </p>
+    <p style="margin-top:0pt;margin-left:0pt;margin-bottom:.0001pt;margin-right:0pt;">
+      &nbsp;
+    </p>
+    <p style="margin-top:0pt;margin-left:0pt;margin-bottom:.0001pt;margin-right:0pt;">
+      &#1050;&#1083;&#1072;&#1089;&#1089; &#1085;&#1077; &#1093;&#1088;&#1072;&#1085;&#1080;&#1090; &#1086;&#1090;&#1082;&#1088;&#1099;&#1090;&#1099;&#1081; &#1087;&#1072;&#1088;&#1086;&#1083;&#1100;, JWT, refresh token &#1080;&#1083;&#1080; &#1090;&#1077;&#1093;&#1085;&#1080;&#1095;&#1077;&#1089;&#1082;&#1080;&#1077; 
+      &#1076;&#1072;&#1085;&#1085;&#1099;&#1077; persistence. &#1059;&#1085;&#1080;&#1082;&#1072;&#1083;&#1100;&#1085;&#1086;&#1089;&#1090;&#1100; email &#1087;&#1088;&#1086;&#1074;&#1077;&#1088;&#1103;&#1077;&#1090;&#1089;&#1103; application-&#1089;&#1077;&#1088;&#1074;&#1080;&#1089;&#1086;&#1084; 
+      &#1095;&#1077;&#1088;&#1077;&#1079; UserRepository.
+    </p>
+  </body></span>			</td>
+		</tr>
+		<tr class="TableRow2">
+			<td>
+			</td>
+			<td>
+				<span class="TableContent">
+					<div style="float: left; width: 18px !important;height: 18px !important;background-image:url(../images/icons/Class.png) !important; background-image:url(''); filter:progid:DXImageTransform.Microsoft.AlphaImageLoader(src='../images/icons/Class.png'); background-repeat: no-repeat; background-size: contain;">
+					</div>
+					&nbsp; <a href="Class_ozf2iQWGAqAAZh_2.html" class="ItemLink">UserAccountUpdatedEvent : Class</a>				</span>
+			</td>
+			<td>
+			</td>
+			<td style="padding: 5px 0">
+<span class="TableContent Documentation"><head>
+    
+  </head>
+  <body style="margin-left:0;color:#000000;font-weight:normal;font-size:12px;font-family:Dialog;margin-right:0;">
+    <p style="margin-top:0pt;margin-left:0pt;margin-bottom:.0001pt;margin-right:0pt;">
+      &#1060;&#1080;&#1082;&#1089;&#1080;&#1088;&#1091;&#1077;&#1090; &#1092;&#1072;&#1082;&#1090; &#1091;&#1089;&#1087;&#1077;&#1096;&#1085;&#1086;&#1075;&#1086; &#1080;&#1079;&#1084;&#1077;&#1085;&#1077;&#1085;&#1080;&#1103; &#1076;&#1072;&#1085;&#1085;&#1099;&#1093; &#1072;&#1082;&#1082;&#1072;&#1091;&#1085;&#1090;&#1072; &#1087;&#1086;&#1083;&#1100;&#1079;&#1086;&#1074;&#1072;&#1090;&#1077;&#1083;&#1103;. &#1052;&#1086;&#1078;&#1077;&#1090; 
+      &#1074;&#1086;&#1079;&#1085;&#1080;&#1082;&#1072;&#1090;&#1100; &#1087;&#1086;&#1089;&#1083;&#1077; &#1080;&#1079;&#1084;&#1077;&#1085;&#1077;&#1085;&#1080;&#1103; &#1080;&#1084;&#1077;&#1085;&#1080;, &#1092;&#1072;&#1084;&#1080;&#1083;&#1080;&#1080; &#1080;&#1083;&#1080; &#1079;&#1072;&#1074;&#1077;&#1088;&#1096;&#1105;&#1085;&#1085;&#1086;&#1081; &#1089;&#1084;&#1077;&#1085;&#1099; 
+      &#1087;&#1086;&#1076;&#1090;&#1074;&#1077;&#1088;&#1078;&#1076;&#1105;&#1085;&#1085;&#1086;&#1075;&#1086; email.
+    </p>
+    <p style="margin-top:0pt;margin-left:0pt;margin-bottom:.0001pt;margin-right:0pt;">
+      &nbsp;
+    </p>
+    <p style="margin-top:0pt;margin-left:0pt;margin-bottom:.0001pt;margin-right:0pt;">
+      &#1057;&#1086;&#1073;&#1099;&#1090;&#1080;&#1077; &#1085;&#1077; &#1089;&#1086;&#1076;&#1077;&#1088;&#1078;&#1080;&#1090; &#1087;&#1072;&#1088;&#1086;&#1083;&#1100;, passwordHash, pendingEmail &#1080;&#1083;&#1080; &#1076;&#1072;&#1085;&#1085;&#1099;&#1077; 
+      &#1090;&#1086;&#1082;&#1077;&#1085;&#1086;&#1074;. Application-&#1089;&#1083;&#1086;&#1081; &#1087;&#1086;&#1083;&#1091;&#1095;&#1072;&#1077;&#1090; &#1085;&#1077;&#1086;&#1073;&#1093;&#1086;&#1076;&#1080;&#1084;&#1099;&#1081; &#1073;&#1077;&#1079;&#1086;&#1087;&#1072;&#1089;&#1085;&#1099;&#1081; &#1089;&#1085;&#1080;&#1084;&#1086;&#1082; User &#1080; 
+      &#1087;&#1088;&#1077;&#1086;&#1073;&#1088;&#1072;&#1079;&#1091;&#1077;&#1090; &#1089;&#1086;&#1073;&#1099;&#1090;&#1080;&#1077; &#1074; &#1087;&#1091;&#1073;&#1083;&#1080;&#1095;&#1085;&#1099;&#1081; UserAccountUpdatedEvent.
+    </p>
+  </body></span>			</td>
+		</tr>
+		<tr class="TableRow1">
+			<td>
+			</td>
+			<td>
+				<span class="TableContent">
+					<div style="float: left; width: 18px !important;height: 18px !important;background-image:url(../images/icons/Class.png) !important; background-image:url(''); filter:progid:DXImageTransform.Microsoft.AlphaImageLoader(src='../images/icons/Class.png'); background-repeat: no-repeat; background-size: contain;">
+					</div>
+					&nbsp; <a href="Class_ADP2iQWGAqAAZh_u.html" class="ItemLink">UserActivatedDomainEvent : Class</a>				</span>
+			</td>
+			<td>
+			</td>
+			<td style="padding: 5px 0">
+<span class="TableContent Documentation"><head>
+    
+  </head>
+  <body style="margin-left:0;color:#000000;font-weight:normal;font-size:12px;font-family:Dialog;margin-right:0;">
+    <p style="margin-top:0pt;margin-left:0pt;margin-bottom:.0001pt;margin-right:0pt;">
+      &#1060;&#1080;&#1082;&#1089;&#1080;&#1088;&#1091;&#1077;&#1090; &#1092;&#1072;&#1082;&#1090; &#1072;&#1082;&#1090;&#1080;&#1074;&#1072;&#1094;&#1080;&#1080; &#1072;&#1082;&#1082;&#1072;&#1091;&#1085;&#1090;&#1072; &#1087;&#1086;&#1089;&#1083;&#1077; &#1091;&#1089;&#1087;&#1077;&#1096;&#1085;&#1086;&#1075;&#1086; &#1087;&#1086;&#1076;&#1090;&#1074;&#1077;&#1088;&#1078;&#1076;&#1077;&#1085;&#1080;&#1103; 
+      &#1087;&#1077;&#1088;&#1074;&#1086;&#1085;&#1072;&#1095;&#1072;&#1083;&#1100;&#1085;&#1086;&#1075;&#1086; email. &#1057;&#1086;&#1073;&#1099;&#1090;&#1080;&#1077; &#1089;&#1086;&#1079;&#1076;&#1072;&#1105;&#1090;&#1089;&#1103; &#1090;&#1086;&#1083;&#1100;&#1082;&#1086; &#1087;&#1086;&#1089;&#1083;&#1077; &#1076;&#1086;&#1087;&#1091;&#1089;&#1090;&#1080;&#1084;&#1086;&#1075;&#1086; 
+      &#1087;&#1077;&#1088;&#1077;&#1093;&#1086;&#1076;&#1072; &#1087;&#1086;&#1083;&#1100;&#1079;&#1086;&#1074;&#1072;&#1090;&#1077;&#1083;&#1103; &#1080;&#1079; &#1089;&#1086;&#1089;&#1090;&#1086;&#1103;&#1085;&#1080;&#1103; PENDING_EMAIL_VERIFICATION &#1074; ACTIVE.
+    </p>
+    <p style="margin-top:0pt;margin-left:0pt;margin-bottom:.0001pt;margin-right:0pt;">
+      &nbsp;
+    </p>
+    <p style="margin-top:0pt;margin-left:0pt;margin-bottom:.0001pt;margin-right:0pt;">
+      Application-&#1089;&#1083;&#1086;&#1081; &#1084;&#1086;&#1078;&#1077;&#1090; &#1087;&#1088;&#1077;&#1086;&#1073;&#1088;&#1072;&#1079;&#1086;&#1074;&#1072;&#1090;&#1100; &#1089;&#1086;&#1073;&#1099;&#1090;&#1080;&#1077; &#1074; &#1087;&#1091;&#1073;&#1083;&#1080;&#1095;&#1085;&#1099;&#1081; 
+      UserActivatedEvent.
+    </p>
+  </body></span>			</td>
+		</tr>
+		<tr class="TableRow2">
+			<td>
+			</td>
+			<td>
+				<span class="TableContent">
+					<div style="float: left; width: 18px !important;height: 18px !important;background-image:url(../images/icons/Class.png) !important; background-image:url(''); filter:progid:DXImageTransform.Microsoft.AlphaImageLoader(src='../images/icons/Class.png'); background-repeat: no-repeat; background-size: contain;">
+					</div>
+					&nbsp; <a href="Class_gKP2iQWGAqAAZh_o.html" class="ItemLink">UserRegisteredDomainEvent : Class</a>				</span>
+			</td>
+			<td>
+			</td>
+			<td style="padding: 5px 0">
+<span class="TableContent Documentation"><head>
+    
+  </head>
+  <body style="margin-left:0;color:#000000;font-weight:normal;font-size:12px;font-family:Dialog;margin-right:0;">
+    <p style="margin-top:0pt;margin-left:0pt;margin-bottom:.0001pt;margin-right:0pt;">
+      &#1060;&#1080;&#1082;&#1089;&#1080;&#1088;&#1091;&#1077;&#1090; &#1092;&#1072;&#1082;&#1090; &#1091;&#1089;&#1087;&#1077;&#1096;&#1085;&#1086;&#1075;&#1086; &#1089;&#1086;&#1079;&#1076;&#1072;&#1085;&#1080;&#1103; &#1072;&#1075;&#1088;&#1077;&#1075;&#1072;&#1090;&#1072; User. &#1042; &#1084;&#1086;&#1084;&#1077;&#1085;&#1090; &#1074;&#1086;&#1079;&#1085;&#1080;&#1082;&#1085;&#1086;&#1074;&#1077;&#1085;&#1080;&#1103; 
+      &#1087;&#1086;&#1083;&#1100;&#1079;&#1086;&#1074;&#1072;&#1090;&#1077;&#1083;&#1100; &#1080;&#1084;&#1077;&#1077;&#1090; &#1089;&#1090;&#1072;&#1090;&#1091;&#1089; PENDING_EMAIL_VERIFICATION &#1080; &#1077;&#1097;&#1105; &#1085;&#1077; &#1084;&#1086;&#1078;&#1077;&#1090; 
+      &#1074;&#1099;&#1087;&#1086;&#1083;&#1085;&#1103;&#1090;&#1100; &#1074;&#1093;&#1086;&#1076;.
+    </p>
+    <p style="margin-top:0pt;margin-left:0pt;margin-bottom:.0001pt;margin-right:0pt;">
+      &nbsp;
+    </p>
+    <p style="margin-top:0pt;margin-left:0pt;margin-bottom:.0001pt;margin-right:0pt;">
+      &#1057;&#1086;&#1073;&#1099;&#1090;&#1080;&#1077; &#1103;&#1074;&#1083;&#1103;&#1077;&#1090;&#1089;&#1103; &#1074;&#1085;&#1091;&#1090;&#1088;&#1077;&#1085;&#1085;&#1080;&#1084; &#1076;&#1083;&#1103; &#1076;&#1086;&#1084;&#1077;&#1085;&#1072;. Application-&#1089;&#1083;&#1086;&#1081; &#1084;&#1086;&#1078;&#1077;&#1090; 
+      &#1087;&#1088;&#1077;&#1086;&#1073;&#1088;&#1072;&#1079;&#1086;&#1074;&#1072;&#1090;&#1100; &#1077;&#1075;&#1086; &#1074; &#1087;&#1091;&#1073;&#1083;&#1080;&#1095;&#1085;&#1099;&#1081; UserRegisteredEvent &#1080; &#1080;&#1089;&#1087;&#1086;&#1083;&#1100;&#1079;&#1086;&#1074;&#1072;&#1090;&#1100; &#1076;&#1083;&#1103; 
+      &#1079;&#1072;&#1087;&#1091;&#1089;&#1082;&#1072; &#1088;&#1072;&#1079;&#1088;&#1077;&#1096;&#1105;&#1085;&#1085;&#1099;&#1093; &#1084;&#1077;&#1078;&#1084;&#1086;&#1076;&#1091;&#1083;&#1100;&#1085;&#1099;&#1093; &#1089;&#1094;&#1077;&#1085;&#1072;&#1088;&#1080;&#1077;&#1074;.
+    </p>
+  </body></span>			</td>
+		</tr>
+	</table>
+	<table border="0" cellpadding="0" width="100%" cellspacing="0">
+		<tr>
+			<td class="TableCellSpaceHolder1PxTall">
+			</td>
+		</tr>
+		<tr>
+			<td class="TableFooter">
+			</td>
+		</tr>
+	</table>
+	<div style="height: 20px">
+	</div>
+	<table border="0" cellpadding="0" width="100%" cellspacing="0">
+		<tr>
+			<td class="FooterLine">
+			</td>
+		</tr>
+	</table>
+	<div class="HeaderText">
+		architecture	</div>
+</body>
+</html>

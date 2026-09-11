@@ -1,0 +1,81 @@
+<!doctype html>
+<html lang="ru">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>identity.application.port.in.authentication</title>
+  <link rel="stylesheet" href="package.css">
+</head>
+<body>
+  <main class="page">
+    <nav class="breadcrumb"><span>Identity</span><span>›</span><span>application › port › in › authentication</span></nav>
+    <header class="package-header">
+      <div>
+        <div class="eyebrow">PACKAGE</div>
+        <h1>authentication</h1>
+        <code>identity.application.port.in.authentication</code>
+      </div>
+      <a class="secondary" href="../content/Package_P5LDiQWGAqAAZiXg.html">Исходная спецификация VP</a>
+    </header>
+
+    <section class="summary-grid">
+      <article class="description-panel">
+        <h2>Назначение пакета</h2>
+        <div class="description"><p>Содержит входные сценарии аутентификации, обновления токенов и выхода пользователя.</p></div>
+      </article>
+      <aside class="stats-panel">
+        <div><strong>0</strong><span>дочерних пакетов</span></div>
+        <div><strong>3</strong><span>элементов</span></div>
+      </aside>
+    </section>
+
+    <section class="content-section">
+      <div class="section-heading"><h2>Дочерние пакеты</h2><span>0</span></div>
+      <div class="card-grid"><div class="empty-state">Вложенных пакетов нет</div></div>
+    </section>
+
+    <section class="content-section">
+      <div class="section-heading"><h2>Классы и интерфейсы</h2><span>3</span></div>
+      <div class="element-list">
+            <a class="element-card" href="../content/Class_X357iQWGAqAAZinB.html">
+              <div class="card-icon element-icon">◇</div>
+              <div>
+                <div class="card-title">LoginUseCase</div>
+                <div class="type-badge">Класс</div>
+                <div class="card-description">Входной порт аутентификации пользователя по email и паролю.
+
+Проверяет учётные данные и возможность пользователя проходить аутентификацию. После успешной проверки выпускает access JWT и refresh token.</div>
+              </div>
+              <span class="open-arrow">›</span>
+            </a>
+            
+            <a class="element-card" href="../content/Class_Edn7iQWGAqAAZioo.html">
+              <div class="card-icon element-icon">◇</div>
+              <div>
+                <div class="card-title">LogoutUseCase</div>
+                <div class="type-badge">Класс</div>
+                <div class="card-description">Входной порт выхода пользователя.
+
+Отзывает refresh token, переданный presentation из HttpOnly cookie. Операция является идемпотентной и не раскрывает, существовал ли переданный токен.</div>
+              </div>
+              <span class="open-arrow">›</span>
+            </a>
+            
+            <a class="element-card" href="../content/Class_KCd7iQWGAqAAZin2.html">
+              <div class="card-icon element-icon">◇</div>
+              <div>
+                <div class="card-title">RefreshTokenUseCase</div>
+                <div class="type-badge">Класс</div>
+                <div class="card-description">Входной порт обновления токенов аутентификации.
+
+Проверяет полученный refresh token, выполняет его ротацию и возвращает новый access JWT и новый refresh token.
+
+Повторное использование отозванного refresh token приводит к отзыву связанной token family.</div>
+              </div>
+              <span class="open-arrow">›</span>
+            </a>
+            </div>
+    </section>
+  </main>
+</body>
+</html>

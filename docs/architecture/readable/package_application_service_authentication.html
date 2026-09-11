@@ -1,0 +1,87 @@
+<!doctype html>
+<html lang="ru">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>identity.application.service.authentication</title>
+  <link rel="stylesheet" href="package.css">
+</head>
+<body>
+  <main class="page">
+    <nav class="breadcrumb"><span>Identity</span><span>›</span><span>application › service › authentication</span></nav>
+    <header class="package-header">
+      <div>
+        <div class="eyebrow">PACKAGE</div>
+        <h1>authentication</h1>
+        <code>identity.application.service.authentication</code>
+      </div>
+      <a class="secondary" href="../content/Package_qWSTiQWGAqAAZifA.html">Исходная спецификация VP</a>
+    </header>
+
+    <section class="summary-grid">
+      <article class="description-panel">
+        <h2>Назначение пакета</h2>
+        <div class="description"><p>Реализует вход пользователя, обновление пары токенов и отзыв refresh token при выходе.</p></div>
+      </article>
+      <aside class="stats-panel">
+        <div><strong>0</strong><span>дочерних пакетов</span></div>
+        <div><strong>3</strong><span>элементов</span></div>
+      </aside>
+    </section>
+
+    <section class="content-section">
+      <div class="section-heading"><h2>Дочерние пакеты</h2><span>0</span></div>
+      <div class="card-grid"><div class="empty-state">Вложенных пакетов нет</div></div>
+    </section>
+
+    <section class="content-section">
+      <div class="section-heading"><h2>Классы и интерфейсы</h2><span>3</span></div>
+      <div class="element-list">
+            <a class="element-card" href="../content/Class_NbawSQWGAqAAZjVR.html">
+              <div class="card-icon element-icon">◇</div>
+              <div>
+                <div class="card-title">LoginService</div>
+                <div class="type-badge">Класс</div>
+                <div class="card-description">Реализация LoginUseCase.
+
+Находит User по email, проверяет пароль и вызывает доменную проверку возможности аутентификации.
+
+После успешной проверки выпускает access JWT и refresh token, сохраняет RefreshTokenState и возвращает AuthenticationResult.</div>
+              </div>
+              <span class="open-arrow">›</span>
+            </a>
+            
+            <a class="element-card" href="../content/Class_yoFwSQWGAqAAZjWx.html">
+              <div class="card-icon element-icon">◇</div>
+              <div>
+                <div class="card-title">LogoutService</div>
+                <div class="type-badge">Класс</div>
+                <div class="card-description">Реализация LogoutUseCase.
+
+Вычисляет hash переданного refresh token и отзывает найденное состояние токена.
+
+Операция является идемпотентной: неизвестный или уже отозванный токен не приводит к раскрытию внутреннего состояния.</div>
+              </div>
+              <span class="open-arrow">›</span>
+            </a>
+            
+            <a class="element-card" href="../content/Class_fBOwSQWGAqAAZjVs.html">
+              <div class="card-icon element-icon">◇</div>
+              <div>
+                <div class="card-title">RefreshTokenService</div>
+                <div class="type-badge">Класс</div>
+                <div class="card-description">Реализация RefreshTokenUseCase.
+
+Вычисляет hash refresh token, загружает его состояние и проверяет срок действия и отсутствие отзыва.
+
+Выпускает новый access JWT и новый refresh token в той же family. Старый токен отзывается и связывается с новым через replacedByTokenId.
+
+Ротация старого токена и сохранение нового выполняются в одной транзакции.</div>
+              </div>
+              <span class="open-arrow">›</span>
+            </a>
+            </div>
+    </section>
+  </main>
+</body>
+</html>

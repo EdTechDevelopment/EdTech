@@ -1,0 +1,95 @@
+<!doctype html>
+<html lang="ru">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>identity.presentation.auth.controller</title>
+  <link rel="stylesheet" href="package.css">
+</head>
+<body>
+  <main class="page">
+    <nav class="breadcrumb"><span>Identity</span><span>›</span><span>presentation › auth › controller</span></nav>
+    <header class="package-header">
+      <div>
+        <div class="eyebrow">PACKAGE</div>
+        <h1>controller</h1>
+        <code>identity.presentation.auth.controller</code>
+      </div>
+      <a class="secondary" href="../content/Package_Z1ZBCQWGAqAAZgrq.html">Исходная спецификация VP</a>
+    </header>
+
+    <section class="summary-grid">
+      <article class="description-panel">
+        <h2>Назначение пакета</h2>
+        <div class="description"><p>Содержит REST-контроллеры сценариев регистрации и аутентификации.</p><p>Контроллеры определяют URL, HTTP-метод, ожидаемый request и возвращаемый</p><p>response. Они извлекают данные из JSON, заголовков и cookie, после чего</p><p>передают выполнение входному application-порту.</p><p>Контроллер может выбрать HTTP-статус, установить или удалить cookie</p><p>и передать результат mapper-классу.</p><p>Контроллер не должен содержать SQL, транзакции, бизнес-проверки,</p><p>криптографические операции, генерацию токенов или непосредственные</p><p>вызовы infrastructure.</p></div>
+      </article>
+      <aside class="stats-panel">
+        <div><strong>0</strong><span>дочерних пакетов</span></div>
+        <div><strong>2</strong><span>элементов</span></div>
+      </aside>
+    </section>
+
+    <section class="content-section">
+      <div class="section-heading"><h2>Дочерние пакеты</h2><span>0</span></div>
+      <div class="card-grid"><div class="empty-state">Вложенных пакетов нет</div></div>
+    </section>
+
+    <section class="content-section">
+      <div class="section-heading"><h2>Классы и интерфейсы</h2><span>2</span></div>
+      <div class="element-list">
+            <a class="element-card" href="../content/Class__hQxCQWGAqAAZg1C.html">
+              <div class="card-icon element-icon">◇</div>
+              <div>
+                <div class="card-title">AuthController</div>
+                <div class="type-badge">Класс</div>
+                <div class="card-description">HTTP-точка входа для регистрации, входа, обновления JWT и выхода.
+
+При регистрации контроллер принимает RegisterRequest и вызывает
+
+RegisterUserUseCase. В ответ возвращает информацию о необходимости
+
+подтверждения email.
+
+При входе контроллер вызывает LoginUseCase. Access token возвращается
+
+в теле HTTP-ответа, а refresh token устанавливается в HttpOnly cookie.
+
+При обновлении токенов контроллер получает refresh token из cookie
+
+и передаёт его RefreshTokenUseCase.
+
+При выходе контроллер передаёт refresh token LogoutUseCase и удаляет
+
+refresh cookie из браузера.</div>
+              </div>
+              <span class="open-arrow">›</span>
+            </a>
+            
+            <a class="element-card" href="../content/Class_wyNJCQWGAqAAZg2H.html">
+              <div class="card-icon element-icon">◇</div>
+              <div>
+                <div class="card-title">EmailVerificationController</div>
+                <div class="type-badge">Класс</div>
+                <div class="card-description">HTTP-точка входа для подтверждения email и повторной отправки
+
+письма подтверждения.
+
+Контроллер принимает одноразовый открытый токен, передаёт его
+
+ConfirmEmailUseCase и возвращает результат аутентификации после
+
+успешной активации пользователя.
+
+При повторной отправке контроллер передаёт email в
+
+ResendEmailVerificationUseCase. Ответ не должен раскрывать,
+
+существует ли пользователь с указанным email.</div>
+              </div>
+              <span class="open-arrow">›</span>
+            </a>
+            </div>
+    </section>
+  </main>
+</body>
+</html>

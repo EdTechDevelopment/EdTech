@@ -1,0 +1,65 @@
+<!doctype html>
+<html lang="ru">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>identity.presentation.account.validation</title>
+  <link rel="stylesheet" href="package.css">
+</head>
+<body>
+  <main class="page">
+    <nav class="breadcrumb"><span>Identity</span><span>›</span><span>presentation › account › validation</span></nav>
+    <header class="package-header">
+      <div>
+        <div class="eyebrow">PACKAGE</div>
+        <h1>validation</h1>
+        <code>identity.presentation.account.validation</code>
+      </div>
+      <a class="secondary" href="../content/Package_uUMhCQWGAqAAZgvM.html">Исходная спецификация VP</a>
+    </header>
+
+    <section class="summary-grid">
+      <article class="description-panel">
+        <h2>Назначение пакета</h2>
+        <div class="description"><p>Содержит проверки структуры HTTP-запросов account, которые нельзя выразить простой проверкой одного поля.</p><p>Проверки относятся только к форме входящего запроса. Пакет не проверяет состояние User, уникальность email и другие бизнес-правила.</p></div>
+      </article>
+      <aside class="stats-panel">
+        <div><strong>0</strong><span>дочерних пакетов</span></div>
+        <div><strong>2</strong><span>элементов</span></div>
+      </aside>
+    </section>
+
+    <section class="content-section">
+      <div class="section-heading"><h2>Дочерние пакеты</h2><span>0</span></div>
+      <div class="card-grid"><div class="empty-state">Вложенных пакетов нет</div></div>
+    </section>
+
+    <section class="content-section">
+      <div class="section-heading"><h2>Классы и интерфейсы</h2><span>2</span></div>
+      <div class="element-list">
+            <a class="element-card" href="../content/Class_juw0iQWGAqAAZhZp.html">
+              <div class="card-icon element-icon">◇</div>
+              <div>
+                <div class="card-title">AccountUpdateValidator</div>
+                <div class="type-badge">Класс</div>
+                <div class="card-description">Проверяет выполнение структурного правила ValidAccountUpdate для UpdateCurrentUserRequest.
+
+Не проверяет существование пользователя, уникальность email и возможность изменения аккаунта.</div>
+              </div>
+              <span class="open-arrow">›</span>
+            </a>
+            
+            <a class="element-card" href="../content/Class_a_rUiQWGAqAAZhZK.html">
+              <div class="card-icon element-icon">◇</div>
+              <div>
+                <div class="card-title">ValidAccountUpdate</div>
+                <div class="type-badge">Класс</div>
+                <div class="card-description">Декларативное правило валидации UpdateCurrentUserRequest. Требует, чтобы запрос содержал минимум одно изменяемое поле.</div>
+              </div>
+              <span class="open-arrow">›</span>
+            </a>
+            </div>
+    </section>
+  </main>
+</body>
+</html>

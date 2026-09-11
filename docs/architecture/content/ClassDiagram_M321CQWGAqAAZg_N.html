@@ -1,0 +1,614 @@
+<html>
+<head>
+	<META http-equiv="Content-Type" content="text/html; charset=UTF-8">
+	<link rel="stylesheet" href="report.css" type="text/css"/>
+	<title>Class Diagram - mapper Class Diagram</title>
+	<script type="text/javascript" src="report.js"></script>
+	<script type="text/javascript" src="link_popup.js"></script>
+	<script type="text/javascript" src="tooltip.js"></script>
+</head>
+<body style="margin-left: 10px; margin-right: 10px; margin-top: 10px; margin-bottom: 10px;" onload="initPage();initDiagram();initGridDiagram();">
+	<div style="position:absolute; z-index:2; visibility:hidden;border-top: 2px #FF0000 solid;" id="spotlight_top">
+	</div>
+	<div style="position:absolute; z-index:2; visibility:hidden;border-top: 2px #FF0000 solid;" id="spotlight_bottom">
+	</div>
+	<div style="position:absolute; z-index:2; visibility:hidden;border-left: 2px #FF0000 solid;" id="spotlight_left">
+	</div>
+	<div style="position:absolute; z-index:2; visibility:hidden;border-left: 2px #FF0000 solid;" id="spotlight_right">
+	</div>
+	<canvas width="100" style="position:absolute; z-index:2; visibility:hidden" id="spotlight_c" height="100">
+	</canvas>
+	<div style="position:absolute; width:100px; height:100px; z-index:1; visibility:hidden" id="spotLightResourcesTop">
+		<table border="0" cellpadding="0" cellspacing="0">
+			<tr>
+				<td>
+<a href="#top"><img style="border:none" src="../images/icons/BackToTop.gif" alt="Back to top"/></a>				</td>
+				<td>
+<a href="javascript:clearSpotLightFromOpenSpecButton();"><img style="border:none" src="../images/icons/OpenSpecification.gif" alt="Open specification"/></a>				</td>
+			</tr>
+		</table>
+	</div>
+	<div style="position:absolute; width:100px; height:100px; z-index:1; visibility:hidden" id="spotLightResourcesRight">
+		<table border="0" cellpadding="0" cellspacing="0">
+			<tr>
+				<td>
+<a href="#top"><img style="border:none" src="../images/icons/BackToTop.gif" alt="Back to top"/></a>				</td>
+			</tr>
+			<tr>
+				<td>
+<a href="javascript:clearSpotLightFromOpenSpecButton();"><img style="border:none" src="../images/icons/OpenSpecification.gif" alt="Open specification"/></a>				</td>
+			</tr>
+		</table>
+	</div>
+	<div style="position:absolute;z-index:4;visibility:hidden" id="linkPopupMenuLayer">
+		<table border="0" width="100%" style="border-style:solid; border-width:1px; border-color:#000000; background:#FFFFFF; width:250px" id="linkPopupMenuTable">
+		</table>
+	</div>
+	<div style="position:absolute; z-index:1; visibility:hidden; " id="referenceIconLayer">
+		<table border="0" cellpadding="3" cellspacing="0" style="font-size:1;">
+			<tr>
+				<td>
+					<img src="../images/icons/Ref.gif" style="border:none" onclick="movePopupPositionToReferenceIconPosition();resetPopupForReference();switchPopupShowHideStatus();" />				</td>
+			</tr>
+		</table>
+	</div>
+	<div style="position:absolute; z-index:1; visibility:hidden; " id="subdiagramIconLayer">
+		<table border="0" cellpadding="3" cellspacing="0" style="font-size:1;">
+			<tr>
+				<td>
+					<img src="../images/icons/Subdiagram.gif" style="border:none" onclick="movePopupPositionToSubdiagramIconPosition();resetPopupForSubdiagram();switchPopupShowHideStatus();" />				</td>
+			</tr>
+		</table>
+	</div>
+	<div style="position:absolute; z-index:1; visibility:hidden; " id="transitorIconLayer">
+		<table border="0" cellpadding="3" cellspacing="0" style="font-size:1;">
+			<tr>
+				<td>
+					<img src="../images/icons/Transitor.gif" style="border:none" onclick="movePopupPositionToTransitorIconPosition();resetPopupForTransitor();switchPopupShowHideStatus();" />				</td>
+			</tr>
+		</table>
+	</div>
+	<div style="position:absolute; z-index:1; visibility:hidden; " id="documentationIconLayer">
+		<table border="0" cellpadding="3" cellspacing="0" style="font-size:1;">
+			<tr>
+				<td>
+					<img src="../images/icons/Documentation.png" style="border:none" />				</td>
+			</tr>
+		</table>
+	</div>
+	<div class="HeaderText">
+		architecture	</div>
+	<table border="0" cellpadding="0" width="100%" cellspacing="0">
+		<tr>
+			<td class="HeaderLine1">
+			</td>
+		</tr>
+		<tr>
+			<td class="HeaderLine2">
+			</td>
+		</tr>
+		<tr>
+			<td class="HeaderLine3">
+			</td>
+		</tr>
+	</table>
+	<div style="position:absolute; z-index:21; visibility:hidden" id="referencedBys">
+		<table border="0" width="100%" style="border-style:solid; border-width:1px; border-color:#000000; background:#FFFFFF; width:250px" id="referencedBysTable">
+		</table>
+	</div>
+	<div style="position:absolute; z-index:21; visibility:hidden" id="vplink">
+		<table border="1" cellpadding="0" cellspacing="0" bordercolor="#A9BFD3">
+			<tr>
+				<td>
+					<table border="0" cellpadding="0" width="100%" cellspacing="0">
+						<tr style="background:#DDDDDD">
+							<td style="font-size: 12px;" align="left">
+								<select onchange="vpLinkToggleName()" id="vplink-linkType">
+	<option value="Project Link">Project Link</option>
+	<option value="Page URL">Page URL</option>
+</select>
+							</td>
+							<td style="font-size: 12px;" align="right">
+								<input onclick="javascript: vpLinkToggleName()" id="vplink-checkbox" type="checkbox" />
+								<label for="vplink-checkbox">with Name</label>							</td>
+						</tr>
+					</table>
+				</td>
+			</tr>
+			<tr>
+				<td>
+					<textarea id="vplink-text" style="width: 348px; height: 60px; border-color: #7EADD9; outline: none;"></textarea>				</td>
+			</tr>
+		</table>
+	</div>
+	<p>
+<a href="PackageDiagram_xg8XMQWGAqAAZxHx.html" class="PageParentTitle">presentation : Package</a><span class="PageParentTitle">&nbsp;.&nbsp;</span><a href="PackageDiagram_3EgBCQWGAqAAZgqD.html" class="PageParentTitle">auth : Package</a><span class="PageParentTitle">&nbsp;.&nbsp;</span><a href="ClassDiagram_kEhBCQWGAqAAZgrY.html" class="PageParentTitle">mapper : Package</a>	</p>
+	<p class="PageTitle">
+		<span id="PageTitleText">
+			Class Diagram - mapper Class Diagram		</span>
+<a onclick="javascript: showVpLink('architecture.vpp://diagram/M321CQWGAqAAZg.N', 'mapper Class Diagram\narchitecture.vpp://diagram/M321CQWGAqAAZg.N', 'mapper Class Diagram', this); return false;" style="padding-left: 16px; font-size: 12px" href="#"><img src="../images/icons/link.png" border="0"> link</a>	</p>
+	<div style="position: relative; padding-bottom: 20px;">
+		<table border="0" cellpadding="0" width="100%" cellspacing="0" style="position: absolute; top: 0; left: 0; z-index: 20;" onmouseover="hideReferenceIcon(),hideSubdiagramIcon(),hideTransitorIcon(),hideLinkPopup(),hideReferencedBys();">
+			<tr>
+				<td>
+<span class="TableContent">Jump to:</span>					<select id="SelectShape" class="TableContent" onChange="scrollWin('diagram', this.value);hideLinkPopup();showSpotLight('diagram', this.value)">
+<option value="">Please select a model element</option>
+<option value="shape|414.0|60.0|183.0|40.0|Class_PmVVCQWGAqAAZg7V.html|Class_PmVVCQWGAqAAZg7V.html|lifMiQWGAqAAZhlM" id="optionlifMiQWGAqAAZhlM">ResendEmailVerificationRequest : Class</option>
+<option value="shape|347.0|347.0|166.0|40.0|Class_WxvVCQWGAqAAZg8w.html|Class_WxvVCQWGAqAAZg8w.html|XpvMiQWGAqAAZhk6" id="optionXpvMiQWGAqAAZhk6">VerificationPendingResponse : Class</option>
+<option value="shape|190.0|373.0|95.0|40.0|Class_qrvVCQWGAqAAZg82.html|Class_qrvVCQWGAqAAZg82.html|X2PMiQWGAqAAZhkn" id="optionX2PMiQWGAqAAZhkn">TokenResponse : Class</option>
+<option value="shape|303.0|2.0|125.0|40.0|Class_Ub_VCQWGAqAAZg6y.html|Class_Ub_VCQWGAqAAZg6y.html|GvXMiQWGAqAAZhkQ" id="optionGvXMiQWGAqAAZhkQ">ConfirmEmailRequest : Class</option>
+<option value="shape|2.0|326.0|84.0|40.0|Class_ERghCQWGAqAAZguC.html|Class_ERghCQWGAqAAZguC.html|j2XMiQWGAqAAZhj4" id="optionj2XMiQWGAqAAZhj4">LoginRequest : Class</option>
+<option value="shape|71.0|42.0|98.0|40.0|Class_u0ghCQWGAqAAZgt2.html|Class_u0ghCQWGAqAAZgt2.html|UqHMiQWGAqAAZhjh" id="optionUqHMiQWGAqAAZhjh">RegisterRequest : Class</option>
+<option value="shape|181.0|154.0|141.0|50.0|Class_1te1CQWGAqAAZg_d.html|Class_1te1CQWGAqAAZg_d.html|1te1CQWGAqAAZg.c" id="option1te1CQWGAqAAZg.c">AuthPresentationMapper : Class</option>
+</select>				</td>
+			</tr>
+		</table>
+		<table border="0" cellpadding="0" width="100%" cellspacing="0" style="position: relative; top: 24;">
+			<tr>
+				<td>
+					<img id="diagram" src="../images/mapper_Class_Diagram.png" usemap="#diagram_map" class="Image" width="601" height="417"/>
+					<map name="diagram_map">
+<area imageId="diagram" coords="300.0, 31.0, 246.0, 160.0, 259.0, 165.0, 310.48837, 42.0, 303.0, 42.0, 303.0, 32.153847, 300.0, 31.0" coords2="300.0, 31.0, 246.0, 160.0, 259.0, 165.0, 310.48837, 42.0, 303.0, 42.0, 303.0, 32.153847, 300.0, 31.0" shape="poly" alt=":Dependency" id="areadiagram_map_AdgsiQWGAqAAZhmO_default" href="Dependency_9tgsiQWGAqAAZhmN.html" onmouseover="hideReferenceIcon(),hideSubdiagramIcon(),hideTransitorIcon()" onmousedown="clearSpotLight();"/>
+<area imageId="diagram" coords="414.0, 91.93104, 246.0, 146.0, 250.0, 160.0, 423.0, 104.0, 422.14285, 100.0, 414.0, 100.0, 414.0, 91.93104" coords2="414.0, 91.93104, 246.0, 146.0, 250.0, 160.0, 423.0, 104.0, 422.14285, 100.0, 414.0, 100.0, 414.0, 91.93104" shape="poly" alt=":Dependency" id="areadiagram_map_O5QsiQWGAqAAZhmV_default" href="Dependency_U5QsiQWGAqAAZhmU.html" onmouseover="hideReferenceIcon(),hideSubdiagramIcon(),hideTransitorIcon()" onmousedown="clearSpotLight();"/>
+<area imageId="diagram" coords="251.0, 193.0, 240.0, 201.0, 345.0, 357.0, 347.0, 355.54544, 347.0, 347.0, 354.65384, 347.0, 251.0, 193.0" coords2="251.0, 193.0, 240.0, 201.0, 345.0, 357.0, 347.0, 355.54544, 347.0, 347.0, 354.65384, 347.0, 251.0, 193.0" shape="poly" alt=":Dependency" id="areadiagram_map_yBwsiQWGAqAAZhmZ_default" href="Dependency_gBwsiQWGAqAAZhmY.html" onmouseover="hideReferenceIcon(),hideSubdiagramIcon(),hideTransitorIcon()" onmousedown="clearSpotLight();"/>
+<area imageId="diagram" coords="244.0, 204.0, 244.0, 373.0, 258.0, 373.0, 258.0, 204.0" coords2="244.0, 204.0, 244.0, 373.0, 258.0, 373.0, 258.0, 204.0" shape="poly" alt=":Dependency" id="areadiagram_map_9C4siQWGAqAAZhmp_default" href="Dependency_uC4siQWGAqAAZhmo.html" onmouseover="hideReferenceIcon(),hideSubdiagramIcon(),hideTransitorIcon()" onmousedown="clearSpotLight();"/>
+<area imageId="diagram" coords="254.0, 199.0, 75.0, 324.0, 76.454544, 326.0, 86.0, 326.0, 86.0, 332.90503, 86.0, 332.90503, 262.0, 210.0, 254.0, 199.0" coords2="254.0, 199.0, 75.0, 324.0, 76.454544, 326.0, 86.0, 326.0, 86.0, 332.90503, 86.0, 332.90503, 262.0, 210.0, 254.0, 199.0" shape="poly" alt=":Dependency" id="areadiagram_map_2f4siQWGAqAAZhmt_default" href="Dependency_kf4siQWGAqAAZhms.html" onmouseover="hideReferenceIcon(),hideSubdiagramIcon(),hideTransitorIcon()" onmousedown="clearSpotLight();"/>
+<area imageId="diagram" coords="169.0, 73.41747, 169.0, 82.0, 157.0, 82.0, 246.3494, 154.0, 269.0, 154.0, 169.0, 73.41747" coords2="169.0, 73.41747, 169.0, 82.0, 157.0, 82.0, 246.3494, 154.0, 269.0, 154.0, 169.0, 73.41747" shape="poly" alt=":Dependency" id="areadiagram_map_K5EsiQWGAqAAZhmx_default" href="Dependency_Q5EsiQWGAqAAZhmw.html" onmouseover="hideReferenceIcon(),hideSubdiagramIcon(),hideTransitorIcon()" onmousedown="clearSpotLight();"/>
+<area imageId="diagram" docContent="&amp;lt;head&amp;gt;
+    
+  &amp;lt;/head&amp;gt;
+  &amp;lt;body style=&amp;quot;margin-left:0;color:#000000;font-weight:normal;font-size:12px;font-family:Dialog;margin-right:0;&amp;quot;&amp;gt;
+    &amp;lt;p style=&amp;quot;margin-top:0pt;margin-left:0pt;margin-bottom:.0001pt;margin-right:0pt;&amp;quot;&amp;gt;
+      &amp;#1042;&amp;#1093;&amp;#1086;&amp;#1076;&amp;#1085;&amp;#1072;&amp;#1103; HTTP-&amp;#1084;&amp;#1086;&amp;#1076;&amp;#1077;&amp;#1083;&amp;#1100; &amp;#1079;&amp;#1072;&amp;#1087;&amp;#1088;&amp;#1086;&amp;#1089;&amp;#1072; &amp;#1087;&amp;#1086;&amp;#1074;&amp;#1090;&amp;#1086;&amp;#1088;&amp;#1085;&amp;#1086;&amp;#1081; &amp;#1086;&amp;#1090;&amp;#1087;&amp;#1088;&amp;#1072;&amp;#1074;&amp;#1082;&amp;#1080; &amp;#1087;&amp;#1080;&amp;#1089;&amp;#1100;&amp;#1084;&amp;#1072; &amp;#1087;&amp;#1086;&amp;#1076;&amp;#1090;&amp;#1074;&amp;#1077;&amp;#1088;&amp;#1078;&amp;#1076;&amp;#1077;&amp;#1085;&amp;#1080;&amp;#1103;.
+    &amp;lt;/p&amp;gt;
+    &amp;lt;p style=&amp;quot;margin-top:0pt;margin-left:0pt;margin-bottom:.0001pt;margin-right:0pt;&amp;quot;&amp;gt;
+      &amp;nbsp;
+    &amp;lt;/p&amp;gt;
+    &amp;lt;p style=&amp;quot;margin-top:0pt;margin-left:0pt;margin-bottom:.0001pt;margin-right:0pt;&amp;quot;&amp;gt;
+      &amp;#1055;&amp;#1077;&amp;#1088;&amp;#1077;&amp;#1076;&amp;#1072;&amp;#1105;&amp;#1090; email &amp;#1087;&amp;#1086;&amp;#1083;&amp;#1100;&amp;#1079;&amp;#1086;&amp;#1074;&amp;#1072;&amp;#1090;&amp;#1077;&amp;#1083;&amp;#1103;. &amp;#1053;&amp;#1072;&amp;#1083;&amp;#1080;&amp;#1095;&amp;#1080;&amp;#1077; &amp;#1080;&amp;#1083;&amp;#1080; &amp;#1086;&amp;#1090;&amp;#1089;&amp;#1091;&amp;#1090;&amp;#1089;&amp;#1090;&amp;#1074;&amp;#1080;&amp;#1077; &amp;#1087;&amp;#1086;&amp;#1083;&amp;#1100;&amp;#1079;&amp;#1086;&amp;#1074;&amp;#1072;&amp;#1090;&amp;#1077;&amp;#1083;&amp;#1103;
+    &amp;lt;/p&amp;gt;
+    &amp;lt;p style=&amp;quot;margin-top:0pt;margin-left:0pt;margin-bottom:.0001pt;margin-right:0pt;&amp;quot;&amp;gt;
+      &amp;#1085;&amp;#1077; &amp;#1076;&amp;#1086;&amp;#1083;&amp;#1078;&amp;#1085;&amp;#1086; &amp;#1074;&amp;#1083;&amp;#1080;&amp;#1103;&amp;#1090;&amp;#1100; &amp;#1085;&amp;#1072; &amp;#1087;&amp;#1091;&amp;#1073;&amp;#1083;&amp;#1080;&amp;#1095;&amp;#1085;&amp;#1099;&amp;#1081; HTTP-&amp;#1086;&amp;#1090;&amp;#1074;&amp;#1077;&amp;#1090;.
+    &amp;lt;/p&amp;gt;
+  &amp;lt;/body&amp;gt;" coords="414, 60, 597, 100" coords2="414, 60, 597, 100" shape="rect" alt="ResendEmailVerificationRequest:Class" id="areadiagram_map_lifMiQWGAqAAZhlM_default" href="Class_PmVVCQWGAqAAZg7V.html" onmouseover="hideReferenceIcon(),hideSubdiagramIcon(),hideTransitorIcon(),showTooltip(this)" onmousedown="clearSpotLight();" onmouseout="hideTooltip()"/>
+<area imageId="diagram" docContent="&amp;lt;head&amp;gt;
+    
+  &amp;lt;/head&amp;gt;
+  &amp;lt;body style=&amp;quot;margin-left:0;color:#000000;font-weight:normal;font-size:12px;font-family:Dialog;margin-right:0;&amp;quot;&amp;gt;
+    &amp;lt;p style=&amp;quot;margin-top:0pt;margin-left:0pt;margin-bottom:.0001pt;margin-right:0pt;&amp;quot;&amp;gt;
+      HTTP-&amp;#1086;&amp;#1090;&amp;#1074;&amp;#1077;&amp;#1090; &amp;#1091;&amp;#1089;&amp;#1087;&amp;#1077;&amp;#1096;&amp;#1085;&amp;#1086;&amp;#1081; &amp;#1088;&amp;#1077;&amp;#1075;&amp;#1080;&amp;#1089;&amp;#1090;&amp;#1088;&amp;#1072;&amp;#1094;&amp;#1080;&amp;#1080; &amp;#1085;&amp;#1077;&amp;#1087;&amp;#1086;&amp;#1076;&amp;#1090;&amp;#1074;&amp;#1077;&amp;#1088;&amp;#1078;&amp;#1076;&amp;#1105;&amp;#1085;&amp;#1085;&amp;#1086;&amp;#1075;&amp;#1086; &amp;#1087;&amp;#1086;&amp;#1083;&amp;#1100;&amp;#1079;&amp;#1086;&amp;#1074;&amp;#1072;&amp;#1090;&amp;#1077;&amp;#1083;&amp;#1103;.
+    &amp;lt;/p&amp;gt;
+    &amp;lt;p style=&amp;quot;margin-top:0pt;margin-left:0pt;margin-bottom:.0001pt;margin-right:0pt;&amp;quot;&amp;gt;
+      &amp;nbsp;
+    &amp;lt;/p&amp;gt;
+    &amp;lt;p style=&amp;quot;margin-top:0pt;margin-left:0pt;margin-bottom:.0001pt;margin-right:0pt;&amp;quot;&amp;gt;
+      &amp;#1057;&amp;#1086;&amp;#1086;&amp;#1073;&amp;#1097;&amp;#1072;&amp;#1077;&amp;#1090; frontend, &amp;#1095;&amp;#1090;&amp;#1086; &amp;#1072;&amp;#1082;&amp;#1082;&amp;#1072;&amp;#1091;&amp;#1085;&amp;#1090; &amp;#1089;&amp;#1086;&amp;#1079;&amp;#1076;&amp;#1072;&amp;#1085; &amp;#1080; &amp;#1086;&amp;#1078;&amp;#1080;&amp;#1076;&amp;#1072;&amp;#1077;&amp;#1090; &amp;#1087;&amp;#1086;&amp;#1076;&amp;#1090;&amp;#1074;&amp;#1077;&amp;#1088;&amp;#1078;&amp;#1076;&amp;#1077;&amp;#1085;&amp;#1080;&amp;#1103; email.
+    &amp;lt;/p&amp;gt;
+    &amp;lt;p style=&amp;quot;margin-top:0pt;margin-left:0pt;margin-bottom:.0001pt;margin-right:0pt;&amp;quot;&amp;gt;
+      &amp;#1052;&amp;#1086;&amp;#1078;&amp;#1077;&amp;#1090; &amp;#1089;&amp;#1086;&amp;#1076;&amp;#1077;&amp;#1088;&amp;#1078;&amp;#1072;&amp;#1090;&amp;#1100; email &amp;#1080; &amp;#1074;&amp;#1088;&amp;#1077;&amp;#1084;&amp;#1103; &amp;#1086;&amp;#1082;&amp;#1086;&amp;#1085;&amp;#1095;&amp;#1072;&amp;#1085;&amp;#1080;&amp;#1103; &amp;#1076;&amp;#1077;&amp;#1081;&amp;#1089;&amp;#1090;&amp;#1074;&amp;#1080;&amp;#1103; &amp;#1086;&amp;#1090;&amp;#1087;&amp;#1088;&amp;#1072;&amp;#1074;&amp;#1083;&amp;#1077;&amp;#1085;&amp;#1085;&amp;#1086;&amp;#1075;&amp;#1086;
+    &amp;lt;/p&amp;gt;
+    &amp;lt;p style=&amp;quot;margin-top:0pt;margin-left:0pt;margin-bottom:.0001pt;margin-right:0pt;&amp;quot;&amp;gt;
+      &amp;#1087;&amp;#1088;&amp;#1086;&amp;#1074;&amp;#1077;&amp;#1088;&amp;#1086;&amp;#1095;&amp;#1085;&amp;#1086;&amp;#1075;&amp;#1086; &amp;#1090;&amp;#1086;&amp;#1082;&amp;#1077;&amp;#1085;&amp;#1072;.
+    &amp;lt;/p&amp;gt;
+  &amp;lt;/body&amp;gt;" coords="347, 347, 513, 387" coords2="347, 347, 513, 387" shape="rect" alt="VerificationPendingResponse:Class" id="areadiagram_map_XpvMiQWGAqAAZhk6_default" href="Class_WxvVCQWGAqAAZg8w.html" onmouseover="hideReferenceIcon(),hideSubdiagramIcon(),hideTransitorIcon(),showTooltip(this)" onmousedown="clearSpotLight();" onmouseout="hideTooltip()"/>
+<area imageId="diagram" docContent="&amp;lt;head&amp;gt;
+    
+  &amp;lt;/head&amp;gt;
+  &amp;lt;body style=&amp;quot;margin-left:0;color:#000000;font-weight:normal;font-size:12px;font-family:Dialog;margin-right:0;&amp;quot;&amp;gt;
+    &amp;lt;p style=&amp;quot;margin-top:0pt;margin-left:0pt;margin-bottom:.0001pt;margin-right:0pt;&amp;quot;&amp;gt;
+      HTTP-&amp;#1086;&amp;#1090;&amp;#1074;&amp;#1077;&amp;#1090; &amp;#1091;&amp;#1089;&amp;#1087;&amp;#1077;&amp;#1096;&amp;#1085;&amp;#1086;&amp;#1081; &amp;#1072;&amp;#1091;&amp;#1090;&amp;#1077;&amp;#1085;&amp;#1090;&amp;#1080;&amp;#1092;&amp;#1080;&amp;#1082;&amp;#1072;&amp;#1094;&amp;#1080;&amp;#1080; &amp;#1080;&amp;#1083;&amp;#1080; &amp;#1086;&amp;#1073;&amp;#1085;&amp;#1086;&amp;#1074;&amp;#1083;&amp;#1077;&amp;#1085;&amp;#1080;&amp;#1103; &amp;#1090;&amp;#1086;&amp;#1082;&amp;#1077;&amp;#1085;&amp;#1086;&amp;#1074;.
+    &amp;lt;/p&amp;gt;
+    &amp;lt;p style=&amp;quot;margin-top:0pt;margin-left:0pt;margin-bottom:.0001pt;margin-right:0pt;&amp;quot;&amp;gt;
+      &amp;nbsp;
+    &amp;lt;/p&amp;gt;
+    &amp;lt;p style=&amp;quot;margin-top:0pt;margin-left:0pt;margin-bottom:.0001pt;margin-right:0pt;&amp;quot;&amp;gt;
+      &amp;#1057;&amp;#1086;&amp;#1076;&amp;#1077;&amp;#1088;&amp;#1078;&amp;#1080;&amp;#1090; access JWT, &amp;#1090;&amp;#1080;&amp;#1087; &amp;#1072;&amp;#1074;&amp;#1090;&amp;#1086;&amp;#1088;&amp;#1080;&amp;#1079;&amp;#1072;&amp;#1094;&amp;#1080;&amp;#1080; Bearer &amp;#1080; &amp;#1080;&amp;#1085;&amp;#1092;&amp;#1086;&amp;#1088;&amp;#1084;&amp;#1072;&amp;#1094;&amp;#1080;&amp;#1102; &amp;#1086; &amp;#1089;&amp;#1088;&amp;#1086;&amp;#1082;&amp;#1077;
+    &amp;lt;/p&amp;gt;
+    &amp;lt;p style=&amp;quot;margin-top:0pt;margin-left:0pt;margin-bottom:.0001pt;margin-right:0pt;&amp;quot;&amp;gt;
+      &amp;#1076;&amp;#1077;&amp;#1081;&amp;#1089;&amp;#1090;&amp;#1074;&amp;#1080;&amp;#1103; access token.
+    &amp;lt;/p&amp;gt;
+    &amp;lt;p style=&amp;quot;margin-top:0pt;margin-left:0pt;margin-bottom:.0001pt;margin-right:0pt;&amp;quot;&amp;gt;
+      &amp;nbsp;
+    &amp;lt;/p&amp;gt;
+    &amp;lt;p style=&amp;quot;margin-top:0pt;margin-left:0pt;margin-bottom:.0001pt;margin-right:0pt;&amp;quot;&amp;gt;
+      Refresh token &amp;#1074; &amp;#1101;&amp;#1090;&amp;#1091; &amp;#1084;&amp;#1086;&amp;#1076;&amp;#1077;&amp;#1083;&amp;#1100; &amp;#1085;&amp;#1077; &amp;#1074;&amp;#1093;&amp;#1086;&amp;#1076;&amp;#1080;&amp;#1090; &amp;#1080; &amp;#1087;&amp;#1077;&amp;#1088;&amp;#1077;&amp;#1076;&amp;#1072;&amp;#1105;&amp;#1090;&amp;#1089;&amp;#1103; &amp;#1090;&amp;#1086;&amp;#1083;&amp;#1100;&amp;#1082;&amp;#1086; &amp;#1095;&amp;#1077;&amp;#1088;&amp;#1077;&amp;#1079;
+    &amp;lt;/p&amp;gt;
+    &amp;lt;p style=&amp;quot;margin-top:0pt;margin-left:0pt;margin-bottom:.0001pt;margin-right:0pt;&amp;quot;&amp;gt;
+      HttpOnly cookie.
+    &amp;lt;/p&amp;gt;
+  &amp;lt;/body&amp;gt;" coords="190, 373, 285, 413" coords2="190, 373, 285, 413" shape="rect" alt="TokenResponse:Class" id="areadiagram_map_X2PMiQWGAqAAZhkn_default" href="Class_qrvVCQWGAqAAZg82.html" onmouseover="hideReferenceIcon(),hideSubdiagramIcon(),hideTransitorIcon(),showTooltip(this)" onmousedown="clearSpotLight();" onmouseout="hideTooltip()"/>
+<area imageId="diagram" docContent="&amp;lt;head&amp;gt;
+    
+  &amp;lt;/head&amp;gt;
+  &amp;lt;body style=&amp;quot;margin-left:0;color:#000000;font-weight:normal;font-size:12px;font-family:Dialog;margin-right:0;&amp;quot;&amp;gt;
+    &amp;lt;p style=&amp;quot;margin-top:0pt;margin-left:0pt;margin-bottom:.0001pt;margin-right:0pt;&amp;quot;&amp;gt;
+      &amp;#1042;&amp;#1093;&amp;#1086;&amp;#1076;&amp;#1085;&amp;#1072;&amp;#1103; HTTP-&amp;#1084;&amp;#1086;&amp;#1076;&amp;#1077;&amp;#1083;&amp;#1100; &amp;#1087;&amp;#1086;&amp;#1076;&amp;#1090;&amp;#1074;&amp;#1077;&amp;#1088;&amp;#1078;&amp;#1076;&amp;#1077;&amp;#1085;&amp;#1080;&amp;#1103; email.
+    &amp;lt;/p&amp;gt;
+    &amp;lt;p style=&amp;quot;margin-top:0pt;margin-left:0pt;margin-bottom:.0001pt;margin-right:0pt;&amp;quot;&amp;gt;
+      &amp;nbsp;
+    &amp;lt;/p&amp;gt;
+    &amp;lt;p style=&amp;quot;margin-top:0pt;margin-left:0pt;margin-bottom:.0001pt;margin-right:0pt;&amp;quot;&amp;gt;
+      &amp;#1055;&amp;#1077;&amp;#1088;&amp;#1077;&amp;#1076;&amp;#1072;&amp;#1105;&amp;#1090; &amp;#1086;&amp;#1076;&amp;#1085;&amp;#1086;&amp;#1088;&amp;#1072;&amp;#1079;&amp;#1086;&amp;#1074;&amp;#1099;&amp;#1081; &amp;#1086;&amp;#1090;&amp;#1082;&amp;#1088;&amp;#1099;&amp;#1090;&amp;#1099;&amp;#1081; &amp;#1090;&amp;#1086;&amp;#1082;&amp;#1077;&amp;#1085;, &amp;#1087;&amp;#1086;&amp;#1083;&amp;#1091;&amp;#1095;&amp;#1077;&amp;#1085;&amp;#1085;&amp;#1099;&amp;#1081; &amp;#1087;&amp;#1086;&amp;#1083;&amp;#1100;&amp;#1079;&amp;#1086;&amp;#1074;&amp;#1072;&amp;#1090;&amp;#1077;&amp;#1083;&amp;#1077;&amp;#1084; &amp;#1074; &amp;#1087;&amp;#1080;&amp;#1089;&amp;#1100;&amp;#1084;&amp;#1077;.
+    &amp;lt;/p&amp;gt;
+    &amp;lt;p style=&amp;quot;margin-top:0pt;margin-left:0pt;margin-bottom:.0001pt;margin-right:0pt;&amp;quot;&amp;gt;
+      &amp;#1055;&amp;#1088;&amp;#1086;&amp;#1074;&amp;#1077;&amp;#1088;&amp;#1082;&amp;#1072; &amp;#1085;&amp;#1072;&amp;#1079;&amp;#1085;&amp;#1072;&amp;#1095;&amp;#1077;&amp;#1085;&amp;#1080;&amp;#1103;, &amp;#1089;&amp;#1088;&amp;#1086;&amp;#1082;&amp;#1072; &amp;#1076;&amp;#1077;&amp;#1081;&amp;#1089;&amp;#1090;&amp;#1074;&amp;#1080;&amp;#1103;, &amp;#1093;&amp;#1101;&amp;#1096;&amp;#1072; &amp;#1080; &amp;#1086;&amp;#1076;&amp;#1085;&amp;#1086;&amp;#1088;&amp;#1072;&amp;#1079;&amp;#1086;&amp;#1074;&amp;#1086;&amp;#1089;&amp;#1090;&amp;#1080; &amp;#1090;&amp;#1086;&amp;#1082;&amp;#1077;&amp;#1085;&amp;#1072;
+    &amp;lt;/p&amp;gt;
+    &amp;lt;p style=&amp;quot;margin-top:0pt;margin-left:0pt;margin-bottom:.0001pt;margin-right:0pt;&amp;quot;&amp;gt;
+      &amp;#1074;&amp;#1099;&amp;#1087;&amp;#1086;&amp;#1083;&amp;#1085;&amp;#1103;&amp;#1077;&amp;#1090;&amp;#1089;&amp;#1103; application-&amp;#1089;&amp;#1094;&amp;#1077;&amp;#1085;&amp;#1072;&amp;#1088;&amp;#1080;&amp;#1077;&amp;#1084;.
+    &amp;lt;/p&amp;gt;
+  &amp;lt;/body&amp;gt;" coords="303, 2, 428, 42" coords2="303, 2, 428, 42" shape="rect" alt="ConfirmEmailRequest:Class" id="areadiagram_map_GvXMiQWGAqAAZhkQ_default" href="Class_Ub_VCQWGAqAAZg6y.html" onmouseover="hideReferenceIcon(),hideSubdiagramIcon(),hideTransitorIcon(),showTooltip(this)" onmousedown="clearSpotLight();" onmouseout="hideTooltip()"/>
+<area imageId="diagram" docContent="&amp;lt;head&amp;gt;
+    
+  &amp;lt;/head&amp;gt;
+  &amp;lt;body style=&amp;quot;margin-left:0;color:#000000;font-weight:normal;font-size:12px;font-family:Dialog;margin-right:0;&amp;quot;&amp;gt;
+    &amp;lt;p style=&amp;quot;margin-top:0pt;margin-left:0pt;margin-bottom:.0001pt;margin-right:0pt;&amp;quot;&amp;gt;
+      &amp;#1042;&amp;#1093;&amp;#1086;&amp;#1076;&amp;#1085;&amp;#1072;&amp;#1103; HTTP-&amp;#1084;&amp;#1086;&amp;#1076;&amp;#1077;&amp;#1083;&amp;#1100; &amp;#1072;&amp;#1091;&amp;#1090;&amp;#1077;&amp;#1085;&amp;#1090;&amp;#1080;&amp;#1092;&amp;#1080;&amp;#1082;&amp;#1072;&amp;#1094;&amp;#1080;&amp;#1080; &amp;#1087;&amp;#1086;&amp;#1083;&amp;#1100;&amp;#1079;&amp;#1086;&amp;#1074;&amp;#1072;&amp;#1090;&amp;#1077;&amp;#1083;&amp;#1103; &amp;#1087;&amp;#1086; email &amp;#1080; &amp;#1087;&amp;#1072;&amp;#1088;&amp;#1086;&amp;#1083;&amp;#1102;.
+    &amp;lt;/p&amp;gt;
+    &amp;lt;p style=&amp;quot;margin-top:0pt;margin-left:0pt;margin-bottom:.0001pt;margin-right:0pt;&amp;quot;&amp;gt;
+      &amp;nbsp;
+    &amp;lt;/p&amp;gt;
+    &amp;lt;p style=&amp;quot;margin-top:0pt;margin-left:0pt;margin-bottom:.0001pt;margin-right:0pt;&amp;quot;&amp;gt;
+      &amp;#1052;&amp;#1086;&amp;#1076;&amp;#1077;&amp;#1083;&amp;#1100; &amp;#1090;&amp;#1086;&amp;#1083;&amp;#1100;&amp;#1082;&amp;#1086; &amp;#1087;&amp;#1077;&amp;#1088;&amp;#1077;&amp;#1076;&amp;#1072;&amp;#1105;&amp;#1090; &amp;#1074;&amp;#1074;&amp;#1077;&amp;#1076;&amp;#1105;&amp;#1085;&amp;#1085;&amp;#1099;&amp;#1077; &amp;#1076;&amp;#1072;&amp;#1085;&amp;#1085;&amp;#1099;&amp;#1077;. &amp;#1055;&amp;#1088;&amp;#1086;&amp;#1074;&amp;#1077;&amp;#1088;&amp;#1082;&amp;#1072; &amp;#1087;&amp;#1072;&amp;#1088;&amp;#1086;&amp;#1083;&amp;#1103; &amp;#1080; &amp;#1089;&amp;#1086;&amp;#1089;&amp;#1090;&amp;#1086;&amp;#1103;&amp;#1085;&amp;#1080;&amp;#1103;
+    &amp;lt;/p&amp;gt;
+    &amp;lt;p style=&amp;quot;margin-top:0pt;margin-left:0pt;margin-bottom:.0001pt;margin-right:0pt;&amp;quot;&amp;gt;
+      &amp;#1072;&amp;#1082;&amp;#1082;&amp;#1072;&amp;#1091;&amp;#1085;&amp;#1090;&amp;#1072; &amp;#1074;&amp;#1099;&amp;#1087;&amp;#1086;&amp;#1083;&amp;#1085;&amp;#1103;&amp;#1077;&amp;#1090;&amp;#1089;&amp;#1103; LoginUseCase.
+    &amp;lt;/p&amp;gt;
+  &amp;lt;/body&amp;gt;" coords="2, 326, 86, 366" coords2="2, 326, 86, 366" shape="rect" alt="LoginRequest:Class" id="areadiagram_map_j2XMiQWGAqAAZhj4_default" href="Class_ERghCQWGAqAAZguC.html" onmouseover="hideReferenceIcon(),hideSubdiagramIcon(),hideTransitorIcon(),showTooltip(this)" onmousedown="clearSpotLight();" onmouseout="hideTooltip()"/>
+<area imageId="diagram" docContent="&amp;lt;head&amp;gt;
+    
+  &amp;lt;/head&amp;gt;
+  &amp;lt;body style=&amp;quot;margin-left:0;color:#000000;font-weight:normal;font-size:12px;font-family:Dialog;margin-right:0;&amp;quot;&amp;gt;
+    &amp;lt;p style=&amp;quot;margin-top:0pt;margin-left:0pt;margin-bottom:.0001pt;margin-right:0pt;&amp;quot;&amp;gt;
+      &amp;#1042;&amp;#1093;&amp;#1086;&amp;#1076;&amp;#1085;&amp;#1072;&amp;#1103; HTTP-&amp;#1084;&amp;#1086;&amp;#1076;&amp;#1077;&amp;#1083;&amp;#1100; &amp;#1088;&amp;#1077;&amp;#1075;&amp;#1080;&amp;#1089;&amp;#1090;&amp;#1088;&amp;#1072;&amp;#1094;&amp;#1080;&amp;#1080; &amp;#1087;&amp;#1086;&amp;#1083;&amp;#1100;&amp;#1079;&amp;#1086;&amp;#1074;&amp;#1072;&amp;#1090;&amp;#1077;&amp;#1083;&amp;#1103;.
+    &amp;lt;/p&amp;gt;
+    &amp;lt;p style=&amp;quot;margin-top:0pt;margin-left:0pt;margin-bottom:.0001pt;margin-right:0pt;&amp;quot;&amp;gt;
+      &amp;nbsp;
+    &amp;lt;/p&amp;gt;
+    &amp;lt;p style=&amp;quot;margin-top:0pt;margin-left:0pt;margin-bottom:.0001pt;margin-right:0pt;&amp;quot;&amp;gt;
+      &amp;#1057;&amp;#1086;&amp;#1076;&amp;#1077;&amp;#1088;&amp;#1078;&amp;#1080;&amp;#1090; email, &amp;#1086;&amp;#1090;&amp;#1082;&amp;#1088;&amp;#1099;&amp;#1090;&amp;#1099;&amp;#1081; &amp;#1087;&amp;#1072;&amp;#1088;&amp;#1086;&amp;#1083;&amp;#1100;, &amp;#1080;&amp;#1084;&amp;#1103;, &amp;#1092;&amp;#1072;&amp;#1084;&amp;#1080;&amp;#1083;&amp;#1080;&amp;#1102; &amp;#1080; &amp;#1074;&amp;#1099;&amp;#1073;&amp;#1088;&amp;#1072;&amp;#1085;&amp;#1085;&amp;#1099;&amp;#1077; &amp;#1088;&amp;#1086;&amp;#1083;&amp;#1080;.
+    &amp;lt;/p&amp;gt;
+    &amp;lt;p style=&amp;quot;margin-top:0pt;margin-left:0pt;margin-bottom:.0001pt;margin-right:0pt;&amp;quot;&amp;gt;
+      &amp;#1054;&amp;#1090;&amp;#1082;&amp;#1088;&amp;#1099;&amp;#1090;&amp;#1099;&amp;#1081; &amp;#1087;&amp;#1072;&amp;#1088;&amp;#1086;&amp;#1083;&amp;#1100; &amp;#1089;&amp;#1091;&amp;#1097;&amp;#1077;&amp;#1089;&amp;#1090;&amp;#1074;&amp;#1091;&amp;#1077;&amp;#1090; &amp;#1090;&amp;#1086;&amp;#1083;&amp;#1100;&amp;#1082;&amp;#1086; &amp;#1074;&amp;#1086; &amp;#1074;&amp;#1088;&amp;#1077;&amp;#1084;&amp;#1103; &amp;#1086;&amp;#1073;&amp;#1088;&amp;#1072;&amp;#1073;&amp;#1086;&amp;#1090;&amp;#1082;&amp;#1080; &amp;#1079;&amp;#1072;&amp;#1087;&amp;#1088;&amp;#1086;&amp;#1089;&amp;#1072;
+    &amp;lt;/p&amp;gt;
+    &amp;lt;p style=&amp;quot;margin-top:0pt;margin-left:0pt;margin-bottom:.0001pt;margin-right:0pt;&amp;quot;&amp;gt;
+      &amp;#1080; &amp;#1085;&amp;#1080;&amp;#1082;&amp;#1086;&amp;#1075;&amp;#1076;&amp;#1072; &amp;#1085;&amp;#1077; &amp;#1074;&amp;#1086;&amp;#1079;&amp;#1074;&amp;#1088;&amp;#1072;&amp;#1097;&amp;#1072;&amp;#1077;&amp;#1090;&amp;#1089;&amp;#1103; &amp;#1074; &amp;#1086;&amp;#1090;&amp;#1074;&amp;#1077;&amp;#1090;&amp;#1077; &amp;#1080; &amp;#1085;&amp;#1077; &amp;#1089;&amp;#1086;&amp;#1093;&amp;#1088;&amp;#1072;&amp;#1085;&amp;#1103;&amp;#1077;&amp;#1090;&amp;#1089;&amp;#1103; &amp;#1082;&amp;#1072;&amp;#1082; &amp;#1095;&amp;#1072;&amp;#1089;&amp;#1090;&amp;#1100; User.
+    &amp;lt;/p&amp;gt;
+    &amp;lt;p style=&amp;quot;margin-top:0pt;margin-left:0pt;margin-bottom:.0001pt;margin-right:0pt;&amp;quot;&amp;gt;
+      &amp;nbsp;
+    &amp;lt;/p&amp;gt;
+    &amp;lt;p style=&amp;quot;margin-top:0pt;margin-left:0pt;margin-bottom:.0001pt;margin-right:0pt;&amp;quot;&amp;gt;
+      &amp;#1058;&amp;#1086;&amp;#1095;&amp;#1085;&amp;#1099;&amp;#1081; &amp;#1089;&amp;#1086;&amp;#1089;&amp;#1090;&amp;#1072;&amp;#1074; &amp;#1080; &amp;#1086;&amp;#1075;&amp;#1088;&amp;#1072;&amp;#1085;&amp;#1080;&amp;#1095;&amp;#1077;&amp;#1085;&amp;#1080;&amp;#1103; &amp;#1087;&amp;#1086;&amp;#1083;&amp;#1077;&amp;#1081; &amp;#1086;&amp;#1087;&amp;#1088;&amp;#1077;&amp;#1076;&amp;#1077;&amp;#1083;&amp;#1103;&amp;#1102;&amp;#1090;&amp;#1089;&amp;#1103; OpenAPI.
+    &amp;lt;/p&amp;gt;
+  &amp;lt;/body&amp;gt;" coords="71, 42, 169, 82" coords2="71, 42, 169, 82" shape="rect" alt="RegisterRequest:Class" id="areadiagram_map_UqHMiQWGAqAAZhjh_default" href="Class_u0ghCQWGAqAAZgt2.html" onmouseover="hideReferenceIcon(),hideSubdiagramIcon(),hideTransitorIcon(),showTooltip(this)" onmousedown="clearSpotLight();" onmouseout="hideTooltip()"/>
+<area imageId="diagram" docContent="&amp;lt;head&amp;gt;
+    
+  &amp;lt;/head&amp;gt;
+  &amp;lt;body style=&amp;quot;margin-left:0;color:#000000;font-weight:normal;font-size:12px;font-family:Dialog;margin-right:0;&amp;quot;&amp;gt;
+    &amp;lt;p style=&amp;quot;margin-top:0pt;margin-left:0pt;margin-bottom:.0001pt;margin-right:0pt;&amp;quot;&amp;gt;
+      &amp;#1055;&amp;#1088;&amp;#1077;&amp;#1086;&amp;#1073;&amp;#1088;&amp;#1072;&amp;#1079;&amp;#1091;&amp;#1077;&amp;#1090; HTTP-&amp;#1079;&amp;#1072;&amp;#1087;&amp;#1088;&amp;#1086;&amp;#1089;&amp;#1099; &amp;#1088;&amp;#1077;&amp;#1075;&amp;#1080;&amp;#1089;&amp;#1090;&amp;#1088;&amp;#1072;&amp;#1094;&amp;#1080;&amp;#1080; &amp;#1080; &amp;#1072;&amp;#1074;&amp;#1090;&amp;#1086;&amp;#1088;&amp;#1080;&amp;#1079;&amp;#1072;&amp;#1094;&amp;#1080;&amp;#1080; &amp;#1074; &amp;#1089;&amp;#1086;&amp;#1086;&amp;#1090;&amp;#1074;&amp;#1077;&amp;#1090;&amp;#1089;&amp;#1090;&amp;#1074;&amp;#1091;&amp;#1102;&amp;#1097;&amp;#1080;&amp;#1077;
+    &amp;lt;/p&amp;gt;
+    &amp;lt;p style=&amp;quot;margin-top:0pt;margin-left:0pt;margin-bottom:.0001pt;margin-right:0pt;&amp;quot;&amp;gt;
+      application-&amp;#1082;&amp;#1086;&amp;#1084;&amp;#1072;&amp;#1085;&amp;#1076;&amp;#1099;.
+    &amp;lt;/p&amp;gt;
+    &amp;lt;p style=&amp;quot;margin-top:0pt;margin-left:0pt;margin-bottom:.0001pt;margin-right:0pt;&amp;quot;&amp;gt;
+      &amp;nbsp;
+    &amp;lt;/p&amp;gt;
+    &amp;lt;p style=&amp;quot;margin-top:0pt;margin-left:0pt;margin-bottom:.0001pt;margin-right:0pt;&amp;quot;&amp;gt;
+      &amp;#1055;&amp;#1088;&amp;#1077;&amp;#1086;&amp;#1073;&amp;#1088;&amp;#1072;&amp;#1079;&amp;#1091;&amp;#1077;&amp;#1090; &amp;#1088;&amp;#1077;&amp;#1079;&amp;#1091;&amp;#1083;&amp;#1100;&amp;#1090;&amp;#1072;&amp;#1090;&amp;#1099; &amp;#1088;&amp;#1077;&amp;#1075;&amp;#1080;&amp;#1089;&amp;#1090;&amp;#1088;&amp;#1072;&amp;#1094;&amp;#1080;&amp;#1080; &amp;#1080; &amp;#1072;&amp;#1091;&amp;#1090;&amp;#1077;&amp;#1085;&amp;#1090;&amp;#1080;&amp;#1092;&amp;#1080;&amp;#1082;&amp;#1072;&amp;#1094;&amp;#1080;&amp;#1080; &amp;#1074; HTTP-&amp;#1086;&amp;#1090;&amp;#1074;&amp;#1077;&amp;#1090;&amp;#1099;.
+    &amp;lt;/p&amp;gt;
+    &amp;lt;p style=&amp;quot;margin-top:0pt;margin-left:0pt;margin-bottom:.0001pt;margin-right:0pt;&amp;quot;&amp;gt;
+      &amp;nbsp;
+    &amp;lt;/p&amp;gt;
+    &amp;lt;p style=&amp;quot;margin-top:0pt;margin-left:0pt;margin-bottom:.0001pt;margin-right:0pt;&amp;quot;&amp;gt;
+      &amp;#1050;&amp;#1086;&amp;#1085;&amp;#1082;&amp;#1088;&amp;#1077;&amp;#1090;&amp;#1085;&amp;#1099;&amp;#1081; &amp;#1089;&amp;#1087;&amp;#1086;&amp;#1089;&amp;#1086;&amp;#1073; &amp;#1088;&amp;#1077;&amp;#1072;&amp;#1083;&amp;#1080;&amp;#1079;&amp;#1072;&amp;#1094;&amp;#1080;&amp;#1080;, &amp;#1074;&amp;#1082;&amp;#1083;&amp;#1102;&amp;#1095;&amp;#1072;&amp;#1103; &amp;#1088;&amp;#1091;&amp;#1095;&amp;#1085;&amp;#1086;&amp;#1077; &amp;#1087;&amp;#1088;&amp;#1077;&amp;#1086;&amp;#1073;&amp;#1088;&amp;#1072;&amp;#1079;&amp;#1086;&amp;#1074;&amp;#1072;&amp;#1085;&amp;#1080;&amp;#1077; &amp;#1080;&amp;#1083;&amp;#1080;
+    &amp;lt;/p&amp;gt;
+    &amp;lt;p style=&amp;quot;margin-top:0pt;margin-left:0pt;margin-bottom:.0001pt;margin-right:0pt;&amp;quot;&amp;gt;
+      MapStruct, &amp;#1074;&amp;#1099;&amp;#1073;&amp;#1080;&amp;#1088;&amp;#1072;&amp;#1077;&amp;#1090; &amp;#1088;&amp;#1072;&amp;#1079;&amp;#1088;&amp;#1072;&amp;#1073;&amp;#1086;&amp;#1090;&amp;#1095;&amp;#1080;&amp;#1082;.
+    &amp;lt;/p&amp;gt;
+  &amp;lt;/body&amp;gt;" coords="181, 154, 322, 204" coords2="181, 154, 322, 204" shape="rect" alt="AuthPresentationMapper:Class" id="areadiagram_map_1te1CQWGAqAAZg.c_default" href="Class_1te1CQWGAqAAZg_d.html" onmouseover="hideReferenceIcon(),hideSubdiagramIcon(),hideTransitorIcon(),showTooltip(this)" onmousedown="clearSpotLight();" onmouseout="hideTooltip()"/>
+</map>
+				</td>
+			</tr>
+		</table>
+		<p>
+		</p>
+	</div>
+	<table border="0" cellpadding="0" width="100%" cellspacing="0">
+		<tr>
+			<td class="Category">
+				Model Elements			</td>
+		</tr>
+		<tr>
+			<td style="height: 5px">
+			</td>
+		</tr>
+	</table>
+	<table border="0" cellpadding="0" width="100%" cellspacing="0">
+		<tr>
+			<td colSpan="4" class="TableHeaderLine">
+			</td>
+		</tr>
+		<tr>
+			<td colSpan="4" class="TableHeaderLine1">
+			</td>
+		</tr>
+		<tr class="TableHeader">
+			<td class="TableCellSpaceHolder10Px">
+			</td>
+			<td width="30%">
+<span class="TableHeaderText">Name</span>			</td>
+			<td class="TableCellSpaceHolder20Px">
+			</td>
+			<td>
+<span class="TableHeaderText">Description</span>			</td>
+		</tr>
+		<tr>
+			<td colSpan="4" class="TableHeaderLine2">
+			</td>
+		</tr>
+		<tr class="TableRow1">
+			<td>
+			</td>
+			<td>
+				<span class="TableContent">
+					<div style="float: left; width: 18px !important;height: 18px !important;background-image:url(../images/icons/Class.png) !important; background-image:url(''); filter:progid:DXImageTransform.Microsoft.AlphaImageLoader(src='../images/icons/Class.png'); background-repeat: no-repeat; background-size: contain;">
+					</div>
+					&nbsp; <a href="Class_PmVVCQWGAqAAZg7V.html" class="ItemLink">ResendEmailVerificationRequest : Class</a>				</span>
+			</td>
+			<td>
+			</td>
+			<td style="padding: 5px 0">
+<span class="TableContent Documentation"><head>
+    
+  </head>
+  <body style="margin-left:0;color:#000000;font-weight:normal;font-size:12px;font-family:Dialog;margin-right:0;">
+    <p style="margin-top:0pt;margin-left:0pt;margin-bottom:.0001pt;margin-right:0pt;">
+      &#1042;&#1093;&#1086;&#1076;&#1085;&#1072;&#1103; HTTP-&#1084;&#1086;&#1076;&#1077;&#1083;&#1100; &#1079;&#1072;&#1087;&#1088;&#1086;&#1089;&#1072; &#1087;&#1086;&#1074;&#1090;&#1086;&#1088;&#1085;&#1086;&#1081; &#1086;&#1090;&#1087;&#1088;&#1072;&#1074;&#1082;&#1080; &#1087;&#1080;&#1089;&#1100;&#1084;&#1072; &#1087;&#1086;&#1076;&#1090;&#1074;&#1077;&#1088;&#1078;&#1076;&#1077;&#1085;&#1080;&#1103;.
+    </p>
+    <p style="margin-top:0pt;margin-left:0pt;margin-bottom:.0001pt;margin-right:0pt;">
+      &nbsp;
+    </p>
+    <p style="margin-top:0pt;margin-left:0pt;margin-bottom:.0001pt;margin-right:0pt;">
+      &#1055;&#1077;&#1088;&#1077;&#1076;&#1072;&#1105;&#1090; email &#1087;&#1086;&#1083;&#1100;&#1079;&#1086;&#1074;&#1072;&#1090;&#1077;&#1083;&#1103;. &#1053;&#1072;&#1083;&#1080;&#1095;&#1080;&#1077; &#1080;&#1083;&#1080; &#1086;&#1090;&#1089;&#1091;&#1090;&#1089;&#1090;&#1074;&#1080;&#1077; &#1087;&#1086;&#1083;&#1100;&#1079;&#1086;&#1074;&#1072;&#1090;&#1077;&#1083;&#1103;
+    </p>
+    <p style="margin-top:0pt;margin-left:0pt;margin-bottom:.0001pt;margin-right:0pt;">
+      &#1085;&#1077; &#1076;&#1086;&#1083;&#1078;&#1085;&#1086; &#1074;&#1083;&#1080;&#1103;&#1090;&#1100; &#1085;&#1072; &#1087;&#1091;&#1073;&#1083;&#1080;&#1095;&#1085;&#1099;&#1081; HTTP-&#1086;&#1090;&#1074;&#1077;&#1090;.
+    </p>
+  </body></span>			</td>
+		</tr>
+		<tr class="TableRow2">
+			<td>
+			</td>
+			<td>
+				<span class="TableContent">
+					<div style="float: left; width: 18px !important;height: 18px !important;background-image:url(../images/icons/Class.png) !important; background-image:url(''); filter:progid:DXImageTransform.Microsoft.AlphaImageLoader(src='../images/icons/Class.png'); background-repeat: no-repeat; background-size: contain;">
+					</div>
+					&nbsp; <a href="Class_WxvVCQWGAqAAZg8w.html" class="ItemLink">VerificationPendingResponse : Class</a>				</span>
+			</td>
+			<td>
+			</td>
+			<td style="padding: 5px 0">
+<span class="TableContent Documentation"><head>
+    
+  </head>
+  <body style="margin-left:0;color:#000000;font-weight:normal;font-size:12px;font-family:Dialog;margin-right:0;">
+    <p style="margin-top:0pt;margin-left:0pt;margin-bottom:.0001pt;margin-right:0pt;">
+      HTTP-&#1086;&#1090;&#1074;&#1077;&#1090; &#1091;&#1089;&#1087;&#1077;&#1096;&#1085;&#1086;&#1081; &#1088;&#1077;&#1075;&#1080;&#1089;&#1090;&#1088;&#1072;&#1094;&#1080;&#1080; &#1085;&#1077;&#1087;&#1086;&#1076;&#1090;&#1074;&#1077;&#1088;&#1078;&#1076;&#1105;&#1085;&#1085;&#1086;&#1075;&#1086; &#1087;&#1086;&#1083;&#1100;&#1079;&#1086;&#1074;&#1072;&#1090;&#1077;&#1083;&#1103;.
+    </p>
+    <p style="margin-top:0pt;margin-left:0pt;margin-bottom:.0001pt;margin-right:0pt;">
+      &nbsp;
+    </p>
+    <p style="margin-top:0pt;margin-left:0pt;margin-bottom:.0001pt;margin-right:0pt;">
+      &#1057;&#1086;&#1086;&#1073;&#1097;&#1072;&#1077;&#1090; frontend, &#1095;&#1090;&#1086; &#1072;&#1082;&#1082;&#1072;&#1091;&#1085;&#1090; &#1089;&#1086;&#1079;&#1076;&#1072;&#1085; &#1080; &#1086;&#1078;&#1080;&#1076;&#1072;&#1077;&#1090; &#1087;&#1086;&#1076;&#1090;&#1074;&#1077;&#1088;&#1078;&#1076;&#1077;&#1085;&#1080;&#1103; email.
+    </p>
+    <p style="margin-top:0pt;margin-left:0pt;margin-bottom:.0001pt;margin-right:0pt;">
+      &#1052;&#1086;&#1078;&#1077;&#1090; &#1089;&#1086;&#1076;&#1077;&#1088;&#1078;&#1072;&#1090;&#1100; email &#1080; &#1074;&#1088;&#1077;&#1084;&#1103; &#1086;&#1082;&#1086;&#1085;&#1095;&#1072;&#1085;&#1080;&#1103; &#1076;&#1077;&#1081;&#1089;&#1090;&#1074;&#1080;&#1103; &#1086;&#1090;&#1087;&#1088;&#1072;&#1074;&#1083;&#1077;&#1085;&#1085;&#1086;&#1075;&#1086;
+    </p>
+    <p style="margin-top:0pt;margin-left:0pt;margin-bottom:.0001pt;margin-right:0pt;">
+      &#1087;&#1088;&#1086;&#1074;&#1077;&#1088;&#1086;&#1095;&#1085;&#1086;&#1075;&#1086; &#1090;&#1086;&#1082;&#1077;&#1085;&#1072;.
+    </p>
+  </body></span>			</td>
+		</tr>
+		<tr class="TableRow1">
+			<td>
+			</td>
+			<td>
+				<span class="TableContent">
+					<div style="float: left; width: 18px !important;height: 18px !important;background-image:url(../images/icons/Class.png) !important; background-image:url(''); filter:progid:DXImageTransform.Microsoft.AlphaImageLoader(src='../images/icons/Class.png'); background-repeat: no-repeat; background-size: contain;">
+					</div>
+					&nbsp; <a href="Class_qrvVCQWGAqAAZg82.html" class="ItemLink">TokenResponse : Class</a>				</span>
+			</td>
+			<td>
+			</td>
+			<td style="padding: 5px 0">
+<span class="TableContent Documentation"><head>
+    
+  </head>
+  <body style="margin-left:0;color:#000000;font-weight:normal;font-size:12px;font-family:Dialog;margin-right:0;">
+    <p style="margin-top:0pt;margin-left:0pt;margin-bottom:.0001pt;margin-right:0pt;">
+      HTTP-&#1086;&#1090;&#1074;&#1077;&#1090; &#1091;&#1089;&#1087;&#1077;&#1096;&#1085;&#1086;&#1081; &#1072;&#1091;&#1090;&#1077;&#1085;&#1090;&#1080;&#1092;&#1080;&#1082;&#1072;&#1094;&#1080;&#1080; &#1080;&#1083;&#1080; &#1086;&#1073;&#1085;&#1086;&#1074;&#1083;&#1077;&#1085;&#1080;&#1103; &#1090;&#1086;&#1082;&#1077;&#1085;&#1086;&#1074;.
+    </p>
+    <p style="margin-top:0pt;margin-left:0pt;margin-bottom:.0001pt;margin-right:0pt;">
+      &nbsp;
+    </p>
+    <p style="margin-top:0pt;margin-left:0pt;margin-bottom:.0001pt;margin-right:0pt;">
+      &#1057;&#1086;&#1076;&#1077;&#1088;&#1078;&#1080;&#1090; access JWT, &#1090;&#1080;&#1087; &#1072;&#1074;&#1090;&#1086;&#1088;&#1080;&#1079;&#1072;&#1094;&#1080;&#1080; Bearer &#1080; &#1080;&#1085;&#1092;&#1086;&#1088;&#1084;&#1072;&#1094;&#1080;&#1102; &#1086; &#1089;&#1088;&#1086;&#1082;&#1077;
+    </p>
+    <p style="margin-top:0pt;margin-left:0pt;margin-bottom:.0001pt;margin-right:0pt;">
+      &#1076;&#1077;&#1081;&#1089;&#1090;&#1074;&#1080;&#1103; access token.
+    </p>
+    <p style="margin-top:0pt;margin-left:0pt;margin-bottom:.0001pt;margin-right:0pt;">
+      &nbsp;
+    </p>
+    <p style="margin-top:0pt;margin-left:0pt;margin-bottom:.0001pt;margin-right:0pt;">
+      Refresh token &#1074; &#1101;&#1090;&#1091; &#1084;&#1086;&#1076;&#1077;&#1083;&#1100; &#1085;&#1077; &#1074;&#1093;&#1086;&#1076;&#1080;&#1090; &#1080; &#1087;&#1077;&#1088;&#1077;&#1076;&#1072;&#1105;&#1090;&#1089;&#1103; &#1090;&#1086;&#1083;&#1100;&#1082;&#1086; &#1095;&#1077;&#1088;&#1077;&#1079;
+    </p>
+    <p style="margin-top:0pt;margin-left:0pt;margin-bottom:.0001pt;margin-right:0pt;">
+      HttpOnly cookie.
+    </p>
+  </body></span>			</td>
+		</tr>
+		<tr class="TableRow2">
+			<td>
+			</td>
+			<td>
+				<span class="TableContent">
+					<div style="float: left; width: 18px !important;height: 18px !important;background-image:url(../images/icons/Class.png) !important; background-image:url(''); filter:progid:DXImageTransform.Microsoft.AlphaImageLoader(src='../images/icons/Class.png'); background-repeat: no-repeat; background-size: contain;">
+					</div>
+					&nbsp; <a href="Class_Ub_VCQWGAqAAZg6y.html" class="ItemLink">ConfirmEmailRequest : Class</a>				</span>
+			</td>
+			<td>
+			</td>
+			<td style="padding: 5px 0">
+<span class="TableContent Documentation"><head>
+    
+  </head>
+  <body style="margin-left:0;color:#000000;font-weight:normal;font-size:12px;font-family:Dialog;margin-right:0;">
+    <p style="margin-top:0pt;margin-left:0pt;margin-bottom:.0001pt;margin-right:0pt;">
+      &#1042;&#1093;&#1086;&#1076;&#1085;&#1072;&#1103; HTTP-&#1084;&#1086;&#1076;&#1077;&#1083;&#1100; &#1087;&#1086;&#1076;&#1090;&#1074;&#1077;&#1088;&#1078;&#1076;&#1077;&#1085;&#1080;&#1103; email.
+    </p>
+    <p style="margin-top:0pt;margin-left:0pt;margin-bottom:.0001pt;margin-right:0pt;">
+      &nbsp;
+    </p>
+    <p style="margin-top:0pt;margin-left:0pt;margin-bottom:.0001pt;margin-right:0pt;">
+      &#1055;&#1077;&#1088;&#1077;&#1076;&#1072;&#1105;&#1090; &#1086;&#1076;&#1085;&#1086;&#1088;&#1072;&#1079;&#1086;&#1074;&#1099;&#1081; &#1086;&#1090;&#1082;&#1088;&#1099;&#1090;&#1099;&#1081; &#1090;&#1086;&#1082;&#1077;&#1085;, &#1087;&#1086;&#1083;&#1091;&#1095;&#1077;&#1085;&#1085;&#1099;&#1081; &#1087;&#1086;&#1083;&#1100;&#1079;&#1086;&#1074;&#1072;&#1090;&#1077;&#1083;&#1077;&#1084; &#1074; &#1087;&#1080;&#1089;&#1100;&#1084;&#1077;.
+    </p>
+    <p style="margin-top:0pt;margin-left:0pt;margin-bottom:.0001pt;margin-right:0pt;">
+      &#1055;&#1088;&#1086;&#1074;&#1077;&#1088;&#1082;&#1072; &#1085;&#1072;&#1079;&#1085;&#1072;&#1095;&#1077;&#1085;&#1080;&#1103;, &#1089;&#1088;&#1086;&#1082;&#1072; &#1076;&#1077;&#1081;&#1089;&#1090;&#1074;&#1080;&#1103;, &#1093;&#1101;&#1096;&#1072; &#1080; &#1086;&#1076;&#1085;&#1086;&#1088;&#1072;&#1079;&#1086;&#1074;&#1086;&#1089;&#1090;&#1080; &#1090;&#1086;&#1082;&#1077;&#1085;&#1072;
+    </p>
+    <p style="margin-top:0pt;margin-left:0pt;margin-bottom:.0001pt;margin-right:0pt;">
+      &#1074;&#1099;&#1087;&#1086;&#1083;&#1085;&#1103;&#1077;&#1090;&#1089;&#1103; application-&#1089;&#1094;&#1077;&#1085;&#1072;&#1088;&#1080;&#1077;&#1084;.
+    </p>
+  </body></span>			</td>
+		</tr>
+		<tr class="TableRow1">
+			<td>
+			</td>
+			<td>
+				<span class="TableContent">
+					<div style="float: left; width: 18px !important;height: 18px !important;background-image:url(../images/icons/Class.png) !important; background-image:url(''); filter:progid:DXImageTransform.Microsoft.AlphaImageLoader(src='../images/icons/Class.png'); background-repeat: no-repeat; background-size: contain;">
+					</div>
+					&nbsp; <a href="Class_ERghCQWGAqAAZguC.html" class="ItemLink">LoginRequest : Class</a>				</span>
+			</td>
+			<td>
+			</td>
+			<td style="padding: 5px 0">
+<span class="TableContent Documentation"><head>
+    
+  </head>
+  <body style="margin-left:0;color:#000000;font-weight:normal;font-size:12px;font-family:Dialog;margin-right:0;">
+    <p style="margin-top:0pt;margin-left:0pt;margin-bottom:.0001pt;margin-right:0pt;">
+      &#1042;&#1093;&#1086;&#1076;&#1085;&#1072;&#1103; HTTP-&#1084;&#1086;&#1076;&#1077;&#1083;&#1100; &#1072;&#1091;&#1090;&#1077;&#1085;&#1090;&#1080;&#1092;&#1080;&#1082;&#1072;&#1094;&#1080;&#1080; &#1087;&#1086;&#1083;&#1100;&#1079;&#1086;&#1074;&#1072;&#1090;&#1077;&#1083;&#1103; &#1087;&#1086; email &#1080; &#1087;&#1072;&#1088;&#1086;&#1083;&#1102;.
+    </p>
+    <p style="margin-top:0pt;margin-left:0pt;margin-bottom:.0001pt;margin-right:0pt;">
+      &nbsp;
+    </p>
+    <p style="margin-top:0pt;margin-left:0pt;margin-bottom:.0001pt;margin-right:0pt;">
+      &#1052;&#1086;&#1076;&#1077;&#1083;&#1100; &#1090;&#1086;&#1083;&#1100;&#1082;&#1086; &#1087;&#1077;&#1088;&#1077;&#1076;&#1072;&#1105;&#1090; &#1074;&#1074;&#1077;&#1076;&#1105;&#1085;&#1085;&#1099;&#1077; &#1076;&#1072;&#1085;&#1085;&#1099;&#1077;. &#1055;&#1088;&#1086;&#1074;&#1077;&#1088;&#1082;&#1072; &#1087;&#1072;&#1088;&#1086;&#1083;&#1103; &#1080; &#1089;&#1086;&#1089;&#1090;&#1086;&#1103;&#1085;&#1080;&#1103;
+    </p>
+    <p style="margin-top:0pt;margin-left:0pt;margin-bottom:.0001pt;margin-right:0pt;">
+      &#1072;&#1082;&#1082;&#1072;&#1091;&#1085;&#1090;&#1072; &#1074;&#1099;&#1087;&#1086;&#1083;&#1085;&#1103;&#1077;&#1090;&#1089;&#1103; LoginUseCase.
+    </p>
+  </body></span>			</td>
+		</tr>
+		<tr class="TableRow2">
+			<td>
+			</td>
+			<td>
+				<span class="TableContent">
+					<div style="float: left; width: 18px !important;height: 18px !important;background-image:url(../images/icons/Class.png) !important; background-image:url(''); filter:progid:DXImageTransform.Microsoft.AlphaImageLoader(src='../images/icons/Class.png'); background-repeat: no-repeat; background-size: contain;">
+					</div>
+					&nbsp; <a href="Class_u0ghCQWGAqAAZgt2.html" class="ItemLink">RegisterRequest : Class</a>				</span>
+			</td>
+			<td>
+			</td>
+			<td style="padding: 5px 0">
+<span class="TableContent Documentation"><head>
+    
+  </head>
+  <body style="margin-left:0;color:#000000;font-weight:normal;font-size:12px;font-family:Dialog;margin-right:0;">
+    <p style="margin-top:0pt;margin-left:0pt;margin-bottom:.0001pt;margin-right:0pt;">
+      &#1042;&#1093;&#1086;&#1076;&#1085;&#1072;&#1103; HTTP-&#1084;&#1086;&#1076;&#1077;&#1083;&#1100; &#1088;&#1077;&#1075;&#1080;&#1089;&#1090;&#1088;&#1072;&#1094;&#1080;&#1080; &#1087;&#1086;&#1083;&#1100;&#1079;&#1086;&#1074;&#1072;&#1090;&#1077;&#1083;&#1103;.
+    </p>
+    <p style="margin-top:0pt;margin-left:0pt;margin-bottom:.0001pt;margin-right:0pt;">
+      &nbsp;
+    </p>
+    <p style="margin-top:0pt;margin-left:0pt;margin-bottom:.0001pt;margin-right:0pt;">
+      &#1057;&#1086;&#1076;&#1077;&#1088;&#1078;&#1080;&#1090; email, &#1086;&#1090;&#1082;&#1088;&#1099;&#1090;&#1099;&#1081; &#1087;&#1072;&#1088;&#1086;&#1083;&#1100;, &#1080;&#1084;&#1103;, &#1092;&#1072;&#1084;&#1080;&#1083;&#1080;&#1102; &#1080; &#1074;&#1099;&#1073;&#1088;&#1072;&#1085;&#1085;&#1099;&#1077; &#1088;&#1086;&#1083;&#1080;.
+    </p>
+    <p style="margin-top:0pt;margin-left:0pt;margin-bottom:.0001pt;margin-right:0pt;">
+      &#1054;&#1090;&#1082;&#1088;&#1099;&#1090;&#1099;&#1081; &#1087;&#1072;&#1088;&#1086;&#1083;&#1100; &#1089;&#1091;&#1097;&#1077;&#1089;&#1090;&#1074;&#1091;&#1077;&#1090; &#1090;&#1086;&#1083;&#1100;&#1082;&#1086; &#1074;&#1086; &#1074;&#1088;&#1077;&#1084;&#1103; &#1086;&#1073;&#1088;&#1072;&#1073;&#1086;&#1090;&#1082;&#1080; &#1079;&#1072;&#1087;&#1088;&#1086;&#1089;&#1072;
+    </p>
+    <p style="margin-top:0pt;margin-left:0pt;margin-bottom:.0001pt;margin-right:0pt;">
+      &#1080; &#1085;&#1080;&#1082;&#1086;&#1075;&#1076;&#1072; &#1085;&#1077; &#1074;&#1086;&#1079;&#1074;&#1088;&#1072;&#1097;&#1072;&#1077;&#1090;&#1089;&#1103; &#1074; &#1086;&#1090;&#1074;&#1077;&#1090;&#1077; &#1080; &#1085;&#1077; &#1089;&#1086;&#1093;&#1088;&#1072;&#1085;&#1103;&#1077;&#1090;&#1089;&#1103; &#1082;&#1072;&#1082; &#1095;&#1072;&#1089;&#1090;&#1100; User.
+    </p>
+    <p style="margin-top:0pt;margin-left:0pt;margin-bottom:.0001pt;margin-right:0pt;">
+      &nbsp;
+    </p>
+    <p style="margin-top:0pt;margin-left:0pt;margin-bottom:.0001pt;margin-right:0pt;">
+      &#1058;&#1086;&#1095;&#1085;&#1099;&#1081; &#1089;&#1086;&#1089;&#1090;&#1072;&#1074; &#1080; &#1086;&#1075;&#1088;&#1072;&#1085;&#1080;&#1095;&#1077;&#1085;&#1080;&#1103; &#1087;&#1086;&#1083;&#1077;&#1081; &#1086;&#1087;&#1088;&#1077;&#1076;&#1077;&#1083;&#1103;&#1102;&#1090;&#1089;&#1103; OpenAPI.
+    </p>
+  </body></span>			</td>
+		</tr>
+		<tr class="TableRow1">
+			<td>
+			</td>
+			<td>
+				<span class="TableContent">
+					<div style="float: left; width: 18px !important;height: 18px !important;background-image:url(../images/icons/Class.png) !important; background-image:url(''); filter:progid:DXImageTransform.Microsoft.AlphaImageLoader(src='../images/icons/Class.png'); background-repeat: no-repeat; background-size: contain;">
+					</div>
+					&nbsp; <a href="Class_1te1CQWGAqAAZg_d.html" class="ItemLink">AuthPresentationMapper : Class</a>				</span>
+			</td>
+			<td>
+			</td>
+			<td style="padding: 5px 0">
+<span class="TableContent Documentation"><head>
+    
+  </head>
+  <body style="margin-left:0;color:#000000;font-weight:normal;font-size:12px;font-family:Dialog;margin-right:0;">
+    <p style="margin-top:0pt;margin-left:0pt;margin-bottom:.0001pt;margin-right:0pt;">
+      &#1055;&#1088;&#1077;&#1086;&#1073;&#1088;&#1072;&#1079;&#1091;&#1077;&#1090; HTTP-&#1079;&#1072;&#1087;&#1088;&#1086;&#1089;&#1099; &#1088;&#1077;&#1075;&#1080;&#1089;&#1090;&#1088;&#1072;&#1094;&#1080;&#1080; &#1080; &#1072;&#1074;&#1090;&#1086;&#1088;&#1080;&#1079;&#1072;&#1094;&#1080;&#1080; &#1074; &#1089;&#1086;&#1086;&#1090;&#1074;&#1077;&#1090;&#1089;&#1090;&#1074;&#1091;&#1102;&#1097;&#1080;&#1077;
+    </p>
+    <p style="margin-top:0pt;margin-left:0pt;margin-bottom:.0001pt;margin-right:0pt;">
+      application-&#1082;&#1086;&#1084;&#1072;&#1085;&#1076;&#1099;.
+    </p>
+    <p style="margin-top:0pt;margin-left:0pt;margin-bottom:.0001pt;margin-right:0pt;">
+      &nbsp;
+    </p>
+    <p style="margin-top:0pt;margin-left:0pt;margin-bottom:.0001pt;margin-right:0pt;">
+      &#1055;&#1088;&#1077;&#1086;&#1073;&#1088;&#1072;&#1079;&#1091;&#1077;&#1090; &#1088;&#1077;&#1079;&#1091;&#1083;&#1100;&#1090;&#1072;&#1090;&#1099; &#1088;&#1077;&#1075;&#1080;&#1089;&#1090;&#1088;&#1072;&#1094;&#1080;&#1080; &#1080; &#1072;&#1091;&#1090;&#1077;&#1085;&#1090;&#1080;&#1092;&#1080;&#1082;&#1072;&#1094;&#1080;&#1080; &#1074; HTTP-&#1086;&#1090;&#1074;&#1077;&#1090;&#1099;.
+    </p>
+    <p style="margin-top:0pt;margin-left:0pt;margin-bottom:.0001pt;margin-right:0pt;">
+      &nbsp;
+    </p>
+    <p style="margin-top:0pt;margin-left:0pt;margin-bottom:.0001pt;margin-right:0pt;">
+      &#1050;&#1086;&#1085;&#1082;&#1088;&#1077;&#1090;&#1085;&#1099;&#1081; &#1089;&#1087;&#1086;&#1089;&#1086;&#1073; &#1088;&#1077;&#1072;&#1083;&#1080;&#1079;&#1072;&#1094;&#1080;&#1080;, &#1074;&#1082;&#1083;&#1102;&#1095;&#1072;&#1103; &#1088;&#1091;&#1095;&#1085;&#1086;&#1077; &#1087;&#1088;&#1077;&#1086;&#1073;&#1088;&#1072;&#1079;&#1086;&#1074;&#1072;&#1085;&#1080;&#1077; &#1080;&#1083;&#1080;
+    </p>
+    <p style="margin-top:0pt;margin-left:0pt;margin-bottom:.0001pt;margin-right:0pt;">
+      MapStruct, &#1074;&#1099;&#1073;&#1080;&#1088;&#1072;&#1077;&#1090; &#1088;&#1072;&#1079;&#1088;&#1072;&#1073;&#1086;&#1090;&#1095;&#1080;&#1082;.
+    </p>
+  </body></span>			</td>
+		</tr>
+	</table>
+	<table border="0" cellpadding="0" width="100%" cellspacing="0">
+		<tr>
+			<td class="TableCellSpaceHolder1PxTall">
+			</td>
+		</tr>
+		<tr>
+			<td class="TableFooter">
+			</td>
+		</tr>
+	</table>
+	<div style="height: 20px">
+	</div>
+	<table border="0" cellpadding="0" width="100%" cellspacing="0">
+		<tr>
+			<td class="FooterLine">
+			</td>
+		</tr>
+	</table>
+	<div class="HeaderText">
+		architecture	</div>
+</body>
+</html>

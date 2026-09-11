@@ -1,0 +1,97 @@
+<!doctype html>
+<html lang="ru">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>identity.application.result</title>
+  <link rel="stylesheet" href="package.css">
+</head>
+<body>
+  <main class="page">
+    <nav class="breadcrumb"><span>Identity</span><span>›</span><span>application › result</span></nav>
+    <header class="package-header">
+      <div>
+        <div class="eyebrow">PACKAGE</div>
+        <h1>result</h1>
+        <code>identity.application.result</code>
+      </div>
+      <a class="secondary" href="../content/Package_0aApiQWGAqAAZiRs.html">Исходная спецификация VP</a>
+    </header>
+
+    <section class="summary-grid">
+      <article class="description-panel">
+        <h2>Назначение пакета</h2>
+        <div class="description"><p>Содержит результаты выполнения application-сценариев.</p><p>Result не является HTTP response и не является публичной моделью identity.api. Presentation преобразует result в REST response.</p></div>
+      </article>
+      <aside class="stats-panel">
+        <div><strong>0</strong><span>дочерних пакетов</span></div>
+        <div><strong>4</strong><span>элементов</span></div>
+      </aside>
+    </section>
+
+    <section class="content-section">
+      <div class="section-heading"><h2>Дочерние пакеты</h2><span>0</span></div>
+      <div class="card-grid"><div class="empty-state">Вложенных пакетов нет</div></div>
+    </section>
+
+    <section class="content-section">
+      <div class="section-heading"><h2>Классы и интерфейсы</h2><span>4</span></div>
+      <div class="element-list">
+            <a class="element-card" href="../content/Class_Yy5XiQWGAqAAZi1a.html">
+              <div class="card-icon element-icon">◇</div>
+              <div>
+                <div class="card-title">AuthenticationResult</div>
+                <div class="type-badge">Класс</div>
+                <div class="card-description">Внутренний результат успешной аутентификации, подтверждения email или обновления токенов.
+
+Presentation переносит access token и срок его действия в TokenResponse. Refresh token помещается в HttpOnly cookie и не включается в HTTP response body.
+
+Result не должен передаваться другим бизнес-модулям.</div>
+              </div>
+              <span class="open-arrow">›</span>
+            </a>
+            
+            <a class="element-card" href="../content/Class_dA5XiQWGAqAAZi1M.html">
+              <div class="card-icon element-icon">◇</div>
+              <div>
+                <div class="card-title">CurrentUserResult</div>
+                <div class="type-badge">Класс</div>
+                <div class="card-description">Безопасное application-представление текущего пользователя.
+
+Используется как результат получения и изменения аккаунта. Не содержит passwordHash, refresh token, проверочные токены и persistence-модели.
+
+Presentation преобразует его в UserResponse.</div>
+              </div>
+              <span class="open-arrow">›</span>
+            </a>
+            
+            <a class="element-card" href="../content/Class_RwRXiQWGAqAAZi0a.html">
+              <div class="card-icon element-icon">◇</div>
+              <div>
+                <div class="card-title">RegistrationResult</div>
+                <div class="type-badge">Класс</div>
+                <div class="card-description">Результат успешной регистрации пользователя.
+
+Сообщает, что аккаунт создан и требует подтверждения email. Не содержит открытый пароль, passwordHash или проверочный токен.
+
+Presentation преобразует этот результат в VerificationPendingResponse.</div>
+              </div>
+              <span class="open-arrow">›</span>
+            </a>
+            
+            <a class="element-card" href="../content/Class_o5RXiQWGAqAAZi0u.html">
+              <div class="card-icon element-icon">◇</div>
+              <div>
+                <div class="card-title">ResendVerificationResult</div>
+                <div class="type-badge">Класс</div>
+                <div class="card-description">Унифицированный результат запроса повторной отправки письма подтверждения.
+
+Результат возвращается в одинаковом виде независимо от существования пользователя. Это предотвращает определение зарегистрированных email через публичный endpoint.</div>
+              </div>
+              <span class="open-arrow">›</span>
+            </a>
+            </div>
+    </section>
+  </main>
+</body>
+</html>

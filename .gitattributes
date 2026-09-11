@@ -1,0 +1,6 @@
+*.vpp binary
+*.png binary
+docs/architecture/content/** linguist-generated=true
+docs/architecture/images/** linguist-generated=true
+docs/architecture/readable/** linguist-generated=true
+

@@ -1,0 +1,135 @@
+<!doctype html>
+<html lang="ru">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>identity.application</title>
+  <link rel="stylesheet" href="package.css">
+</head>
+<body>
+  <main class="page">
+    <nav class="breadcrumb"><span>Identity</span><span>›</span><span>application</span></nav>
+    <header class="package-header">
+      <div>
+        <div class="eyebrow">PACKAGE</div>
+        <h1>application</h1>
+        <code>identity.application</code>
+      </div>
+      <a class="secondary" href="../content/Package_tNuXMQWGAqAAZxIa.html">Исходная спецификация VP</a>
+    </header>
+
+    <section class="summary-grid">
+      <article class="description-panel">
+        <h2>Назначение пакета</h2>
+        <div class="description"><p>Прикладной слой, реализующий конкретные пользовательские сценарии Identity.</p><p>Оркестрирует выполнение операций, задаёт транзакционные границы, вызывает доменную модель и обращается к внешним технологиям через output-порты.</p><p>Application определяет последовательность действий, но не содержит реализации PostgreSQL, jOOQ, BCrypt, SMTP или Spring Session.</p></div>
+      </article>
+      <aside class="stats-panel">
+        <div><strong>8</strong><span>дочерних пакетов</span></div>
+        <div><strong>0</strong><span>элементов</span></div>
+      </aside>
+    </section>
+
+    <section class="content-section">
+      <div class="section-heading"><h2>Дочерние пакеты</h2><span>8</span></div>
+      <div class="card-grid">
+            <a class="package-card" href="package_application_command.html">
+              <div class="card-icon folder-icon">▰</div>
+              <div>
+                <div class="card-title">command</div>
+                <div class="card-path">identity.application.command</div>
+                <div class="card-description">Содержит неизменяемые входные модели операций, изменяющих состояние системы.
+
+Command передаёт данные конкретного сценария и не содержит бизнес-логики, HTTP-аннотаций или persistence-моделей.</div>
+              </div>
+              <span class="card-count">3</span>
+            </a>
+            
+            <a class="package-card" href="package_application_exception.html">
+              <div class="card-icon folder-icon">▰</div>
+              <div>
+                <div class="card-title">exception</div>
+                <div class="card-path">identity.application.exception</div>
+                <div class="card-description">Содержит ошибки прикладных сценариев Identity.
+
+Эти исключения образуют стабильную границу между application и presentation. Application преобразует внутренние доменные ошибки в ошибки, понятные вызывающему слою.</div>
+              </div>
+              <span class="card-count">8</span>
+            </a>
+            
+            <a class="package-card" href="package_application_mapper.html">
+              <div class="card-icon folder-icon">▰</div>
+              <div>
+                <div class="card-title">mapper</div>
+                <div class="card-path">identity.application.mapper</div>
+                <div class="card-description">Содержит преобразования доменных объектов в application-results и публичные модели identity.api.
+
+Mapper не обращается к repository, не меняет доменные объекты и не содержит бизнес-правила</div>
+              </div>
+              <span class="card-count">2</span>
+            </a>
+            
+            <a class="package-card" href="package_application_model.html">
+              <div class="card-icon folder-icon">▰</div>
+              <div>
+                <div class="card-title">model</div>
+                <div class="card-path">identity.application.model</div>
+                <div class="card-description">Содержит внутренние модели application, необходимые для выпуска и хранения токенов.
+
+Эти модели не передаются frontend и другим бизнес-модулям.</div>
+              </div>
+              <span class="card-count">3</span>
+            </a>
+            
+            <a class="package-card" href="package_application_port.html">
+              <div class="card-icon folder-icon">▰</div>
+              <div>
+                <div class="card-title">port</div>
+                <div class="card-path">identity.application.port</div>
+                <div class="card-description">Содержит входные и выходные границы application.</div>
+              </div>
+              <span class="card-count">2</span>
+            </a>
+            
+            <a class="package-card" href="package_application_query.html">
+              <div class="card-icon folder-icon">▰</div>
+              <div>
+                <div class="card-title">query</div>
+                <div class="card-path">identity.application.query</div>
+                <div class="card-description">Содержит неизменяемые модели запросов, не изменяющих состояние Identity.</div>
+              </div>
+              <span class="card-count">1</span>
+            </a>
+            
+            <a class="package-card" href="package_application_result.html">
+              <div class="card-icon folder-icon">▰</div>
+              <div>
+                <div class="card-title">result</div>
+                <div class="card-path">identity.application.result</div>
+                <div class="card-description">Содержит результаты выполнения application-сценариев.
+
+Result не является HTTP response и не является публичной моделью identity.api. Presentation преобразует result в REST response.</div>
+              </div>
+              <span class="card-count">4</span>
+            </a>
+            
+            <a class="package-card" href="package_application_service.html">
+              <div class="card-icon folder-icon">▰</div>
+              <div>
+                <div class="card-title">service</div>
+                <div class="card-path">identity.application.service</div>
+                <div class="card-description">Содержит реализации входных портов и публичного IdentityQuery.
+
+Сервисы загружают доменные объекты, вызывают их методы, сохраняют изменения через output ports и преобразуют результат выполнения сценария.</div>
+              </div>
+              <span class="card-count">3</span>
+            </a>
+            </div>
+    </section>
+
+    <section class="content-section">
+      <div class="section-heading"><h2>Классы и интерфейсы</h2><span>0</span></div>
+      <div class="element-list"><div class="empty-state">Классов и интерфейсов непосредственно в этом пакете нет</div></div>
+    </section>
+  </main>
+</body>
+</html>

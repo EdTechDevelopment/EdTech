@@ -1,0 +1,101 @@
+<!doctype html>
+<html lang="ru">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>identity.domain.user.exception</title>
+  <link rel="stylesheet" href="package.css">
+</head>
+<body>
+  <main class="page">
+    <nav class="breadcrumb"><span>Identity</span><span>›</span><span>domain › user › exception</span></nav>
+    <header class="package-header">
+      <div>
+        <div class="eyebrow">PACKAGE</div>
+        <h1>exception</h1>
+        <code>identity.domain.user.exception</code>
+      </div>
+      <a class="secondary" href="../content/Package_jleWiQWGAqAAZh5X.html">Исходная спецификация VP</a>
+    </header>
+
+    <section class="summary-grid">
+      <article class="description-panel">
+        <h2>Назначение пакета</h2>
+        <div class="description"><p>Содержит исключения, возникающие при нарушении инвариантов агрегата User и принадлежащих ему объектов-значений.</p><p>Исключения описывают доменную причину ошибки, но не содержат HTTP-статусы, API error codes, JSON-модели или сведения о persistence. Преобразование доменной ошибки в application-ошибку и HTTP-ответ выполняется во внешних слоях.</p></div>
+      </article>
+      <aside class="stats-panel">
+        <div><strong>0</strong><span>дочерних пакетов</span></div>
+        <div><strong>5</strong><span>элементов</span></div>
+      </aside>
+    </section>
+
+    <section class="content-section">
+      <div class="section-heading"><h2>Дочерние пакеты</h2><span>0</span></div>
+      <div class="card-grid"><div class="empty-state">Вложенных пакетов нет</div></div>
+    </section>
+
+    <section class="content-section">
+      <div class="section-heading"><h2>Классы и интерфейсы</h2><span>5</span></div>
+      <div class="element-list">
+            <a class="element-card" href="../content/Class_6bfuiQWGAqAAZiD6.html">
+              <div class="card-icon element-icon">◇</div>
+              <div>
+                <div class="card-title">Class3</div>
+                <div class="type-badge">Класс</div>
+                <div class="card-description">Описание элемента пока не заполнено.</div>
+              </div>
+              <span class="open-arrow">›</span>
+            </a>
+            
+            <a class="element-card" href="../content/Class_8E_uiQWGAqAAZiEC.html">
+              <div class="card-icon element-icon">◇</div>
+              <div>
+                <div class="card-title">EmailNotVerifiedException</div>
+                <div class="type-badge">Класс</div>
+                <div class="card-description">Возникает при попытке аутентификации пользователя, первоначальный email которого ещё не подтверждён.
+
+Application-слой преобразует это исключение в ошибку EMAIL_NOT_VERIFIED. Само исключение не содержит HTTP-статус или API error code.</div>
+              </div>
+              <span class="open-arrow">›</span>
+            </a>
+            
+            <a class="element-card" href="../content/Class_wH3uiQWGAqAAZiDs.html">
+              <div class="card-icon element-icon">◇</div>
+              <div>
+                <div class="card-title">InvalidEmailexception</div>
+                <div class="type-badge">Класс</div>
+                <div class="card-description">Возникает при попытке создать объект Email из пустого, некорректного или недопустимого значения.
+
+Исключение не используется для ситуации, когда корректный email уже занят другим пользователем. Проверка уникальности выполняется application-сервисом через UserRepository.</div>
+              </div>
+              <span class="open-arrow">›</span>
+            </a>
+            
+            <a class="element-card" href="../content/Class_85fuiQWGAqAAZiDy.html">
+              <div class="card-icon element-icon">◇</div>
+              <div>
+                <div class="card-title">InvalidUserDataException</div>
+                <div class="type-badge">Класс</div>
+                <div class="card-description">Возникает при создании или изменении User с данными, нарушающими основные инварианты агрегата. Например, при отсутствии имени, фамилии или хотя бы одной роли.
+
+Исключение не содержит сведений о HTTP и не выполняет транспортную валидацию request-моделей.</div>
+              </div>
+              <span class="open-arrow">›</span>
+            </a>
+            
+            <a class="element-card" href="../content/Class_cwVeiQWGAqAAZiGg.html">
+              <div class="card-icon element-icon">◇</div>
+              <div>
+                <div class="card-title">InvalidUserStateException</div>
+                <div class="type-badge">Класс</div>
+                <div class="card-description">Возникает, когда операция над User недопустима в текущем состоянии аккаунта. Например, при повторной активации уже активного пользователя или подтверждении email, который не совпадает с pendingEmail.
+
+Исключение отражает нарушение правила перехода состояния внутри агрегата.</div>
+              </div>
+              <span class="open-arrow">›</span>
+            </a>
+            </div>
+    </section>
+  </main>
+</body>
+</html>

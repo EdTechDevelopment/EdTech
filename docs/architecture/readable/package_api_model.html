@@ -1,0 +1,87 @@
+<!doctype html>
+<html lang="ru">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>identity.api.model</title>
+  <link rel="stylesheet" href="package.css">
+</head>
+<body>
+  <main class="page">
+    <nav class="breadcrumb"><span>Identity</span><span>›</span><span>api › model</span></nav>
+    <header class="package-header">
+      <div>
+        <div class="eyebrow">PACKAGE</div>
+        <h1>model</h1>
+        <code>identity.api.model</code>
+      </div>
+      <a class="secondary" href="../content/Package_3q7G8QWGAqAAZghS.html">Исходная спецификация VP</a>
+    </header>
+
+    <section class="summary-grid">
+      <article class="description-panel">
+        <h2>Назначение пакета</h2>
+        <div class="description"><p>Безопасное неизменяемое представление пользователя для межмодульного взаимодействия.</p><p>Содержит идентификатор, подтверждённый email, имя, фамилию, роли и состояние аккаунта.</p><p>Не содержит passwordHash, pendingEmail, JWT, refresh-токены, проверочные токены и persistence records.</p></div>
+      </article>
+      <aside class="stats-panel">
+        <div><strong>0</strong><span>дочерних пакетов</span></div>
+        <div><strong>3</strong><span>элементов</span></div>
+      </aside>
+    </section>
+
+    <section class="content-section">
+      <div class="section-heading"><h2>Дочерние пакеты</h2><span>0</span></div>
+      <div class="card-grid"><div class="empty-state">Вложенных пакетов нет</div></div>
+    </section>
+
+    <section class="content-section">
+      <div class="section-heading"><h2>Классы и интерфейсы</h2><span>3</span></div>
+      <div class="element-list">
+            <a class="element-card" href="../content/Class_MtoR8QWGAqAAZgve.html">
+              <div class="card-icon element-icon">◇</div>
+              <div>
+                <div class="card-title">UserRoleView</div>
+                <div class="type-badge">Класс</div>
+                <div class="card-description">Публичное представление ролей пользователя.
+
+Отделено от внутреннего доменного перечисления identity.domain.model.UserRole.
+
+Один пользователь может одновременно иметь роли TEACHER и STUDENT.</div>
+              </div>
+              <span class="open-arrow">›</span>
+            </a>
+            
+            <a class="element-card" href="../content/Class_D5YR8QWGAqAAZgvm.html">
+              <div class="card-icon element-icon">◇</div>
+              <div>
+                <div class="card-title">UserStatusView</div>
+                <div class="type-badge">Класс</div>
+                <div class="card-description">Публичное представление состояния аккаунта.
+
+PENDING_EMAIL_VERIFICATION означает, что пользователь зарегистрирован, но ещё не подтвердил email.
+
+ACTIVE означает, что пользователь подтвердил email и может проходить аутентификацию.
+
+BLOCKED означает, что доступ пользователя заблокирован.</div>
+              </div>
+              <span class="open-arrow">›</span>
+            </a>
+            
+            <a class="element-card" href="../content/Class_yxIR8QWGAqAAZgvY.html">
+              <div class="card-icon element-icon">◇</div>
+              <div>
+                <div class="card-title">UserSummary</div>
+                <div class="type-badge">Класс</div>
+                <div class="card-description">Безопасное неизменяемое представление пользователя для межмодульного взаимодействия.
+
+Содержит идентификатор, подтверждённый email, имя, фамилию, роли и состояние аккаунта.
+
+Не содержит passwordHash, pendingEmail, JWT, refresh-токены, проверочные токены и persistence records.</div>
+              </div>
+              <span class="open-arrow">›</span>
+            </a>
+            </div>
+    </section>
+  </main>
+</body>
+</html>

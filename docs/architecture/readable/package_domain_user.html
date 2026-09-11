@@ -1,0 +1,79 @@
+<!doctype html>
+<html lang="ru">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>identity.domain.user</title>
+  <link rel="stylesheet" href="package.css">
+</head>
+<body>
+  <main class="page">
+    <nav class="breadcrumb"><span>Identity</span><span>›</span><span>domain › user</span></nav>
+    <header class="package-header">
+      <div>
+        <div class="eyebrow">PACKAGE</div>
+        <h1>user</h1>
+        <code>identity.domain.user</code>
+      </div>
+      <a class="secondary" href="../content/Package_kRgWiQWGAqAAZh3H.html">Исходная спецификация VP</a>
+    </header>
+
+    <section class="summary-grid">
+      <article class="description-panel">
+        <h2>Назначение пакета</h2>
+        <div class="description"><p>Определяет границу агрегата User и объединяет связанные с ним доменные объекты, события и исключения. Агрегат отвечает за состояние аккаунта пользователя, подтверждение текущего email, изменение email, обновление имени, назначенные роли и допустимые переходы статуса.</p><p>Все изменения состояния аккаунта выполняются через корень агрегата User. Внешний код не должен изменять отдельные поля или вложенные объекты напрямую.</p></div>
+      </article>
+      <aside class="stats-panel">
+        <div><strong>3</strong><span>дочерних пакетов</span></div>
+        <div><strong>0</strong><span>элементов</span></div>
+      </aside>
+    </section>
+
+    <section class="content-section">
+      <div class="section-heading"><h2>Дочерние пакеты</h2><span>3</span></div>
+      <div class="card-grid">
+            <a class="package-card" href="package_domain_user_event.html">
+              <div class="card-icon folder-icon">▰</div>
+              <div>
+                <div class="card-title">event</div>
+                <div class="card-path">identity.domain.user.event</div>
+                <div class="card-description">Фиксирует факт успешного создания агрегата User. В момент возникновения пользователь имеет статус PENDING_EMAIL_VERIFICATION и ещё не может выполнять вход.
+
+Событие является внутренним для домена. Application-слой может преобразовать его в публичный UserRegisteredEvent и использовать для запуска разрешённых межмодульных сценариев.</div>
+              </div>
+              <span class="card-count">3</span>
+            </a>
+            
+            <a class="package-card" href="package_domain_user_exception.html">
+              <div class="card-icon folder-icon">▰</div>
+              <div>
+                <div class="card-title">exception</div>
+                <div class="card-path">identity.domain.user.exception</div>
+                <div class="card-description">Содержит исключения, возникающие при нарушении инвариантов агрегата User и принадлежащих ему объектов-значений.
+
+Исключения описывают доменную причину ошибки, но не содержат HTTP-статусы, API error codes, JSON-модели или сведения о persistence. Преобразование доменной ошибки в application-ошибку и HTTP-ответ выполняется во внешних слоях.</div>
+              </div>
+              <span class="card-count">5</span>
+            </a>
+            
+            <a class="package-card" href="package_domain_user_model.html">
+              <div class="card-icon folder-icon">▰</div>
+              <div>
+                <div class="card-title">model</div>
+                <div class="card-path">identity.domain.user.model</div>
+                <div class="card-description">Содержит корень агрегата User, принадлежащие ему объекты-значения и перечисления. User является единственной точкой изменения состояния аккаунта и защищает его бизнес-инварианты.
+
+Пакет не выполняет поиск уникального email, проверку открытого пароля, создание JWT, сохранение в базу данных или отправку писем. Эти действия координируются application-слоем через выходные порты.</div>
+              </div>
+              <span class="card-count">5</span>
+            </a>
+            </div>
+    </section>
+
+    <section class="content-section">
+      <div class="section-heading"><h2>Классы и интерфейсы</h2><span>0</span></div>
+      <div class="element-list"><div class="empty-state">Классов и интерфейсов непосредственно в этом пакете нет</div></div>
+    </section>
+  </main>
+</body>
+</html>

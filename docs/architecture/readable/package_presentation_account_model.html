@@ -1,0 +1,79 @@
+<!doctype html>
+<html lang="ru">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>identity.presentation.account.model</title>
+  <link rel="stylesheet" href="package.css">
+</head>
+<body>
+  <main class="page">
+    <nav class="breadcrumb"><span>Identity</span><span>›</span><span>presentation › account › model</span></nav>
+    <header class="package-header">
+      <div>
+        <div class="eyebrow">PACKAGE</div>
+        <h1>model</h1>
+        <code>identity.presentation.account.model</code>
+      </div>
+      <a class="secondary" href="../content/Package_LzUhCQWGAqAAZgu0.html">Исходная спецификация VP</a>
+    </header>
+
+    <section class="summary-grid">
+      <article class="description-panel">
+        <h2>Назначение пакета</h2>
+        <div class="description"><p>Объединяет HTTP-модели операций текущего аккаунта.</p><p>Модели этого пакета описывают обмен данными между frontend и Identity.</p><p>Они не являются доменной сущностью User и не должны использоваться</p><p>как persistence-модели.</p></div>
+      </article>
+      <aside class="stats-panel">
+        <div><strong>2</strong><span>дочерних пакетов</span></div>
+        <div><strong>0</strong><span>элементов</span></div>
+      </aside>
+    </section>
+
+    <section class="content-section">
+      <div class="section-heading"><h2>Дочерние пакеты</h2><span>2</span></div>
+      <div class="card-grid">
+            <a class="package-card" href="package_presentation_account_model_request.html">
+              <div class="card-icon folder-icon">▰</div>
+              <div>
+                <div class="card-title">request</div>
+                <div class="card-path">identity.presentation.account.model.request</div>
+                <div class="card-description">Содержит входные HTTP-модели изменения текущего аккаунта.
+
+Request содержит только поля, которые пользователь имеет право
+
+изменять через соответствующий endpoint. Идентификатор пользователя,
+
+роли, статус аккаунта и технические поля не принимаются от frontend.
+
+Полный состав полей и правила структурной валидации определяются
+
+OpenAPI-контрактом.</div>
+              </div>
+              <span class="card-count">1</span>
+            </a>
+            
+            <a class="package-card" href="package_presentation_account_model_response.html">
+              <div class="card-icon folder-icon">▰</div>
+              <div>
+                <div class="card-title">response</div>
+                <div class="card-path">identity.presentation.account.model.response</div>
+                <div class="card-description">Содержит HTTP-представление данных аккаунта пользователя.
+
+Response-модели предназначены для frontend и содержат только разрешённые
+
+данные. В них отсутствуют пароль, passwordHash, открытые проверочные
+
+токены, refresh token и внутренние сведения безопасности.</div>
+              </div>
+              <span class="card-count">1</span>
+            </a>
+            </div>
+    </section>
+
+    <section class="content-section">
+      <div class="section-heading"><h2>Классы и интерфейсы</h2><span>0</span></div>
+      <div class="element-list"><div class="empty-state">Классов и интерфейсов непосредственно в этом пакете нет</div></div>
+    </section>
+  </main>
+</body>
+</html>

@@ -1,0 +1,77 @@
+<!doctype html>
+<html lang="ru">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>identity.presentation.auth.model.response</title>
+  <link rel="stylesheet" href="package.css">
+</head>
+<body>
+  <main class="page">
+    <nav class="breadcrumb"><span>Identity</span><span>›</span><span>presentation › auth › model › response</span></nav>
+    <header class="package-header">
+      <div>
+        <div class="eyebrow">PACKAGE</div>
+        <h1>response</h1>
+        <code>identity.presentation.auth.model.response</code>
+      </div>
+      <a class="secondary" href="../content/Package_nbnBCQWGAqAAZgtP.html">Исходная спецификация VP</a>
+    </header>
+
+    <section class="summary-grid">
+      <article class="description-panel">
+        <h2>Назначение пакета</h2>
+        <div class="description"><p>Содержит HTTP-ответы сценариев регистрации, подтверждения email,</p><p>входа и обновления токенов.</p><p>Response-модели содержат только данные, разрешённые для frontend.</p><p>Они не должны раскрывать passwordHash, проверочные токены, внутреннее</p><p>состояние refresh-сессии и другие технические данные Identity.</p><p>Полный формат JSON определяется OpenAPI-контрактом.</p></div>
+      </article>
+      <aside class="stats-panel">
+        <div><strong>0</strong><span>дочерних пакетов</span></div>
+        <div><strong>2</strong><span>элементов</span></div>
+      </aside>
+    </section>
+
+    <section class="content-section">
+      <div class="section-heading"><h2>Дочерние пакеты</h2><span>0</span></div>
+      <div class="card-grid"><div class="empty-state">Вложенных пакетов нет</div></div>
+    </section>
+
+    <section class="content-section">
+      <div class="section-heading"><h2>Классы и интерфейсы</h2><span>2</span></div>
+      <div class="element-list">
+            <a class="element-card" href="../content/Class_qrvVCQWGAqAAZg82.html">
+              <div class="card-icon element-icon">◇</div>
+              <div>
+                <div class="card-title">TokenResponse</div>
+                <div class="type-badge">Класс</div>
+                <div class="card-description">HTTP-ответ успешной аутентификации или обновления токенов.
+
+Содержит access JWT, тип авторизации Bearer и информацию о сроке
+
+действия access token.
+
+Refresh token в эту модель не входит и передаётся только через
+
+HttpOnly cookie.</div>
+              </div>
+              <span class="open-arrow">›</span>
+            </a>
+            
+            <a class="element-card" href="../content/Class_WxvVCQWGAqAAZg8w.html">
+              <div class="card-icon element-icon">◇</div>
+              <div>
+                <div class="card-title">VerificationPendingResponse</div>
+                <div class="type-badge">Класс</div>
+                <div class="card-description">HTTP-ответ успешной регистрации неподтверждённого пользователя.
+
+Сообщает frontend, что аккаунт создан и ожидает подтверждения email.
+
+Может содержать email и время окончания действия отправленного
+
+проверочного токена.</div>
+              </div>
+              <span class="open-arrow">›</span>
+            </a>
+            </div>
+    </section>
+  </main>
+</body>
+</html>
