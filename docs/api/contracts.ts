@@ -1,9 +1,9 @@
-// Generated from scheduling.openapi.json, contract v1.0.0. Do not edit manually.
+// Generated from scheduling.openapi.json, contract v1.1.0. Do not edit manually.
 // Date/time, date and decimal money values are JSON strings. IDs and cursors are opaque.
 
 export type UserRole = "TEACHER" | "STUDENT";
 
-export type UserStatus = "PENDING_EMAIL_VERIFICATION" | "ACTIVE";
+export type UserStatus = "PENDING_EMAIL_VERIFICATION" | "ACTIVE" | "SUSPENDED" | "DEACTIVATED";
 
 export type UserResponse = {
   id: string;
@@ -11,6 +11,7 @@ export type UserResponse = {
   pendingEmail: string | null;
   firstName: string;
   lastName: string;
+  birthDate: string;
   roles: Array<UserRole>;
   status: UserStatus;
   emailVerifiedAt: string | null;
@@ -26,30 +27,74 @@ export type UserSummary = {
 
 export type TeacherSummary = {
   id: string;
-  firstName: string;
-  lastName: string;
+  displayName: string;
 };
 
 export type TeacherContactSummary = {
   id: string;
-  email: string;
-  firstName: string;
-  lastName: string;
+  displayName: string;
+  contactEmail: string | null;
 };
 
 export type StudentSummary = {
   id: string;
-  firstName: string;
-  lastName: string;
+  displayName: string;
 };
 
-export type RegisterRequest = {
+export type BirthDateVisibility = "PRIVATE" | "LINKED_USERS";
+
+export type TeacherProfileInput = {
+  displayName: string;
+  contactEmail: string;
+  contactDetails: Array<string>;
+  subjectCodes: Array<string>;
+  description?: string | null;
+  education?: string | null;
+  experienceYears?: number | null;
+  city?: string | null;
+  photoUrl?: string | null;
+  birthDateVisibility: BirthDateVisibility;
+};
+
+export type StudentProfileInput = {
+  displayName: string;
+  contactEmail: string;
+  contactDetails: Array<string>;
+  subjectCodes: Array<string>;
+  photoUrl?: string | null;
+  birthDateVisibility: BirthDateVisibility;
+};
+
+type RegistrationAccount = {
   email: string;
   password: string;
   firstName: string;
   lastName: string;
-  roles: Array<UserRole>;
+  birthDate: string;
 };
+
+export type TeacherRegistrationRequest = RegistrationAccount & {
+  roles: ["TEACHER"];
+  teacherProfile: TeacherProfileInput;
+  studentProfile?: never;
+};
+
+export type StudentRegistrationRequest = RegistrationAccount & {
+  roles: ["STUDENT"];
+  teacherProfile?: never;
+  studentProfile: StudentProfileInput;
+};
+
+export type TeacherStudentRegistrationRequest = RegistrationAccount & {
+  roles: ["TEACHER", "STUDENT"] | ["STUDENT", "TEACHER"];
+  teacherProfile: TeacherProfileInput;
+  studentProfile: StudentProfileInput;
+};
+
+export type RegisterRequest =
+  | TeacherRegistrationRequest
+  | StudentRegistrationRequest
+  | TeacherStudentRegistrationRequest;
 
 export type VerificationPendingResponse = {
   email: string;
@@ -90,36 +135,62 @@ export type SubjectListResponse = {
   items: Array<SubjectResponse>;
 };
 
-export type TeacherProfileUpsertRequest = {
+export type TeacherProfileUpdateRequest = {
+  displayName: string;
+  contactDetails: Array<string>;
   subjectCodes: Array<string>;
   description?: string | null;
   education?: string | null;
   experienceYears?: number | null;
   city?: string | null;
   photoUrl?: string | null;
+  birthDateVisibility: BirthDateVisibility;
 };
 
 export type TeacherProfileResponse = {
   user: UserResponse;
+  displayName: string;
+  contactEmail: string;
+  pendingContactEmail: string | null;
+  contactEmailVerifiedAt: string | null;
+  contactDetails: Array<string>;
   subjectCodes: Array<string>;
   description: string | null;
   education: string | null;
   experienceYears: number | null;
   city: string | null;
   photoUrl: string | null;
+  birthDateVisibility: BirthDateVisibility;
 };
 
-export type StudentProfileUpsertRequest = {
-  birthDate: string;
+export type StudentProfileUpdateRequest = {
+  displayName: string;
+  contactDetails: Array<string>;
   subjectCodes: Array<string>;
   photoUrl?: string | null;
+  birthDateVisibility: BirthDateVisibility;
 };
 
 export type StudentProfileResponse = {
   user: UserResponse;
-  birthDate: string;
+  displayName: string;
+  contactEmail: string;
+  pendingContactEmail: string | null;
+  contactEmailVerifiedAt: string | null;
+  contactDetails: Array<string>;
   subjectCodes: Array<string>;
   photoUrl: string | null;
+  birthDateVisibility: BirthDateVisibility;
+};
+
+export type ProfileEmailChangeRequest = {
+  email: string;
+};
+
+export type ProfileEmailVerificationPendingResponse = {
+  profileRole: UserRole;
+  email: string;
+  verificationExpiresAt: string;
 };
 
 export type MeResponse = {
@@ -152,9 +223,7 @@ export type StudentInvitationPage = {
 
 export type StudentListItem = {
   id: string;
-  firstName: string;
-  lastName: string;
-  profileCompleted: boolean;
+  displayName: string;
   photoUrl: string | null;
   subjectCodes: Array<string>;
 };
@@ -165,7 +234,9 @@ export type StudentPage = {
 };
 
 export type StudentCardProfile = {
-  birthDate: string;
+  displayName: string;
+  contactEmail: string | null;
+  age: number | null;
   subjectCodes: Array<string>;
   photoUrl: string | null;
 };
@@ -180,19 +251,14 @@ export type StudentStatistics = {
 
 export type StudentCardResponse = {
   id: string;
-  email: string;
-  firstName: string;
-  lastName: string;
-  profile: StudentCardProfile | null;
+  profile: StudentCardProfile;
   statistics: StudentStatistics;
 };
 
 export type TeacherContactResponse = {
   id: string;
-  email: string;
-  firstName: string;
-  lastName: string;
-  profileCompleted: boolean;
+  displayName: string;
+  contactEmail: string | null;
   subjectCodes: Array<string>;
   description: string | null;
   photoUrl: string | null;
@@ -465,7 +531,7 @@ export type FieldError = {
   message: string;
 };
 
-export type ErrorCode = "VALIDATION_ERROR" | "UNKNOWN_SUBJECT" | "UNAUTHENTICATED" | "INVALID_CREDENTIALS" | "EMAIL_NOT_VERIFIED" | "INVALID_REFRESH_TOKEN" | "FORBIDDEN" | "NOT_FOUND" | "PROFILE_NOT_FOUND" | "EMAIL_ALREADY_EXISTS" | "INVALID_VERIFICATION_TOKEN" | "INVITATION_ALREADY_PENDING" | "INVITATION_EXPIRED" | "INVALID_INVITATION_STATE" | "ALREADY_LINKED" | "STUDENT_NOT_LINKED" | "LESSON_OVERLAP" | "INVALID_LESSON_STATE" | "RATE_LIMIT_EXCEEDED" | "INTERNAL_ERROR";
+export type ErrorCode = "VALIDATION_ERROR" | "UNKNOWN_SUBJECT" | "UNAUTHENTICATED" | "INVALID_CREDENTIALS" | "EMAIL_NOT_VERIFIED" | "INVALID_REFRESH_TOKEN" | "FORBIDDEN" | "NOT_FOUND" | "PROFILE_NOT_FOUND" | "EMAIL_ALREADY_EXISTS" | "INVALID_VERIFICATION_TOKEN" | "INVITATION_ALREADY_PENDING" | "INVITATION_EXPIRED" | "INVALID_INVITATION_STATE" | "ALREADY_LINKED" | "STUDENT_NOT_LINKED" | "LESSON_OVERLAP" | "INVALID_LESSON_STATE" | "RATE_LIMIT_EXCEEDED" | "ROLE_ALREADY_ASSIGNED" | "ROLE_PROFILE_MISMATCH" | "IDEMPOTENCY_CONFLICT" | "PROFILE_EMAIL_VERIFICATION_REQUIRED" | "INVALID_PROFILE_EMAIL_VERIFICATION_TOKEN" | "INTERNAL_ERROR";
 
 export type ApiError = {
   code: ErrorCode;

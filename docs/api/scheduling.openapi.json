@@ -2,8 +2,8 @@
   "openapi": "3.0.3",
   "info": {
     "title": "EdTech tutoring API",
-    "version": "1.0.0",
-    "description": "Контракт регистрации, JWT-аутентификации, профилей, приглашений и расписания. Access JWT передаётся как Bearer token, refresh token — только в HttpOnly cookie."
+    "version": "1.1.0",
+    "description": "Контракт регистрации через RegistrationWorkflow, JWT-аутентификации, независимых учебных профилей, приглашений и расписания. Access JWT передаётся как Bearer token, refresh token — только в HttpOnly cookie."
   },
   "servers": [
     {
@@ -41,7 +41,7 @@
         ],
         "summary": "Зарегистрировать пользователя",
         "security": [],
-        "description": "Обязательны email, пароль, имя, фамилия и минимум одна роль. Создаёт аккаунт PENDING_EMAIL_VERIFICATION без access и refresh token.",
+        "description": "RegistrationWorkflow атомарно создаёт Identity User и по одному Tutoring profile для каждой роли. birthDate принадлежит Identity; displayName и contactEmail принадлежат соответствующему профилю.",
         "requestBody": {
           "required": true,
           "content": {
@@ -561,7 +561,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/MeResponse"
+                  "$ref": "#/components/schemas/UserResponse"
                 }
               }
             }
@@ -721,17 +721,17 @@
         }
       },
       "put": {
-        "operationId": "upsertMyTeacherProfile",
+        "operationId": "updateMyTeacherProfile",
         "tags": [
           "Profiles"
         ],
-        "summary": "Создать или заменить свой профиль репетитора",
+        "summary": "Обновить существующий профиль преподавателя",
         "requestBody": {
           "required": true,
           "content": {
             "application/json": {
               "schema": {
-                "$ref": "#/components/schemas/TeacherProfileUpsertRequest"
+                "$ref": "#/components/schemas/TeacherProfileUpdateRequest"
               }
             }
           }
@@ -739,16 +739,6 @@
         "responses": {
           "200": {
             "description": "Профиль обновлён.",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/TeacherProfileResponse"
-                }
-              }
-            }
-          },
-          "201": {
-            "description": "Профиль создан.",
             "content": {
               "application/json": {
                 "schema": {
@@ -796,8 +786,29 @@
                 }
               }
             }
+          },
+          "404": {
+            "description": "Профиль отсутствует из-за нарушения инварианта или скрыт.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Конфликт состояния.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
           }
-        }
+        },
+        "description": "Профиль уже создан вместе с ролью. Изменение contactEmail выполняется отдельным verification flow."
       }
     },
     "/students/me": {
@@ -861,17 +872,17 @@
         }
       },
       "put": {
-        "operationId": "upsertMyStudentProfile",
+        "operationId": "updateMyStudentProfile",
         "tags": [
           "Profiles"
         ],
-        "summary": "Создать или заменить свой профиль ученика",
+        "summary": "Обновить существующий профиль ученика",
         "requestBody": {
           "required": true,
           "content": {
             "application/json": {
               "schema": {
-                "$ref": "#/components/schemas/StudentProfileUpsertRequest"
+                "$ref": "#/components/schemas/StudentProfileUpdateRequest"
               }
             }
           }
@@ -879,16 +890,6 @@
         "responses": {
           "200": {
             "description": "Профиль обновлён.",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/StudentProfileResponse"
-                }
-              }
-            }
-          },
-          "201": {
-            "description": "Профиль создан.",
             "content": {
               "application/json": {
                 "schema": {
@@ -936,8 +937,29 @@
                 }
               }
             }
+          },
+          "404": {
+            "description": "Профиль отсутствует из-за нарушения инварианта или скрыт.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Конфликт состояния.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
           }
-        }
+        },
+        "description": "Профиль уже создан вместе с ролью. Изменение contactEmail выполняется отдельным verification flow."
       }
     },
     "/teachers/me/student-invitations": {
@@ -2303,6 +2325,429 @@
           }
         }
       }
+    },
+    "/me/roles/teacher": {
+      "post": {
+        "operationId": "addTeacherRole",
+        "tags": [
+          "Profiles"
+        ],
+        "summary": "Добавить роль преподавателя и соответствующий профиль",
+        "description": "RoleOnboardingWorkflow создаёт роль в Identity и профиль в Tutoring в одной транзакции. После ответа frontend обновляет access JWT через /auth/refresh.",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/TeacherProfileInput"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Роль и профиль созданы атомарно.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MeResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Ошибка формата или валидации.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Не аутентифицирован.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Действие запрещено.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Роль уже назначена, профиль существует или возник конфликт идемпотентности.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Внутренняя ошибка.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/me/roles/student": {
+      "post": {
+        "operationId": "addStudentRole",
+        "tags": [
+          "Profiles"
+        ],
+        "summary": "Добавить роль ученика и соответствующий профиль",
+        "description": "RoleOnboardingWorkflow создаёт роль в Identity и профиль в Tutoring в одной транзакции. После ответа frontend обновляет access JWT через /auth/refresh.",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/StudentProfileInput"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Роль и профиль созданы атомарно.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MeResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Ошибка формата или валидации.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Не аутентифицирован.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Действие запрещено.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Роль уже назначена, профиль существует или возник конфликт идемпотентности.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Внутренняя ошибка.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/teachers/me/contact-email-verification": {
+      "post": {
+        "operationId": "requestTeacherProfileEmailChange",
+        "tags": [
+          "Profiles"
+        ],
+        "summary": "Запросить изменение email профиля преподавателя",
+        "description": "Текущий contactEmail продолжает действовать, новый адрес сохраняется как pendingContactEmail до подтверждения.",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ProfileEmailChangeRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "202": {
+            "description": "Запрос подтверждения создан.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProfileEmailVerificationPendingResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Ошибка формата или валидации.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Не аутентифицирован.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Действие запрещено.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Профиль не найден.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Конфликт состояния.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Слишком много запросов.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Внутренняя ошибка.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/students/me/contact-email-verification": {
+      "post": {
+        "operationId": "requestStudentProfileEmailChange",
+        "tags": [
+          "Profiles"
+        ],
+        "summary": "Запросить изменение email профиля ученика",
+        "description": "Текущий contactEmail продолжает действовать, новый адрес сохраняется как pendingContactEmail до подтверждения.",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ProfileEmailChangeRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "202": {
+            "description": "Запрос подтверждения создан.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProfileEmailVerificationPendingResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Ошибка формата или валидации.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Не аутентифицирован.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Действие запрещено.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Профиль не найден.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Конфликт состояния.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Слишком много запросов.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Внутренняя ошибка.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/profile-email-verification/confirm": {
+      "post": {
+        "operationId": "confirmProfileEmail",
+        "tags": [
+          "Profiles"
+        ],
+        "summary": "Подтвердить email учебного профиля",
+        "security": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ConfirmEmailRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "204": {
+            "description": "Profile email подтверждён."
+          },
+          "400": {
+            "description": "Ошибка формата или валидации.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Токен уже использован или не относится к текущему pendingContactEmail.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Внутренняя ошибка.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          }
+        }
+      }
     }
   },
   "components": {
@@ -2388,7 +2833,9 @@
         "type": "string",
         "enum": [
           "PENDING_EMAIL_VERIFICATION",
-          "ACTIVE"
+          "ACTIVE",
+          "SUSPENDED",
+          "DEACTIVATED"
         ]
       },
       "UserResponse": {
@@ -2425,6 +2872,11 @@
             "maxLength": 100,
             "description": "Непустое после trim."
           },
+          "birthDate": {
+            "type": "string",
+            "format": "date",
+            "description": "Дата рождения аккаунта; принадлежит Identity и возвращается только владельцу аккаунта."
+          },
           "roles": {
             "type": "array",
             "items": {
@@ -2460,6 +2912,7 @@
           "pendingEmail",
           "firstName",
           "lastName",
+          "birthDate",
           "roles",
           "status",
           "emailVerifiedAt",
@@ -2472,6 +2925,7 @@
           "pendingEmail": null,
           "firstName": "Анна",
           "lastName": "Петрова",
+          "birthDate": "2010-05-14",
           "roles": [
             "STUDENT"
           ],
@@ -2520,23 +2974,16 @@
             "maxLength": 100,
             "description": "Непрозрачный идентификатор User."
           },
-          "firstName": {
+          "displayName": {
             "type": "string",
             "minLength": 1,
-            "maxLength": 100,
-            "description": "Непустое после trim."
-          },
-          "lastName": {
-            "type": "string",
-            "minLength": 1,
-            "maxLength": 100,
-            "description": "Непустое после trim."
+            "maxLength": 150,
+            "description": "Публичное имя профиля; непустое после trim."
           }
         },
         "required": [
           "id",
-          "firstName",
-          "lastName"
+          "displayName"
         ]
       },
       "TeacherContactSummary": {
@@ -2549,29 +2996,24 @@
             "maxLength": 100,
             "description": "Непрозрачный идентификатор User."
           },
-          "email": {
+          "displayName": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 150,
+            "description": "Публичное имя профиля; непустое после trim."
+          },
+          "contactEmail": {
             "type": "string",
             "format": "email",
-            "maxLength": 254
-          },
-          "firstName": {
-            "type": "string",
-            "minLength": 1,
-            "maxLength": 100,
-            "description": "Непустое после trim."
-          },
-          "lastName": {
-            "type": "string",
-            "minLength": 1,
-            "maxLength": 100,
-            "description": "Непустое после trim."
+            "maxLength": 254,
+            "nullable": true,
+            "description": "Подтверждённый profile email либо разрешённый сценарием fallback account email."
           }
         },
         "required": [
           "id",
-          "email",
-          "firstName",
-          "lastName"
+          "displayName",
+          "contactEmail"
         ]
       },
       "StudentSummary": {
@@ -2584,79 +3026,31 @@
             "maxLength": 100,
             "description": "Непрозрачный идентификатор User."
           },
-          "firstName": {
+          "displayName": {
             "type": "string",
             "minLength": 1,
-            "maxLength": 100,
-            "description": "Непустое после trim."
-          },
-          "lastName": {
-            "type": "string",
-            "minLength": 1,
-            "maxLength": 100,
-            "description": "Непустое после trim."
+            "maxLength": 150,
+            "description": "Публичное имя профиля; непустое после trim."
           }
         },
         "required": [
           "id",
-          "firstName",
-          "lastName"
+          "displayName"
         ]
       },
       "RegisterRequest": {
-        "type": "object",
-        "additionalProperties": false,
-        "properties": {
-          "email": {
-            "type": "string",
-            "format": "email",
-            "maxLength": 254
+        "oneOf": [
+          {
+            "$ref": "#/components/schemas/TeacherRegistrationRequest"
           },
-          "password": {
-            "type": "string",
-            "format": "password",
-            "minLength": 8,
-            "maxLength": 128,
-            "writeOnly": true
+          {
+            "$ref": "#/components/schemas/StudentRegistrationRequest"
           },
-          "firstName": {
-            "type": "string",
-            "minLength": 1,
-            "maxLength": 100,
-            "description": "Непустое после trim."
-          },
-          "lastName": {
-            "type": "string",
-            "minLength": 1,
-            "maxLength": 100,
-            "description": "Непустое после trim."
-          },
-          "roles": {
-            "type": "array",
-            "items": {
-              "$ref": "#/components/schemas/UserRole"
-            },
-            "minItems": 1,
-            "maxItems": 2,
-            "uniqueItems": true
+          {
+            "$ref": "#/components/schemas/TeacherStudentRegistrationRequest"
           }
-        },
-        "required": [
-          "email",
-          "password",
-          "firstName",
-          "lastName",
-          "roles"
         ],
-        "example": {
-          "email": "anna@example.com",
-          "password": "example-password",
-          "firstName": "Анна",
-          "lastName": "Петрова",
-          "roles": [
-            "STUDENT"
-          ]
-        }
+        "description": "Роли и profile payload должны совпадать: одна роль — один профиль, две роли — два профиля."
       },
       "VerificationPendingResponse": {
         "type": "object",
@@ -2850,63 +3244,6 @@
           ]
         }
       },
-      "TeacherProfileUpsertRequest": {
-        "type": "object",
-        "additionalProperties": false,
-        "properties": {
-          "subjectCodes": {
-            "type": "array",
-            "items": {
-              "type": "string",
-              "minLength": 1,
-              "maxLength": 50,
-              "pattern": "^[A-Z][A-Z0-9_]*$"
-            },
-            "minItems": 1,
-            "uniqueItems": true
-          },
-          "description": {
-            "type": "string",
-            "maxLength": 500,
-            "nullable": true
-          },
-          "education": {
-            "type": "string",
-            "maxLength": 500,
-            "nullable": true
-          },
-          "experienceYears": {
-            "type": "integer",
-            "minimum": 0,
-            "maximum": 100,
-            "nullable": true
-          },
-          "city": {
-            "type": "string",
-            "maxLength": 100,
-            "nullable": true
-          },
-          "photoUrl": {
-            "type": "string",
-            "format": "uri",
-            "maxLength": 2048,
-            "nullable": true
-          }
-        },
-        "required": [
-          "subjectCodes"
-        ],
-        "example": {
-          "subjectCodes": [
-            "MATH"
-          ],
-          "description": "Готовлю к экзаменам",
-          "education": null,
-          "experienceYears": 5,
-          "city": "Москва",
-          "photoUrl": null
-        }
-      },
       "TeacherProfileResponse": {
         "type": "object",
         "additionalProperties": false,
@@ -2914,6 +3251,38 @@
           "user": {
             "$ref": "#/components/schemas/UserResponse"
           },
+          "displayName": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 150,
+            "description": "Публичное имя профиля; непустое после trim."
+          },
+          "contactEmail": {
+            "type": "string",
+            "format": "email",
+            "maxLength": 254
+          },
+          "pendingContactEmail": {
+            "type": "string",
+            "format": "email",
+            "maxLength": 254,
+            "nullable": true
+          },
+          "contactEmailVerifiedAt": {
+            "type": "string",
+            "format": "date-time",
+            "nullable": true
+          },
+          "contactDetails": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 200
+            },
+            "maxItems": 10,
+            "uniqueItems": true
+          },
           "subjectCodes": {
             "type": "array",
             "items": {
@@ -2951,55 +3320,27 @@
             "format": "uri",
             "maxLength": 2048,
             "nullable": true
+          },
+          "birthDateVisibility": {
+            "$ref": "#/components/schemas/BirthDateVisibility"
           }
         },
         "required": [
           "user",
+          "displayName",
+          "contactEmail",
+          "pendingContactEmail",
+          "contactEmailVerifiedAt",
+          "contactDetails",
           "subjectCodes",
           "description",
           "education",
           "experienceYears",
           "city",
-          "photoUrl"
-        ]
-      },
-      "StudentProfileUpsertRequest": {
-        "type": "object",
-        "additionalProperties": false,
-        "properties": {
-          "birthDate": {
-            "type": "string",
-            "format": "date"
-          },
-          "subjectCodes": {
-            "type": "array",
-            "items": {
-              "type": "string",
-              "minLength": 1,
-              "maxLength": 50,
-              "pattern": "^[A-Z][A-Z0-9_]*$"
-            },
-            "minItems": 1,
-            "uniqueItems": true
-          },
-          "photoUrl": {
-            "type": "string",
-            "format": "uri",
-            "maxLength": 2048,
-            "nullable": true
-          }
-        },
-        "required": [
-          "birthDate",
-          "subjectCodes"
+          "photoUrl",
+          "birthDateVisibility"
         ],
-        "example": {
-          "birthDate": "2010-05-14",
-          "subjectCodes": [
-            "MATH"
-          ],
-          "photoUrl": null
-        }
+        "description": "Составной self-response: user принадлежит Identity, остальные поля принадлежат Tutoring."
       },
       "StudentProfileResponse": {
         "type": "object",
@@ -3008,9 +3349,37 @@
           "user": {
             "$ref": "#/components/schemas/UserResponse"
           },
-          "birthDate": {
+          "displayName": {
             "type": "string",
-            "format": "date"
+            "minLength": 1,
+            "maxLength": 150,
+            "description": "Публичное имя профиля; непустое после trim."
+          },
+          "contactEmail": {
+            "type": "string",
+            "format": "email",
+            "maxLength": 254
+          },
+          "pendingContactEmail": {
+            "type": "string",
+            "format": "email",
+            "maxLength": 254,
+            "nullable": true
+          },
+          "contactEmailVerifiedAt": {
+            "type": "string",
+            "format": "date-time",
+            "nullable": true
+          },
+          "contactDetails": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 200
+            },
+            "maxItems": 10,
+            "uniqueItems": true
           },
           "subjectCodes": {
             "type": "array",
@@ -3028,14 +3397,23 @@
             "format": "uri",
             "maxLength": 2048,
             "nullable": true
+          },
+          "birthDateVisibility": {
+            "$ref": "#/components/schemas/BirthDateVisibility"
           }
         },
         "required": [
           "user",
-          "birthDate",
+          "displayName",
+          "contactEmail",
+          "pendingContactEmail",
+          "contactEmailVerifiedAt",
+          "contactDetails",
           "subjectCodes",
-          "photoUrl"
-        ]
+          "photoUrl",
+          "birthDateVisibility"
+        ],
+        "description": "Составной self-response: user принадлежит Identity, остальные поля принадлежат Tutoring."
       },
       "MeResponse": {
         "type": "object",
@@ -3065,7 +3443,8 @@
           "user",
           "teacherProfile",
           "studentProfile"
-        ]
+        ],
+        "description": "Составной ответ MeQueryFacade. Профиль nullable только когда соответствующей роли нет; роль без профиля считается нарушением серверного инварианта."
       },
       "InvitationStatus": {
         "type": "string",
@@ -3152,9 +3531,8 @@
           "id": "inv_001",
           "teacher": {
             "id": "u_001",
-            "email": "alex@example.com",
-            "firstName": "Алексей",
-            "lastName": "Иванов"
+            "displayName": "Алексей — физика",
+            "contactEmail": "alex.teacher@example.com"
           },
           "studentEmail": "anna@example.com",
           "studentUserId": "u_002",
@@ -3191,23 +3569,13 @@
           "id": {
             "type": "string",
             "minLength": 1,
-            "maxLength": 100,
-            "description": "Непрозрачный идентификатор User."
+            "maxLength": 100
           },
-          "firstName": {
+          "displayName": {
             "type": "string",
             "minLength": 1,
-            "maxLength": 100,
-            "description": "Непустое после trim."
-          },
-          "lastName": {
-            "type": "string",
-            "minLength": 1,
-            "maxLength": 100,
-            "description": "Непустое после trim."
-          },
-          "profileCompleted": {
-            "type": "boolean"
+            "maxLength": 150,
+            "description": "Публичное имя профиля; непустое после trim."
           },
           "photoUrl": {
             "type": "string",
@@ -3223,14 +3591,13 @@
               "maxLength": 50,
               "pattern": "^[A-Z][A-Z0-9_]*$"
             },
+            "minItems": 1,
             "uniqueItems": true
           }
         },
         "required": [
           "id",
-          "firstName",
-          "lastName",
-          "profileCompleted",
+          "displayName",
           "photoUrl",
           "subjectCodes"
         ]
@@ -3259,9 +3626,25 @@
         "type": "object",
         "additionalProperties": false,
         "properties": {
-          "birthDate": {
+          "displayName": {
             "type": "string",
-            "format": "date"
+            "minLength": 1,
+            "maxLength": 150,
+            "description": "Публичное имя профиля; непустое после trim."
+          },
+          "contactEmail": {
+            "type": "string",
+            "format": "email",
+            "maxLength": 254,
+            "nullable": true,
+            "description": "Только подтверждённый контакт."
+          },
+          "age": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 150,
+            "nullable": true,
+            "description": "Вычисляется из Identity birthDate и возвращается только при LINKED_USERS."
           },
           "subjectCodes": {
             "type": "array",
@@ -3282,7 +3665,9 @@
           }
         },
         "required": [
-          "birthDate",
+          "displayName",
+          "contactEmail",
+          "age",
           "subjectCodes",
           "photoUrl"
         ]
@@ -3332,30 +3717,8 @@
             "maxLength": 100,
             "description": "Непрозрачный идентификатор User."
           },
-          "email": {
-            "type": "string",
-            "format": "email",
-            "maxLength": 254
-          },
-          "firstName": {
-            "type": "string",
-            "minLength": 1,
-            "maxLength": 100,
-            "description": "Непустое после trim."
-          },
-          "lastName": {
-            "type": "string",
-            "minLength": 1,
-            "maxLength": 100,
-            "description": "Непустое после trim."
-          },
           "profile": {
-            "allOf": [
-              {
-                "$ref": "#/components/schemas/StudentCardProfile"
-              }
-            ],
-            "nullable": true
+            "$ref": "#/components/schemas/StudentCardProfile"
           },
           "statistics": {
             "$ref": "#/components/schemas/StudentStatistics"
@@ -3363,9 +3726,6 @@
         },
         "required": [
           "id",
-          "email",
-          "firstName",
-          "lastName",
           "profile",
           "statistics"
         ]
@@ -3377,28 +3737,20 @@
           "id": {
             "type": "string",
             "minLength": 1,
-            "maxLength": 100,
-            "description": "Непрозрачный идентификатор User."
+            "maxLength": 100
           },
-          "email": {
+          "displayName": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 150,
+            "description": "Публичное имя профиля; непустое после trim."
+          },
+          "contactEmail": {
             "type": "string",
             "format": "email",
-            "maxLength": 254
-          },
-          "firstName": {
-            "type": "string",
-            "minLength": 1,
-            "maxLength": 100,
-            "description": "Непустое после trim."
-          },
-          "lastName": {
-            "type": "string",
-            "minLength": 1,
-            "maxLength": 100,
-            "description": "Непустое после trim."
-          },
-          "profileCompleted": {
-            "type": "boolean"
+            "maxLength": 254,
+            "nullable": true,
+            "description": "Только подтверждённый контакт."
           },
           "subjectCodes": {
             "type": "array",
@@ -3408,6 +3760,7 @@
               "maxLength": 50,
               "pattern": "^[A-Z][A-Z0-9_]*$"
             },
+            "minItems": 1,
             "uniqueItems": true
           },
           "description": {
@@ -3424,10 +3777,8 @@
         },
         "required": [
           "id",
-          "email",
-          "firstName",
-          "lastName",
-          "profileCompleted",
+          "displayName",
+          "contactEmail",
           "subjectCodes",
           "description",
           "photoUrl"
@@ -4643,14 +4994,12 @@
           "id": "l_001",
           "teacher": {
             "id": "u_001",
-            "firstName": "Алексей",
-            "lastName": "Иванов"
+            "displayName": "Алексей — физика"
           },
           "participants": [
             {
               "id": "u_002",
-              "firstName": "Анна",
-              "lastName": "Петрова"
+              "displayName": "Анна"
             }
           ],
           "subjectCode": "MATH",
@@ -5123,15 +5472,13 @@
           "id": "l_001",
           "teacher": {
             "id": "u_001",
-            "email": "alex@example.com",
-            "firstName": "Алексей",
-            "lastName": "Иванов"
+            "displayName": "Алексей — физика",
+            "contactEmail": "alex.teacher@example.com"
           },
           "participants": [
             {
               "id": "u_002",
-              "firstName": "Анна",
-              "lastName": "Петрова"
+              "displayName": "Анна"
             }
           ],
           "subjectCode": "MATH",
@@ -5275,6 +5622,11 @@
           "LESSON_OVERLAP",
           "INVALID_LESSON_STATE",
           "RATE_LIMIT_EXCEEDED",
+          "ROLE_ALREADY_ASSIGNED",
+          "ROLE_PROFILE_MISMATCH",
+          "IDEMPOTENCY_CONFLICT",
+          "PROFILE_EMAIL_VERIFICATION_REQUIRED",
+          "INVALID_PROFILE_EMAIL_VERIFICATION_TOKEN",
           "INTERNAL_ERROR"
         ]
       },
@@ -5311,6 +5663,482 @@
           "fieldErrors": [],
           "requestId": "req_001"
         }
+      },
+      "BirthDateVisibility": {
+        "type": "string",
+        "enum": [
+          "PRIVATE",
+          "LINKED_USERS"
+        ]
+      },
+      "TeacherProfileInput": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "displayName": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 150,
+            "description": "Публичное имя профиля; непустое после trim."
+          },
+          "contactEmail": {
+            "type": "string",
+            "format": "email",
+            "maxLength": 254,
+            "description": "Email профиля. Может совпадать с account email или отличаться от него."
+          },
+          "contactDetails": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 200
+            },
+            "maxItems": 10,
+            "uniqueItems": true
+          },
+          "subjectCodes": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 50,
+              "pattern": "^[A-Z][A-Z0-9_]*$"
+            },
+            "minItems": 1,
+            "uniqueItems": true
+          },
+          "description": {
+            "type": "string",
+            "maxLength": 500,
+            "nullable": true
+          },
+          "education": {
+            "type": "string",
+            "maxLength": 500,
+            "nullable": true
+          },
+          "experienceYears": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 100,
+            "nullable": true
+          },
+          "city": {
+            "type": "string",
+            "maxLength": 100,
+            "nullable": true
+          },
+          "photoUrl": {
+            "type": "string",
+            "format": "uri",
+            "maxLength": 2048,
+            "nullable": true
+          },
+          "birthDateVisibility": {
+            "$ref": "#/components/schemas/BirthDateVisibility"
+          }
+        },
+        "required": [
+          "displayName",
+          "contactEmail",
+          "contactDetails",
+          "subjectCodes",
+          "birthDateVisibility"
+        ]
+      },
+      "StudentProfileInput": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "displayName": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 150,
+            "description": "Публичное имя профиля; непустое после trim."
+          },
+          "contactEmail": {
+            "type": "string",
+            "format": "email",
+            "maxLength": 254,
+            "description": "Email профиля. Может совпадать с account email или отличаться от него."
+          },
+          "contactDetails": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 200
+            },
+            "maxItems": 10,
+            "uniqueItems": true
+          },
+          "subjectCodes": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 50,
+              "pattern": "^[A-Z][A-Z0-9_]*$"
+            },
+            "minItems": 1,
+            "uniqueItems": true
+          },
+          "photoUrl": {
+            "type": "string",
+            "format": "uri",
+            "maxLength": 2048,
+            "nullable": true
+          },
+          "birthDateVisibility": {
+            "$ref": "#/components/schemas/BirthDateVisibility"
+          }
+        },
+        "required": [
+          "displayName",
+          "contactEmail",
+          "contactDetails",
+          "subjectCodes",
+          "birthDateVisibility"
+        ]
+      },
+      "TeacherRegistrationRequest": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "email": {
+            "type": "string",
+            "format": "email",
+            "maxLength": 254
+          },
+          "password": {
+            "type": "string",
+            "format": "password",
+            "minLength": 8,
+            "maxLength": 128,
+            "writeOnly": true
+          },
+          "firstName": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 100,
+            "description": "Непустое после trim."
+          },
+          "lastName": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 100,
+            "description": "Непустое после trim."
+          },
+          "birthDate": {
+            "type": "string",
+            "format": "date",
+            "description": "Дата рождения аккаунта; принадлежит Identity."
+          },
+          "roles": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "enum": [
+                "TEACHER"
+              ]
+            },
+            "minItems": 1,
+            "maxItems": 1,
+            "uniqueItems": true
+          },
+          "teacherProfile": {
+            "$ref": "#/components/schemas/TeacherProfileInput"
+          }
+        },
+        "required": [
+          "email",
+          "password",
+          "firstName",
+          "lastName",
+          "birthDate",
+          "roles",
+          "teacherProfile"
+        ]
+      },
+      "StudentRegistrationRequest": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "email": {
+            "type": "string",
+            "format": "email",
+            "maxLength": 254
+          },
+          "password": {
+            "type": "string",
+            "format": "password",
+            "minLength": 8,
+            "maxLength": 128,
+            "writeOnly": true
+          },
+          "firstName": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 100,
+            "description": "Непустое после trim."
+          },
+          "lastName": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 100,
+            "description": "Непустое после trim."
+          },
+          "birthDate": {
+            "type": "string",
+            "format": "date",
+            "description": "Дата рождения аккаунта; принадлежит Identity."
+          },
+          "roles": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "enum": [
+                "STUDENT"
+              ]
+            },
+            "minItems": 1,
+            "maxItems": 1,
+            "uniqueItems": true
+          },
+          "studentProfile": {
+            "$ref": "#/components/schemas/StudentProfileInput"
+          }
+        },
+        "required": [
+          "email",
+          "password",
+          "firstName",
+          "lastName",
+          "birthDate",
+          "roles",
+          "studentProfile"
+        ]
+      },
+      "TeacherStudentRegistrationRequest": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "email": {
+            "type": "string",
+            "format": "email",
+            "maxLength": 254
+          },
+          "password": {
+            "type": "string",
+            "format": "password",
+            "minLength": 8,
+            "maxLength": 128,
+            "writeOnly": true
+          },
+          "firstName": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 100,
+            "description": "Непустое после trim."
+          },
+          "lastName": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 100,
+            "description": "Непустое после trim."
+          },
+          "birthDate": {
+            "type": "string",
+            "format": "date",
+            "description": "Дата рождения аккаунта; принадлежит Identity."
+          },
+          "roles": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "enum": [
+                "TEACHER",
+                "STUDENT"
+              ]
+            },
+            "minItems": 2,
+            "maxItems": 2,
+            "uniqueItems": true
+          },
+          "teacherProfile": {
+            "$ref": "#/components/schemas/TeacherProfileInput"
+          },
+          "studentProfile": {
+            "$ref": "#/components/schemas/StudentProfileInput"
+          }
+        },
+        "required": [
+          "email",
+          "password",
+          "firstName",
+          "lastName",
+          "birthDate",
+          "roles",
+          "teacherProfile",
+          "studentProfile"
+        ]
+      },
+      "TeacherProfileUpdateRequest": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "displayName": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 150,
+            "description": "Публичное имя профиля; непустое после trim."
+          },
+          "contactDetails": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 200
+            },
+            "maxItems": 10,
+            "uniqueItems": true
+          },
+          "subjectCodes": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 50,
+              "pattern": "^[A-Z][A-Z0-9_]*$"
+            },
+            "minItems": 1,
+            "uniqueItems": true
+          },
+          "description": {
+            "type": "string",
+            "maxLength": 500,
+            "nullable": true
+          },
+          "education": {
+            "type": "string",
+            "maxLength": 500,
+            "nullable": true
+          },
+          "experienceYears": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 100,
+            "nullable": true
+          },
+          "city": {
+            "type": "string",
+            "maxLength": 100,
+            "nullable": true
+          },
+          "photoUrl": {
+            "type": "string",
+            "format": "uri",
+            "maxLength": 2048,
+            "nullable": true
+          },
+          "birthDateVisibility": {
+            "$ref": "#/components/schemas/BirthDateVisibility"
+          }
+        },
+        "required": [
+          "displayName",
+          "contactDetails",
+          "subjectCodes",
+          "birthDateVisibility"
+        ],
+        "description": "Полная замена редактируемых данных существующего профиля. Profile email изменяется только через отдельный verification flow."
+      },
+      "StudentProfileUpdateRequest": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "displayName": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 150,
+            "description": "Публичное имя профиля; непустое после trim."
+          },
+          "contactDetails": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 200
+            },
+            "maxItems": 10,
+            "uniqueItems": true
+          },
+          "subjectCodes": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 50,
+              "pattern": "^[A-Z][A-Z0-9_]*$"
+            },
+            "minItems": 1,
+            "uniqueItems": true
+          },
+          "photoUrl": {
+            "type": "string",
+            "format": "uri",
+            "maxLength": 2048,
+            "nullable": true
+          },
+          "birthDateVisibility": {
+            "$ref": "#/components/schemas/BirthDateVisibility"
+          }
+        },
+        "required": [
+          "displayName",
+          "contactDetails",
+          "subjectCodes",
+          "birthDateVisibility"
+        ],
+        "description": "Полная замена редактируемых данных существующего профиля. Profile email изменяется только через отдельный verification flow."
+      },
+      "ProfileEmailChangeRequest": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "email": {
+            "type": "string",
+            "format": "email",
+            "maxLength": 254
+          }
+        },
+        "required": [
+          "email"
+        ]
+      },
+      "ProfileEmailVerificationPendingResponse": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "profileRole": {
+            "$ref": "#/components/schemas/UserRole"
+          },
+          "email": {
+            "type": "string",
+            "format": "email",
+            "maxLength": 254
+          },
+          "verificationExpiresAt": {
+            "type": "string",
+            "format": "date-time"
+          }
+        },
+        "required": [
+          "profileRole",
+          "email",
+          "verificationExpiresAt"
+        ]
       }
     }
   }
