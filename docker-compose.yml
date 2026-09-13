@@ -1,0 +1,25 @@
+services:
+  postgres:
+    image: postgres:18.6-alpine
+    container_name: edtech-postgres
+
+    environment:
+      POSTGRES_DB: edtech
+      POSTGRES_USER: edtech
+      POSTGRES_PASSWORD: edtech
+
+    ports:
+      - "5432:5432"
+
+    volumes:
+      - postgres-data:/var/lib/postgresql
+
+    healthcheck:
+      test: "pg_isready -U edtech -d edtech"
+      interval: 5s
+      timeout: 5s
+      retries: 10
+      start_period: 10s
+
+volumes:
+  postgres-data:
