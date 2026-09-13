@@ -1,25 +1,33 @@
-# Архитектура модуля Identity
+# Архитектура backend EdTech
 
-Этот каталог — текстовая спецификация модуля `identity`, которую разработчик может читать без Visual Paradigm. Она дополняет UML-модель и фиксирует пакеты, классы, интерфейсы, зависимости, схему хранения и основные архитектурные решения.
+Этот каталог содержит текстовые спецификации backend и экспорт UML-модели. Текстовые документы можно читать без Visual Paradigm; файл `architecture.vpp` нужен для редактирования исходной модели.
 
-## Состав комплекта
+## Актуальные спецификации
+
+- [Общая архитектура backend](BACKEND_ARCHITECTURE.md) — модули, границы, технологии, межмодульные workflow и правила разработки.
+- [Полная архитектура Identity](IDENTITY_ARCHITECTURE.md) — публичный API, domain, application, presentation, infrastructure, хранение и безопасность.
+- [Tutoring: границы и сценарии этапа 1](TUTORING_STAGE_1_BOUNDARIES_AND_USE_CASES.md) — владение данными, профили, приглашения, связи и интеграция с Identity.
+- [Изменения после исходной спецификации Tutoring](CHANGES_AFTER_TUTORING_STAGE_1.md) — принятые решения и список документов/контрактов, которые ими затронуты.
+
+## Экспорт Visual Paradigm
 
 - [Интерактивный просмотр](index.html) — раскрывающееся дерево пакетов, поиск, список классов и диаграмм.
 - [Исходный отчёт Visual Paradigm](visual-paradigm-report.html) — стандартный интерфейс Project Publisher.
-- [Структура пакетов](catalog/packages.md) — полное дерево пакетов и ответственность каждого пакета.
-- [Каталог классов](catalog/classes.md) — расположение, назначение, поля и основные операции классов, моделей, событий и исключений.
-- [Каталог интерфейсов](catalog/interfaces.md) — публичный API, входные и выходные порты, сигнатуры операций и реализации.
-- [Зависимости](catalog/dependencies.md) — разрешённые связи между слоями, пакетами и элементами модели.
-- [Схема данных](catalog/database.md) — таблицы PostgreSQL, ограничения, индексы и правила преобразования.
-- [Identity — общий вид](diagrams/identity-overview.md) — контекст модуля и направления зависимостей.
-- [Identity Domain](diagrams/identity-domain.md) — агрегаты, value objects, события и исключения.
-- [Identity Application](diagrams/identity-application.md) — use cases, application services и output ports.
-- [Identity Infrastructure](diagrams/identity-infrastructure.md) — persistence, security, messaging и time.
-- [Identity Persistence — jOOQ](diagrams/identity-persistence.md) — adapters, mappers, repositories и граница jOOQ types.
-- [Identity Security — JWT and Tokens](diagrams/identity-security.md) — выпуск, проверка и ротация токенов.
-- [Identity Messaging and Time](diagrams/identity-messaging-time.md) — Notifications, события и Clock.
-- [Identity — Layers and Dependencies](diagrams/identity-layers.md) — разрешённые направления между слоями.
-- [Передача проекта](handoff-checklist.md) — что сохранить и экспортировать из Visual Paradigm.
+- [Структура пакетов](catalog/packages.md) — дерево пакетов и их ответственность.
+- [Каталог классов](catalog/classes.md) — классы, модели, события и исключения.
+- [Каталог интерфейсов](catalog/interfaces.md) — публичный API, входные и выходные порты.
+- [Зависимости](catalog/dependencies.md) — связи между слоями, пакетами и элементами модели.
+- [Identity — общий вид](diagrams/identity-overview.md).
+- [Identity Domain](diagrams/identity-domain.md).
+- [Identity Application](diagrams/identity-application.md).
+- [Identity Infrastructure](diagrams/identity-infrastructure.md).
+- [Identity Persistence — jOOQ](diagrams/identity-persistence.md).
+- [Identity Security — JWT and Tokens](diagrams/identity-security.md).
+- [Identity Messaging and Time](diagrams/identity-messaging-time.md).
+- [Identity — Layers and Dependencies](diagrams/identity-layers.md).
+- [Передача проекта](handoff-checklist.md).
+
+> `architecture.vpp`, `index.html`, `visual-paradigm-report.html`, `catalog/*` и `diagrams/*` отражают UML-снимок до решений от 13 сентября 2026 года. Пока модель не обновлена и повторно не экспортирована, источниками истины являются четыре актуальные спецификации выше.
 
 ## Технологический контекст
 
@@ -29,12 +37,12 @@
 - PostgreSQL;
 - jOOQ и Flyway;
 - Gradle Kotlin DSL;
-- SMTP и шаблоны писем принадлежат модулю Notifications;
-- JPA в модуле Identity не используется.
+- SMTP и шаблоны писем принадлежат Notifications;
+- JPA в Identity не используется.
 
-## Границы модуля
+## Границы модулей
 
-Модуль построен по принципам портов и адаптеров:
+Внутри бизнес-модуля используется направление:
 
 ```text
 presentation → application → domain
@@ -42,45 +50,64 @@ presentation → application → domain
             infrastructure
 ```
 
-`identity.api` — единственный публичный пакет модуля. Остальные пакеты являются внутренними деталями реализации. Другие бизнес-модули обращаются к Identity через `identity.api.IdentityQuery` и получают интеграционные события из `identity.api.event`.
+Другие модули используют только публичный пакет `<module>.api`. Они не импортируют чужие application-порты, domain-модели, infrastructure-классы и не читают чужие таблицы.
 
-Infrastructure реализует выходные порты Application. Application и Domain не импортируют Infrastructure. Presentation вызывает только входные порты Application.
+Для Identity публичными являются:
+
+```text
+identity.api.query.*
+identity.api.command.registration.*
+identity.api.command.role.*
+identity.api.model.*
+identity.api.event.*
+```
 
 ## Главные решения
 
-1. `User` и `EmailVerification` являются отдельными aggregate roots.
-2. Текущий и ожидающий подтверждения email принадлежат агрегату `User`, но сохраняются в отдельной таблице `identity_user_emails`.
-3. Конкурентное резервирование email защищено ограничением `UNIQUE(email)` в PostgreSQL.
-4. Access token — короткоживущий JWT RS256. Входящий JWT проверяет Spring Security без обращения к базе на каждый запрос.
-5. Refresh token и verification token выдаются как случайные URL-safe значения; в базе хранится только SHA-256 hash.
-6. Refresh token передаётся в cookie с `HttpOnly`, `SameSite=Lax`, ограниченным путём `/api/v1/auth` и `Secure` в production.
-7. После подтверждения email `ConfirmEmailUseCase` возвращает `AuthenticationResult`, а контроллер устанавливает refresh cookie.
-8. Отправка email выполняется через публичный API Notifications. Identity не импортирует внутренние пакеты Notifications.
-9. Внутренние интеграционные события публикуются после успешной фиксации транзакции.
-10. Ошибки контроллеров и Spring Security преобразуются в единый формат `ApiError`.
+1. Identity владеет аккаунтом: `email`, `pendingEmail`, `firstName`, `lastName`, `birthDate`, паролем, статусом и ролями.
+2. Tutoring владеет `TeacherProfile` и `StudentProfile`. Каждый профиль хранит собственные `displayName` и `contactEmail`; они могут совпадать с данными аккаунта, но имеют отдельный жизненный цикл.
+3. При регистрации создаётся минимум одна образовательная роль и ровно один профиль для каждой выбранной роли.
+4. `RegistrationWorkflow` координирует создание пользователя и профилей в общей транзакции PostgreSQL. Identity знает только роли и не знает о профилях.
+5. `RoleOnboardingWorkflow` атомарно добавляет вторую роль в Identity и соответствующий профиль в Tutoring.
+6. Межмодульные write-сценарии передают один `operationId` публичным command API. Повторная обработка должна быть идемпотентной.
+7. Межмодульные составные чтения выполняют query facades. Точная дата рождения доступна через ограниченный `IdentityPersonalDataQuery` после проверки связи и видимости.
+8. Identity публикует отдельное событие `AccountEmailVerifiedEvent`; Tutoring идемпотентно использует его для контактов и ожидающих приглашений.
+9. Текущий и ожидающий подтверждения account email принадлежат агрегату `User`; конкурентное резервирование защищено `UNIQUE(email)` в PostgreSQL.
+10. Access token — короткоживущий JWT RS256. Входящий JWT проверяется локально без запроса в базу на каждый вызов.
+11. Refresh и verification tokens выдаются как случайные URL-safe значения; в базе хранится только SHA-256 hash.
+12. Notifications сохраняет delivery request в общей транзакции, а SMTP выполняет после успешного commit.
 
-## Как использовать комплект
+## Что ещё нужно синхронизировать
 
-Разработчику достаточно передать весь каталог `docs/architecture`. Рекомендуемый порядок чтения:
+Перед реализацией HTTP-слоя требуется отдельно утвердить и обновить OpenAPI:
 
-1. открыть `index.html` и изучить дерево модели;
-2. прочитать этот файл;
-3. открыть общий вид;
-4. изучить структуру пакетов;
-5. открыть каталог интерфейсов;
-6. открыть каталог классов;
-7. проверить зависимости и схему данных;
-8. изучить подробные диаграммы слоёв.
+- registration request: `birthDate`, минимум один профиль и соответствие `roles ↔ profiles`;
+- удаление `birthDate` из `StudentProfile`;
+- `displayName`, `contactEmail` и состояние подтверждения в обоих профилях;
+- endpoint и DTO добавления второй роли;
+- endpoint и DTO изменения/подтверждения профильного email;
+- составной ответ `/me` через `MeQueryFacade`.
 
-Файл Visual Paradigm следует сохранить рядом под именем `architecture.vpp`, когда в нём будут записаны все несохранённые изменения. Текстовые документы остаются доступными без Visual Paradigm, а `.vpp` позволяет продолжить редактирование исходной UML-модели.
+До этой синхронизации старые OpenAPI-схемы не следует использовать для генерации кода этих сценариев.
 
-## Критерии готовности реализации
+## Рекомендуемый порядок чтения
 
-- каждый output port имеет одну infrastructure-реализацию;
-- jOOQ records не покидают `infrastructure.persistence`;
-- открытые пароли и открытые refresh/verification tokens не сохраняются;
+1. `BACKEND_ARCHITECTURE.md`.
+2. `IDENTITY_ARCHITECTURE.md`.
+3. `TUTORING_STAGE_1_BOUNDARIES_AND_USE_CASES.md`.
+4. `CHANGES_AFTER_TUTORING_STAGE_1.md`.
+5. UML-экспорт для деталей предыдущей модели.
+
+После переноса новых решений в Visual Paradigm следует сохранить `architecture.vpp` и заново опубликовать HTML, каталог и диаграммы.
+
+## Критерии архитектурной проверки
+
+- Spring Modulith и ArchUnit подтверждают разрешённые зависимости;
+- роль и профиль создаются или откатываются вместе;
+- повтор межмодульной команды с тем же `operationId` не создаёт дубликаты;
+- Identity не импортирует Tutoring, а Tutoring не читает данные Identity напрямую;
+- jOOQ records не выходят из persistence;
+- открытые пароли и токены не сохраняются;
 - JWT проверяется локально по публичному ключу;
-- SMTP и шаблоны отсутствуют в Identity;
-- ошибки Spring Security имеют тот же контракт `ApiError`, что и ошибки REST-контроллеров;
-- нет горизонтальных зависимостей между `service.account`, `service.verification` и `service.authentication`;
-- ArchUnit и Spring Modulith подтверждают описанные границы пакетов и модулей.
+- SMTP и шаблоны принадлежат Notifications;
+- ошибки Spring Security и REST-контроллеров имеют общий `ApiError`.
