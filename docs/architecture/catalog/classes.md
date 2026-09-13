@@ -9,8 +9,8 @@
 | Элемент | Стереотип | Поля | Назначение |
 |---|---|---|---|
 | `UserSummary` | `record` | `UUID id`, `String email`, `String firstName`, `String lastName`, `Set<UserRoleView> roles`, `UserStatusView status` | Безопасное публичное представление пользователя для других модулей. Не раскрывает password hash, pending email и token data. |
-| `UserRoleView` | `enum` | `STUDENT`, `TUTOR`, `ADMIN` | Публичное представление роли. Набор должен соответствовать реально поддерживаемым ролям продукта. |
-| `UserStatusView` | `enum` | `PENDING_VERIFICATION`, `ACTIVE`, `SUSPENDED`, `DEACTIVATED` | Публичное представление состояния учётной записи. |
+| `UserRoleView` | `enum` | `TEACHER`, `STUDENT` | Публичное представление роли. Один пользователь может иметь обе роли. |
+| `UserStatusView` | `enum` | `PENDING_EMAIL_VERIFICATION`, `ACTIVE`, `SUSPENDED`, `DEACTIVATED` | Публичное Java-представление состояния учётной записи. Расхождение с HTTP enum отмечено в реестре решений. |
 
 ### `identity.api.event`
 
@@ -28,7 +28,7 @@
 
 | Элемент | Стереотип | Поля | Назначение |
 |---|---|---|---|
-| `RegisterRequest` | `record`, request DTO | `String email`, `String password`, `String firstName`, `String lastName` | JSON-запрос регистрации. Содержит Jakarta Validation-аннотации для формата и обязательности полей. |
+| `RegisterRequest` | `record`, request DTO | `String email`, `String password`, `String firstName`, `String lastName`, `Set<UserRoleView> roles` | JSON-запрос регистрации. Все поля обязательны; roles содержит 1–2 уникальных значения. |
 | `LoginRequest` | `record`, request DTO | `String email`, `String password` | JSON-запрос входа. Открытый пароль живёт только в пределах обработки запроса. |
 | `ConfirmEmailRequest` | `record`, request DTO | `String token` | Запрос подтверждения email по открытому verification token. |
 | `ResendEmailVerificationRequest` | `record`, request DTO | `String email` | Запрос повторного выпуска verification token. Ответ не должен позволять определить существование email. |
@@ -37,8 +37,8 @@
 
 | Элемент | Стереотип | Поля | Назначение |
 |---|---|---|---|
-| `TokenResponse` | `record`, response DTO | `String accessToken`, `String tokenType`, `Instant expiresAt`, `UserResponse user` | Тело успешного login/confirm/refresh. Refresh token отсутствует в JSON и записывается в cookie. |
-| `VerificationPendingResponse` | `record`, response DTO | `UUID userId`, `String email`, `Instant verificationExpiresAt` | Ответ регистрации или повторной отправки подтверждения. |
+| `TokenResponse` | `record`, response DTO | `String accessToken`, `String tokenType`, `long expiresInSeconds` | Тело успешного login/confirm/refresh. Refresh token отсутствует в JSON и записывается в cookie. |
+| `VerificationPendingResponse` | `record`, response DTO | `String email`, `Instant verificationExpiresAt` | Ответ регистрации или повторной отправки подтверждения. Не раскрывает userId. |
 
 ### Контроллеры и вспомогательные классы Auth
 
@@ -56,8 +56,8 @@ POST /api/v1/auth/register
 POST /api/v1/auth/login
 POST /api/v1/auth/refresh
 POST /api/v1/auth/logout
-POST /api/v1/auth/email/confirm
-POST /api/v1/auth/email/resend
+POST /api/v1/auth/email-verification/confirm
+POST /api/v1/auth/email-verification/resend
 ```
 
 ## Presentation: Account
@@ -67,13 +67,13 @@ POST /api/v1/auth/email/resend
 | Элемент | Стереотип | Поля | Назначение |
 |---|---|---|---|
 | `UpdateCurrentUserRequest` | `record`, request DTO | `String email`, `String firstName`, `String lastName` | Частичное изменение профиля. Неизменяемое поле можно передавать как `null`; правило «есть хотя бы одно изменение» проверяет class-level validator. |
-| `UserResponse` | `record`, response DTO | `UUID id`, `String email`, `String pendingEmail`, `String firstName`, `String lastName`, `Set<String> roles`, `String status`, `Instant emailVerifiedAt` | REST-представление текущего пользователя. Поле `pendingEmail` может отсутствовать. |
+| `UserResponse` | `record`, response DTO | `UUID id`, `String email`, `String? pendingEmail`, `String firstName`, `String lastName`, `Set<UserRoleView> roles`, `UserStatusView status`, `Instant? emailVerifiedAt`, `Instant createdAt`, `Instant updatedAt` | REST-представление текущего пользователя. Nullable-поля присутствуют в JSON со значением null. |
 
 ### Контроллер, mapper и validation
 
 | Элемент | Пакет | Стереотип | Назначение |
 |---|---|---|---|
-| `CurrentUserController` | `presentation.account.controller` | `@RestController` | Обрабатывает `GET /api/v1/users/me` и `PATCH /api/v1/users/me`; user ID получает из проверенного `Authentication`. |
+| `CurrentUserController` | `presentation.account.controller` | `@RestController` | Обрабатывает `GET /api/v1/me` и `PATCH /api/v1/me`; user ID получает из проверенного `Authentication`. |
 | `UserPresentationMapper` | `presentation.account.mapper` | mapper | Преобразует `UpdateCurrentUserRequest` в command и `CurrentUserResult` в `UserResponse`. |
 | `ValidAccountUpdate` | `presentation.account.validation` | `@Constraint` | Аннотация составной валидации `UpdateCurrentUserRequest`. |
 | `AccountUpdateValidator` | `presentation.account.validation` | `ConstraintValidator` | Проверяет, что указан хотя бы один изменяемый атрибут и что сочетание значений допустимо на уровне HTTP-контракта. |
@@ -82,14 +82,14 @@ POST /api/v1/auth/email/resend
 
 | Элемент | Пакет | Стереотип | Поля / интерфейс | Назначение |
 |---|---|---|---|---|
-| `ApiError` | `presentation.error.model` | `record`, response DTO | `Instant timestamp`, `int status`, `ErrorCode code`, `String message`, `String path`, `String traceId`, `List<FieldErrorResponse> fieldErrors` | Единое тело ошибки REST API. |
-| `FieldErrorResponse` | `presentation.error.model` | `record` | `String field`, `String message` | Ошибка конкретного поля запроса. |
+| `ApiError` | `presentation.error.model` | `record`, response DTO | `ErrorCode code`, `String message`, `List<FieldErrorResponse> fieldErrors`, `String requestId` | Единое тело ошибки REST API. |
+| `FieldErrorResponse` | `presentation.error.model` | `record` | `String field`, `String code`, `String message` | Ошибка конкретного поля запроса. |
 | `ErrorCode` | `presentation.error.model` | `enum` | стабильные машинные коды | Отделяет публичный код ошибки от текста и Java exception class. |
 | `IdentityExceptionHandler` | `presentation.error.handler` | `@RestControllerAdvice` | exception handlers | Преобразует application/domain/validation исключения в HTTP status и `ApiError`. |
 | `RestAuthenticationEntryPoint` | `presentation.error.handler` | component | `AuthenticationEntryPoint` | Возвращает `ApiError` для запроса без действительной аутентификации. |
 | `RestAccessDeniedHandler` | `presentation.error.handler` | component | `AccessDeniedHandler` | Возвращает `ApiError` для аутентифицированного пользователя без требуемых прав. |
 
-Минимальный набор `ErrorCode`: `VALIDATION_FAILED`, `UNAUTHENTICATED`, `ACCESS_DENIED`, `USER_NOT_FOUND`, `EMAIL_ALREADY_EXISTS`, `INVALID_CREDENTIALS`, `EMAIL_VERIFICATION_REQUIRED`, `INVALID_VERIFICATION_TOKEN`, `INVALID_REFRESH_TOKEN`, `ACCOUNT_OPERATION_NOT_ALLOWED`, `INTERNAL_ERROR`.
+Минимальный набор `ErrorCode` для Identity: `VALIDATION_ERROR`, `UNAUTHENTICATED`, `INVALID_CREDENTIALS`, `EMAIL_NOT_VERIFIED`, `INVALID_REFRESH_TOKEN`, `FORBIDDEN`, `NOT_FOUND`, `EMAIL_ALREADY_EXISTS`, `INVALID_VERIFICATION_TOKEN`, `RATE_LIMIT_EXCEEDED`, `INTERNAL_ERROR`.
 
 ## Application: Commands и Query
 
@@ -97,7 +97,7 @@ POST /api/v1/auth/email/resend
 
 | Элемент | Стереотип | Поля | Назначение |
 |---|---|---|---|
-| `RegisterUserCommand` | `record` | `String email`, `String rawPassword`, `String firstName`, `String lastName` | Вход регистрации после HTTP mapping. |
+| `RegisterUserCommand` | `record` | `String email`, `String rawPassword`, `String firstName`, `String lastName`, `Set<UserRole> roles` | Вход регистрации после HTTP mapping. |
 | `UpdateCurrentUserCommand` | `record` | `UUID userId`, `String email`, `String firstName`, `String lastName` | Изменение текущего пользователя. `userId` формируется из security context, а не из тела запроса. |
 
 ### `identity.application.command.verification`
@@ -113,7 +113,7 @@ POST /api/v1/auth/email/resend
 |---|---|---|---|
 | `LoginCommand` | `record` | `String email`, `String rawPassword` | Вход по email и паролю. |
 | `RefreshTokenCommand` | `record` | `String rawRefreshToken` | Ротация refresh token и выпуск новой пары токенов. Значение приходит из cookie. |
-| `LogoutCommand` | `record` | `String rawRefreshToken` | Отзыв текущего refresh token или его family согласно выбранной политике. |
+| `LogoutCommand` | `record` | `String rawRefreshToken` | Идемпотентный отзыв предъявленного refresh token. |
 
 ### `identity.application.query`
 
@@ -127,10 +127,10 @@ POST /api/v1/auth/email/resend
 
 | Элемент | Стереотип | Поля | Назначение |
 |---|---|---|---|
-| `RegistrationResult` | `record` | `UUID userId`, `String email`, `Instant verificationExpiresAt` | Результат регистрации до подтверждения email. |
-| `ResendVerificationResult` | `record` | `Instant verificationExpiresAt` | Нейтральный результат повторной отправки. Не раскрывает наличие аккаунта. |
+| `RegistrationResult` | `record` | `String email`, `Instant verificationExpiresAt` | Результат регистрации до подтверждения email. |
+| `ResendVerificationResult` | `record` | `String email`, `Instant verificationExpiresAt` | Нейтральный результат повторной отправки. Не раскрывает наличие аккаунта. |
 | `AuthenticationResult` | `record` | `IssuedAccessToken accessToken`, `IssuedRefreshToken refreshToken`, `CurrentUserResult user` | Общий результат login, confirm и refresh. Presentation помещает refresh token в cookie. |
-| `CurrentUserResult` | `record` | `UUID id`, `String email`, `String pendingEmail`, `String firstName`, `String lastName`, `Set<UserRole> roles`, `UserStatus status`, `Instant emailVerifiedAt` | Представление пользователя на application-границе. |
+| `CurrentUserResult` | `record` | `UUID id`, `String email`, `String? pendingEmail`, `String firstName`, `String lastName`, `Set<UserRole> roles`, `UserStatus status`, `Instant? emailVerifiedAt`, `Instant createdAt`, `Instant updatedAt` | Представление пользователя на application-границе. |
 
 ### `identity.application.model`
 
@@ -151,7 +151,7 @@ POST /api/v1/auth/email/resend
 | `ConfirmEmailService` | `service.verification` | `ConfirmEmailUseCase` | Хеширует входной token, загружает активную verification, подтверждает email, активирует пользователя при регистрации, помечает verification использованной и выдаёт пару токенов. |
 | `ResendEmailVerificationService` | `service.verification` | `ResendEmailVerificationUseCase` | Инвалидирует прежнюю verification, создаёт новую и ставит письмо в очередь; сохраняет нейтральный ответ для неизвестного email. |
 | `LoginService` | `service.authentication` | `LoginUseCase` | Проверяет пароль и состояние пользователя, затем выпускает access и refresh tokens и сохраняет hash refresh token. |
-| `RefreshTokenService` | `service.authentication` | `RefreshTokenUseCase` | Проверяет hash, срок и отзыв, ротирует refresh token в той же family и выдаёт новый access token. Повторное использование отозванного токена отзывает всю family. |
+| `RefreshTokenService` | `service.authentication` | `RefreshTokenUseCase` | Загружает token любого состояния по hash с row-level lock, проверяет expiry/revocation, ротирует активный token в той же family и выдаёт новый access token. Повторное использование отозванного token отзывает family по `userId + familyId`. |
 | `LogoutService` | `service.authentication` | `LogoutUseCase` | Хеширует полученный refresh token и отзывает найденный токен. Операция идемпотентна. |
 
 Application services не вызывают друг друга. Общие преобразования находятся в mapper, общие бизнес-правила — в domain, а технические операции — за output ports.
@@ -217,9 +217,12 @@ pullDomainEvents(): List<DomainEvent>
 Инварианты:
 
 - `email`, `passwordHash`, имя, фамилия и хотя бы одна роль обязательны;
-- новый пользователь имеет статус `PENDING_VERIFICATION`;
+- новый пользователь имеет статус `PENDING_EMAIL_VERIFICATION`;
 - активировать пользователя можно только подтверждением registration email;
 - `pendingEmail` не заменяет текущий email до подтверждения;
+- current и pending email не могут совпадать;
+- смена email не сбрасывает подтверждение старого адреса до подтверждения нового;
+- пользователь со статусом `SUSPENDED` или `DEACTIVATED` не может login/refresh;
 - недопустимые переходы состояния завершаются domain exception;
 - изменения обновляют `updatedAt` и при необходимости создают domain event.
 
@@ -229,8 +232,8 @@ pullDomainEvents(): List<DomainEvent>
 |---|---|---|---|
 | `Email` | value object | `String value` | Нормализует email и проверяет базовый формат. Сравнение выполняется по нормализованному значению. |
 | `PasswordHash` | value object | `String value` | Хранит только результат password hashing. Не принимает и не раскрывает открытый пароль. |
-| `UserRole` | `enum` | `STUDENT`, `TUTOR`, `ADMIN` | Авторизационные роли Identity. |
-| `UserStatus` | `enum` | `PENDING_VERIFICATION`, `ACTIVE`, `SUSPENDED`, `DEACTIVATED` | Жизненный цикл аккаунта. |
+| `UserRole` | `enum` | `TEACHER`, `STUDENT` | Авторизационные роли Identity. Обе роли могут принадлежать одному пользователю. |
+| `UserStatus` | `enum` | `PENDING_EMAIL_VERIFICATION`, `ACTIVE`, `SUSPENDED`, `DEACTIVATED` | Жизненный цикл аккаунта. |
 
 ### Доменные события пользователя
 

@@ -47,8 +47,9 @@ Login
   → выпуск access и refresh tokens
 
 Refresh
-  → проверка hash и состояния refresh token
-  → отзыв старого token
+  → поиск любого состояния token по hash и row-level lock
+  → проверка expiry/revocation в application service
+  → отзыв старого token или всей family при reuse
   → выпуск новой пары с сохранением family
 
 Изменение профиля

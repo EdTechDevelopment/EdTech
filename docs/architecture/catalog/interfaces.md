@@ -117,6 +117,10 @@ public interface UserRepository {
 }
 ```
 
+`findByEmail` используется для аутентификации и ищет пользователя только по email
+с `kind = CURRENT`. `existsByEmail` проверяет оба вида (`CURRENT` и `PENDING`),
+потому что pending email уже глобально зарезервирован.
+
 Реализация: `identity.infrastructure.persistence.adapter.JooqUserRepositoryAdapter`.
 
 ### `identity.application.port.out.persistence.EmailVerificationRepository`
@@ -146,16 +150,28 @@ Refresh token является application-моделью состояния с�
 
 ```java
 public interface RefreshTokenRepository {
-    Optional<RefreshTokenState> findActiveByTokenHash(
-        String tokenHash,
-        Instant now
+    Optional<RefreshTokenState> findByTokenHashForUpdate(
+        String tokenHash
     );
 
     RefreshTokenState save(RefreshTokenState token);
     void revoke(UUID tokenId, Instant revokedAt);
-    void revokeFamily(UUID familyId, Instant revokedAt);
+    void revokeFamily(
+        UUID userId,
+        UUID familyId,
+        Instant revokedAt
+    );
 }
 ```
+
+`findByTokenHashForUpdate` возвращает запись в любом состоянии и блокирует её
+до завершения application-транзакции. Проверки `expiresAt` и `revokedAt` выполняет
+`RefreshTokenService`: это позволяет отличить неизвестный token от повторного
+предъявления уже отозванного и при reuse отозвать его token family.
+
+Семья отзывается в границах конкретного пользователя. Пара `userId` и `familyId`
+соответствует составному индексу `(user_id, family_id)` и не допускает глобальную
+операцию над token family без проверки её владельца.
 
 Реализация: `identity.infrastructure.persistence.adapter.JooqRefreshTokenRepositoryAdapter`.
 
