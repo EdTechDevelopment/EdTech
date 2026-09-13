@@ -64,7 +64,7 @@ erDiagram
 | `password_hash` | `varchar` | нет | BCrypt hash. Открытый пароль никогда не сохраняется. |
 | `first_name` | `varchar` | нет | Имя пользователя. |
 | `last_name` | `varchar` | нет | Фамилия пользователя. |
-| `status` | `varchar` | нет | `PENDING_VERIFICATION`, `ACTIVE`, `SUSPENDED`, `DEACTIVATED`. |
+| `status` | `varchar` | нет | `PENDING_EMAIL_VERIFICATION`, `ACTIVE`, `SUSPENDED`, `DEACTIVATED`. |
 | `email_verified_at` | `timestamptz` | да | Время первого успешного подтверждения email. |
 | `created_at` | `timestamptz` | нет | Время создания. |
 | `updated_at` | `timestamptz` | нет | Время последнего изменения. |
@@ -73,7 +73,7 @@ erDiagram
 
 ```text
 PRIMARY KEY (id)
-CHECK (status IN ('PENDING_VERIFICATION', 'ACTIVE', 'SUSPENDED', 'DEACTIVATED'))
+CHECK (status IN ('PENDING_EMAIL_VERIFICATION', 'ACTIVE', 'SUSPENDED', 'DEACTIVATED'))
 ```
 
 ## `identity_user_emails`
@@ -96,6 +96,11 @@ CHECK (email = lower(email))
 
 Составной primary key реализует требование `UNIQUE(user_id, kind)`: у пользователя может быть максимум один текущий и один ожидающий email. `UNIQUE(email)` резервирует адрес сразу для обоих состояний и защищает от конкурентной регистрации или смены email.
 
+При регистрации основной, но ещё не подтверждённый адрес сохраняется как `CURRENT`.
+Подтверждённость выражают `identity_users.status` и `email_verified_at`, а не `kind`.
+Login ищет только `CURRENT`; проверка занятости адреса охватывает `CURRENT` и
+`PENDING`.
+
 ## `identity_user_roles`
 
 | Столбец | Тип | Null | Назначение |
@@ -108,7 +113,7 @@ CHECK (email = lower(email))
 ```text
 PRIMARY KEY (user_id, role)
 FOREIGN KEY (user_id) REFERENCES identity_users(id) ON DELETE CASCADE
-CHECK (role IN ('STUDENT', 'TUTOR', 'ADMIN'))
+CHECK (role IN ('TEACHER', 'STUDENT'))
 ```
 
 ## `identity_email_verifications`
@@ -158,12 +163,19 @@ PRIMARY KEY (id)
 FOREIGN KEY (user_id) REFERENCES identity_users(id) ON DELETE CASCADE
 UNIQUE (token_hash)
 CHECK (expires_at > created_at)
-INDEX (user_id)
-INDEX (family_id)
+INDEX (user_id, family_id)
 INDEX (expires_at)
 ```
 
-Ротация должна быть атомарной: текущий token блокируется/помечается отозванным и новый token той же family сохраняется в одной транзакции. Повторное предъявление уже отозванного token рассматривается как возможная кража и отзывает активные tokens этой family.
+Составной индекс поддерживает операции со всеми сессиями пользователя по `user_id`
+и отзыв конкретной token family по паре `user_id + family_id`. Ротация должна быть
+атомарной: текущий token блокируется/помечается отозванным и новый token той же
+family сохраняется в одной транзакции. Повторное предъявление уже отозванного token
+рассматривается как возможная кража и отзывает активные tokens этой family в границах
+её пользователя. Поиск для refresh выполняется по unique `token_hash` без фильтра
+по `revoked_at`/`expires_at` и с `FOR UPDATE`; состояние оценивает application service.
+Отозванные rows сохраняются как минимум до установленной retention boundary, чтобы
+reuse можно было связать с владельцем и family.
 
 ## Восстановление агрегатов
 
