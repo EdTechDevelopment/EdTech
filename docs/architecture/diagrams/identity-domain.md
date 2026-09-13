@@ -39,14 +39,13 @@ classDiagram
 
     class UserRole {
         <<enumeration>>
+        TEACHER
         STUDENT
-        TUTOR
-        ADMIN
     }
 
     class UserStatus {
         <<enumeration>>
-        PENDING_VERIFICATION
+        PENDING_EMAIL_VERIFICATION
         ACTIVE
         SUSPENDED
         DEACTIVATED

@@ -56,15 +56,30 @@ sequenceDiagram
     C->>S: raw token from cookie
     S->>H: hash(raw token)
     H-->>S: token hash
-    S->>DB: findActiveByTokenHash(hash, now)
-    DB-->>S: current token state
-    S->>DB: revoke(current token)
-    S->>I: issue()
-    I-->>S: new raw token
-    S->>H: hash(new raw token)
-    S->>DB: save(new hash, same familyId)
-    S-->>C: new access token + rotated cookie
+    S->>DB: findByTokenHashForUpdate(hash)
+    DB-->>S: token state or empty
+    alt token is unknown
+        S-->>C: INVALID_REFRESH_TOKEN
+    else token is revoked (reuse)
+        S->>DB: revokeFamily(userId, familyId, now)
+        S-->>C: INVALID_REFRESH_TOKEN
+    else token is expired
+        S-->>C: INVALID_REFRESH_TOKEN
+    else token is active
+        S->>DB: revoke(current token)
+        S->>I: issue()
+        I-->>S: new raw token
+        S->>H: hash(new raw token)
+        S->>DB: save(new hash, same familyId)
+        S-->>C: new access token + rotated cookie
+    end
 ```
+
+Поиск, проверка состояния, отзыв старого token и сохранение нового выполняются в
+одной application-транзакции. `FOR UPDATE` не изменяет строку само по себе: оно
+удерживает row-level lock, чтобы два параллельных запроса не использовали один
+активный token одновременно. Старые отозванные записи сохраняются до истечения
+retention-периода, иначе повторное предъявление нельзя связать с `familyId`.
 
 ## JWT claims и cookie
 
