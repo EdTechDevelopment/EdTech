@@ -127,7 +127,7 @@ public interface UserRepository {
 
 ```java
 public interface EmailVerificationRepository {
-    Optional<EmailVerification> findActiveByTokenHash(
+    Optional<EmailVerification> findActiveByTokenHashForUpdate(
         VerificationTokenHash tokenHash,
         Instant now
     );
@@ -141,6 +141,10 @@ public interface EmailVerificationRepository {
     );
 }
 ```
+
+`findActiveByTokenHashForUpdate` загружает только активную verification и удерживает
+row-level lock до завершения транзакции, чтобы два конкурентных confirm не могли
+использовать один token.
 
 Реализация: `identity.infrastructure.persistence.adapter.JooqEmailVerificationRepositoryAdapter`.
 
@@ -261,13 +265,17 @@ public interface VerificationEmailSender {
 
 ```java
 public interface IntegrationEventPublisher {
-    void publish(Object integrationEvent);
+    void publish(UserRegisteredEvent event);
+    void publish(UserActivatedEvent event);
+    void publish(UserAccountUpdatedEvent event);
 }
 ```
 
 Реализация: `identity.infrastructure.messaging.event.SpringIntegrationEventPublisher`.
 
-При реализации вместо общего `Object` допустимо добавить перегруженные методы для публичных событий Identity. Доменные события наружу не публикуются напрямую.
+Типизированные перегрузки разрешают публиковать только публичные integration events
+Identity и дают compile-time защиту от случайной публикации domain-объекта или
+произвольного значения. Доменные события наружу не публикуются напрямую.
 
 ### `identity.application.port.out.TimeProvider`
 

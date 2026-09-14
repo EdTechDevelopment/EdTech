@@ -2617,6 +2617,8 @@
             "format": "password",
             "minLength": 8,
             "maxLength": 128,
+            "pattern": "^[!-~]+$",
+            "description": "Only printable ASCII characters from ! to ~; spaces are not allowed.",
             "writeOnly": true
           },
           "firstName": {

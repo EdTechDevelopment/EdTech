@@ -153,8 +153,11 @@ PATCH /api/v1/me
 ```
 
 - Регистрация требует email, пароль, имя, фамилию и 1–2 уникальные роли.
-- Email имеет максимум 254 символа; пароль регистрации — 8–128; имя и фамилия —
-  1–100 символов после trim.
+- Email имеет максимум 254 символа; пароль регистрации — 8–128 печатных
+  ASCII-символов от `!` до `~` без пробелов; имя и фамилия — 1–100 символов
+  после trim.
+- Verification token действует 5 минут; значение задаётся configuration property
+  `identity.token.verification-ttl`, а не domain-константой.
 - Регистрация создаёт `PENDING_EMAIL_VERIFICATION`, но не выдаёт access/refresh.
 - Confirm и login возвращают `TokenResponse` и устанавливают refresh cookie.
 - `TokenResponse` содержит только `accessToken`, `tokenType = Bearer` и
@@ -225,7 +228,8 @@ PATCH /api/v1/me
   `CURRENT` и `PENDING`.
 - `PRIMARY KEY (user_id, role)` исключает дубли ролей.
 - Raw password и raw token никогда не сохраняются.
-- В БД хранятся SHA-256 hashes refresh/verification tokens; token hashes unique.
+- В БД хранятся SHA-256 hashes refresh/verification tokens в каноническом
+  lowercase hex-формате из 64 символов; token hashes unique.
 - `ON DELETE CASCADE` сохраняется для дочерних Identity-данных. Он срабатывает
   только при физическом DELETE пользователя; обычная деактивация меняет status.
 
@@ -337,6 +341,9 @@ active состояния. Только так revoked token сохраняет 
   `notifications.api`, а Notifications сначала сохраняет запрос доставки.
 - Публичное integration event содержит минимальный JDK-only payload и `eventId`,
   публикуется/обрабатывается после commit и требует идемпотентного consumer.
+- `IntegrationEventPublisher` предоставляет отдельную типизированную перегрузку для
+  каждого публичного события Identity вместо общего `publish(Object)`. Это не даёт
+  application-коду случайно опубликовать domain-объект или произвольное значение.
 
 ## Persistence implementation
 
@@ -410,12 +417,12 @@ Spring configuration: application.yml без отдельного local profile
 |---|---|---|
 | `OPEN-001` | `OPEN` | OpenAPI HTTP `UserStatus` содержит только `PENDING_EMAIL_VERIFICATION` и `ACTIVE`, а внутренняя/Public Java Identity-модель также содержит `SUSPENDED` и `DEACTIVATED`. Нужно решить, расширять ли OpenAPI или гарантировать, что эти состояния никогда не сериализуются в `UserResponse`. |
 | `OPEN-002` | `OPEN` | Политика почти одновременных refresh-запросов: строгий reuse detection отзывает family для проигравшего повторного запроса. Frontend обязан сериализовать refresh через один promise, но нужно решить, нужен ли серверный grace window для сетевых повторов. |
-| `OPEN-003` | `OPEN` | Точные `accessTokenTtl`, `refreshTokenTtl`, `verificationTokenTtl`, entropy bytes и BCrypt strength ещё не выбраны. Они должны быть configuration properties, а не domain constants. |
+| `OPEN-003` | `OPEN` | `verificationTokenTtl` зафиксирован как 5 минут. Точные `accessTokenTtl`, `refreshTokenTtl`, entropy bytes и BCrypt strength ещё не выбраны. Все значения должны быть configuration properties, а не domain constants. |
 | `OPEN-004` | `OPEN` | Нужны max absolute lifetime token family и sliding-session policy либо только TTL каждой отдельной refresh-записи. |
 | `OPEN-005` | `OPEN` | Точный retention period, batch size, расписание и владелец фоновой очистки expired verification/refresh rows ещё не определены. Индексы `expires_at` уже сохранены под этот use case. |
 | `OPEN-006` | `OPEN` | Семантика `email_verified_at`: каталог БД называет его временем первого подтверждения, а API contract говорит обновлять при подтверждённой смене email. Нужно выбрать один смысл и синхронизировать имя/описание. |
 | `OPEN-007` | `OPEN` | Resend принимает только email. Нужно формально определить, как он выбирает `REGISTRATION` или `EMAIL_CHANGE`, когда email может быть CURRENT или PENDING, сохраняя нейтральный ответ. |
-| `OPEN-008` | `OPEN` | Формат хранения SHA-256 hash — hex или base64url. `varchar(64)` вмещает оба варианта, но реализация и тестовые значения должны использовать один формат. |
+| `OPEN-008` | `RESOLVED` | SHA-256 hashes хранятся в каноническом lowercase hex-формате из 64 символов. |
 | `OPEN-009` | `OPEN` | Жизненный цикл hard delete пользователя, сроки хранения и требования аудита/персональных данных не определены. До решения бизнес-деактивация использует `DEACTIVATED`, а `ON DELETE CASCADE` относится только к физическому DELETE. |
 | `OPEN-010` | `OPEN` | При `SUSPENDED/DEACTIVATED` новые login/refresh запрещены, но уже выданный stateless access JWT живёт до expiry. Нужно решить, достаточно ли короткого TTL или критичные endpoints должны дополнительно проверять account status. |
 | `OPEN-011` | `OPEN` | Формат durable outbox для межмодульных events/notification delivery ещё не выбран. Нельзя имитировать требуемую надёжность обычным in-memory event. |

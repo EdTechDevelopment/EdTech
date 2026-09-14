@@ -17,7 +17,7 @@ class EmailVerificationTest {
     private static final UUID VERIFICATION_ID = UUID.fromString("81580d5d-b71f-41dd-930a-6788f41c3d08");
     private static final UUID USER_ID = UUID.fromString("25ca25ce-c1c7-4d4a-8cf6-ffb72618ad19");
     private static final Email TARGET_EMAIL = new Email("anna@example.com");
-    private static final VerificationTokenHash TOKEN_HASH = new VerificationTokenHash("verification-token-hash");
+    private static final VerificationTokenHash TOKEN_HASH = new VerificationTokenHash("0123456789abcdef".repeat(4));
     private static final Instant CREATED_AT = Instant.parse("2026-09-13T12:00:00Z");
     private static final Instant EXPIRES_AT = CREATED_AT.plusSeconds(900);
 

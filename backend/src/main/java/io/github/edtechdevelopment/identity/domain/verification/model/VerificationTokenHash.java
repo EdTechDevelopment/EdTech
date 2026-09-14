@@ -4,7 +4,7 @@ import io.github.edtechdevelopment.identity.domain.verification.exception.Invali
 
 public record VerificationTokenHash(String value) {
 
-    private static final int MAX_LENGTH = 64;
+    private static final int SHA_256_HEX_LENGTH = 64;
 
     public VerificationTokenHash {
         if (value == null) {
@@ -13,14 +13,14 @@ public record VerificationTokenHash(String value) {
         if (value.isBlank()) {
             throw new InvalidEmailVerificationException("Verification token hash must not be blank");
         }
-        if (value.length() > MAX_LENGTH) {
+        if (value.length() != SHA_256_HEX_LENGTH) {
             throw new InvalidEmailVerificationException(
-                    "Verification token hash must not exceed 64 characters"
+                    "Verification token hash must contain exactly 64 characters"
             );
         }
-        if (value.chars().anyMatch(Character::isWhitespace)) {
+        if (!value.matches("[0-9a-f]{64}")) {
             throw new InvalidEmailVerificationException(
-                    "Verification token hash must not contain whitespace"
+                    "Verification token hash must use lowercase hexadecimal format"
             );
         }
     }

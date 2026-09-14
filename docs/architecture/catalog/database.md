@@ -123,7 +123,7 @@ CHECK (role IN ('TEACHER', 'STUDENT'))
 | `id` | `uuid` | нет | Primary key verification aggregate. |
 | `user_id` | `uuid` | нет | FK на пользователя. |
 | `target_email` | `varchar` | нет | Email, который должен быть подтверждён. |
-| `token_hash` | `varchar(64)` | нет | SHA-256 hash в hex/base64url-представлении. |
+| `token_hash` | `varchar(64)` | нет | SHA-256 hash в lowercase hex-представлении из 64 символов. |
 | `purpose` | `varchar` | нет | `REGISTRATION` или `EMAIL_CHANGE`. |
 | `expires_at` | `timestamptz` | нет | Конец срока действия. |
 | `consumed_at` | `timestamptz` | да | Время успешного использования. |
@@ -150,7 +150,7 @@ INDEX (expires_at)
 |---|---|---|---|
 | `id` | `uuid` | нет | Primary key состояния refresh token. |
 | `user_id` | `uuid` | нет | FK на пользователя. |
-| `token_hash` | `varchar(64)` | нет | SHA-256 hash; открытый token не сохраняется. |
+| `token_hash` | `varchar(64)` | нет | SHA-256 hash в lowercase hex-представлении из 64 символов; открытый token не сохраняется. |
 | `family_id` | `uuid` | нет | Идентификатор цепочки ротации. |
 | `expires_at` | `timestamptz` | нет | Конец срока действия. |
 | `revoked_at` | `timestamptz` | да | Время отзыва/ротации. |

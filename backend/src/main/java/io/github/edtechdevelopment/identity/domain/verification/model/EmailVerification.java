@@ -73,7 +73,7 @@ public final class EmailVerification {
             throw new InvalidEmailVerificationException("Invalidation time must not be before creation time");
         }
         if (consumedAt != null) {
-            throw new InvalidEmailVerificationException("A consumed email verification cannoprivate final Instant createdAt;t be invalidated");
+            throw new InvalidEmailVerificationException("A consumed email verification cannot be invalidated");
         }
         if (this.invalidatedAt != null) {
             throw new InvalidEmailVerificationException("Email verification is already invalidated");

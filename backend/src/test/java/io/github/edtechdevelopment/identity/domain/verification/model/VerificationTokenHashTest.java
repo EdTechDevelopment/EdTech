@@ -10,11 +10,9 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 class VerificationTokenHashTest {
 
     @Test
-    void storesHashWithoutChoosingItsEncoding() {
-        String base64UrlHash = "a".repeat(43);
-        String hexHash = "b".repeat(64);
+    void storesLowercaseSha256HexHash() {
+        String hexHash = "0123456789abcdef".repeat(4);
 
-        assertEquals(base64UrlHash, new VerificationTokenHash(base64UrlHash).value());
         assertEquals(hexHash, new VerificationTokenHash(hexHash).value());
     }
 
@@ -30,14 +28,19 @@ class VerificationTokenHashTest {
         );
         assertThrows(
                 InvalidEmailVerificationException.class,
-                () -> new VerificationTokenHash("hash with whitespace")
+                () -> new VerificationTokenHash("a".repeat(32) + " " + "b".repeat(31))
         );
     }
 
     @Test
-    void rejectsHashLongerThanDatabaseColumn() {
+    void rejectsHashWithIncorrectLength() {
+        String base64UrlHash = "a".repeat(43);
         String hashOverLimit = "a".repeat(65);
 
+        assertThrows(
+                InvalidEmailVerificationException.class,
+                () -> new VerificationTokenHash(base64UrlHash)
+        );
         assertThrows(
                 InvalidEmailVerificationException.class,
                 () -> new VerificationTokenHash(hashOverLimit)
@@ -45,8 +48,23 @@ class VerificationTokenHashTest {
     }
 
     @Test
+    void rejectsNonHexAndUppercaseCharacters() {
+        String nonHexHash = "g".repeat(64);
+        String uppercaseHash = "A".repeat(64);
+
+        assertThrows(
+                InvalidEmailVerificationException.class,
+                () -> new VerificationTokenHash(nonHexHash)
+        );
+        assertThrows(
+                InvalidEmailVerificationException.class,
+                () -> new VerificationTokenHash(uppercaseHash)
+        );
+    }
+
+    @Test
     void doesNotExposeHashInToString() {
-        String hash = "sensitive-token-hash";
+        String hash = "0123456789abcdef".repeat(4);
 
         String printedHash = new VerificationTokenHash(hash).toString();
 

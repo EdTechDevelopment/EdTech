@@ -10,3 +10,7 @@ spring:
   flyway:
     enabled: true
     locations: classpath:db/migration
+
+identity:
+  token:
+    verification-ttl: 5m

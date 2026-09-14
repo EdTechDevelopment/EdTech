@@ -53,7 +53,7 @@ Infrastructure реализует выходные порты Application. Appli
 2. Текущий и ожидающий подтверждения email принадлежат агрегату `User`, но сохраняются в отдельной таблице `identity_user_emails`.
 3. Конкурентное резервирование email защищено ограничением `UNIQUE(email)` в PostgreSQL.
 4. Access token — короткоживущий JWT RS256. Входящий JWT проверяет Spring Security без обращения к базе на каждый запрос.
-5. Refresh token и verification token выдаются как случайные URL-safe значения; в базе хранится только SHA-256 hash.
+5. Refresh token и verification token выдаются как случайные URL-safe значения; в базе хранится только SHA-256 hash в lowercase hex-формате.
 6. Refresh token передаётся в cookie с `HttpOnly`, `SameSite=Lax`, ограниченным путём `/api/v1/auth` и `Secure` в production.
 7. После подтверждения email `ConfirmEmailUseCase` возвращает `AuthenticationResult`, а контроллер устанавливает refresh cookie.
 8. Отправка email выполняется через публичный API Notifications. Identity не импортирует внутренние пакеты Notifications.

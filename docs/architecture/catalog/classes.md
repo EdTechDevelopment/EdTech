@@ -294,7 +294,7 @@ invalidate(Instant): void
 
 | Элемент | Стереотип | Состав / значения | Назначение |
 |---|---|---|---|
-| `VerificationTokenHash` | value object | `String value` | SHA-256 hash verification token, пригодный для сравнения и хранения. |
+| `VerificationTokenHash` | value object | `String value` | SHA-256 hash verification token в каноническом lowercase hex-формате из 64 символов. |
 | `VerificationPurpose` | `enum` | `REGISTRATION`, `EMAIL_CHANGE` | Определяет действие после успешного подтверждения. |
 | `InvalidEmailVerificationException` | domain exception | — | Нарушено состояние или правило жизненного цикла verification. |
 
