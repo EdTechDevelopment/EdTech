@@ -185,8 +185,17 @@ PATCH /api/v1/me
 - Один пользователь может иметь `TEACHER`, `STUDENT` или обе роли.
 - Новый User всегда имеет `PENDING_EMAIL_VERIFICATION`.
 - Активация возможна только после подтверждения registration email.
+- Registration email можно подтвердить только для User в состоянии
+  `PENDING_EMAIL_VERIFICATION`, и подтверждаемый адрес должен совпадать с current
+  email пользователя.
 - Current и pending email не совпадают; pending не заменяет current до confirm.
 - Смена email не отменяет подтверждённость старого адреса до завершения процесса.
+- Запрос и подтверждение смены email разрешены только для `ACTIVE` User. Повторный
+  запрос уже установленного pending email выполняется через resend verification,
+  а не через повторную смену email.
+- Изменение имени и фамилии разрешено только для `ACTIVE` User. `null` означает,
+  что соответствующее поле не изменяется; если после нормализации значения
+  совпадают с текущими, `updatedAt` не меняется и domain event не создаётся.
 - `SUSPENDED` и `DEACTIVATED` запрещают login и refresh.
 - Каждое доменное изменение обновляет `updatedAt` и при необходимости создаёт
   domain event.
@@ -344,9 +353,10 @@ active состояния. Только так revoked token сохраняет 
 
 ## Конфигурация и окружения
 
-- `application.yml` содержит общие безопасные настройки и загружается всегда —
-  это не production-файл.
-- `application-local.yml` добавляется только при активном profile `local`.
+- На этапе разработки MVP используется один `application.yml`; отдельный Spring
+  profile для локальной среды не применяется.
+- Текущие параметры подключения к локальной PostgreSQL в `application.yml`
+  являются временными локальными значениями, а не production-конфигурацией.
 - Environment variables и command-line properties могут переопределять YAML.
 - Production secrets, RSA private key и SMTP credentials поступают извне и не
   хранятся в Git.
@@ -361,7 +371,7 @@ PostgreSQL image: postgres:18.6-alpine
 container: edtech-postgres
 database/user/password: edtech/edtech/edtech
 host port: 5432
-Spring profile: local
+Spring configuration: application.yml без отдельного local profile
 ```
 
 Эти credentials и публикация `5432:5432` допустимы только для локальной

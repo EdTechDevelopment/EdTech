@@ -140,6 +140,7 @@ identity
 │   │   │   ├── UserRole
 │   │   │   └── UserStatus
 │   │   ├── event
+│   │   │   ├── UserDomainEvent
 │   │   │   ├── UserRegisteredDomainEvent
 │   │   │   ├── UserActivatedDomainEvent
 │   │   │   └── UserAccountUpdatedDomainEvent
@@ -149,10 +150,12 @@ identity
 │   │       ├── InvalidUserStateException
 │   │       └── EmailNotVerifiedException
 │   └── verification
-│       ├── EmailVerification
-│       ├── VerificationTokenHash
-│       ├── VerificationPurpose
-│       └── InvalidEmailVerificationException
+│       ├── model
+│       │   ├── EmailVerification
+│       │   ├── VerificationTokenHash
+│       │   └── VerificationPurpose
+│       └── exception
+│           └── InvalidEmailVerificationException
 └── infrastructure
     ├── persistence
     │   ├── adapter

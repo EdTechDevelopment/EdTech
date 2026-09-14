@@ -187,7 +187,7 @@ application.service.account.RegisterUserService
     --> application.port.out.messaging.IntegrationEventPublisher
     --> application.port.out.TimeProvider
     --> domain.user.model.User
-    --> domain.verification.EmailVerification
+    --> domain.verification.model.EmailVerification
 
 application.service.account.GetCurrentUserService
     --> application.port.out.persistence.UserRepository
@@ -284,16 +284,16 @@ domain.user.model.User
     --> domain.user.event.UserActivatedDomainEvent
     --> domain.user.event.UserAccountUpdatedDomainEvent
 
-domain.verification.EmailVerification
+domain.verification.model.EmailVerification
     *-- domain.user.model.Email
-    *-- domain.verification.VerificationTokenHash
-    *-- domain.verification.VerificationPurpose
+    *-- domain.verification.model.VerificationTokenHash
+    *-- domain.verification.model.VerificationPurpose
 ```
 
 Между двумя aggregate roots нет объектной ссылки:
 
 ```text
-domain.verification.EmailVerification
+domain.verification.model.EmailVerification
     --> UUID userId
 ```
 
@@ -320,7 +320,7 @@ infrastructure.persistence.mapper.UserPersistenceMapper
 
 infrastructure.persistence.mapper.EmailVerificationPersistenceMapper
     --> infrastructure.persistence.data.generated
-    --> domain.verification.EmailVerification
+    --> domain.verification.model.EmailVerification
 
 infrastructure.persistence.mapper.RefreshTokenPersistenceMapper
     --> infrastructure.persistence.data.generated

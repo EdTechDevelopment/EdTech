@@ -196,13 +196,14 @@ UserStatus status
 Instant emailVerifiedAt [0..1]
 Instant createdAt
 Instant updatedAt
-List<DomainEvent> domainEvents
+List<UserDomainEvent> domainEvents
 ```
 
 Основные операции:
 
 ```text
 register(...): User
+reconstitute(...): User
 verifyRegistrationEmail(Email, Instant): void
 requestEmailChange(Email, Instant): void
 confirmPendingEmail(Email, Instant): void
@@ -239,6 +240,7 @@ pullDomainEvents(): List<DomainEvent>
 
 | Элемент | Стереотип | Поля | Назначение |
 |---|---|---|---|
+| `UserDomainEvent` | interface | `Instant occurredAt()` | Общий внутренний тип событий агрегата `User`. |
 | `UserRegisteredDomainEvent` | domain event | `UUID userId`, `Email email`, `Instant occurredAt` | Создаётся при регистрации агрегата. |
 | `UserActivatedDomainEvent` | domain event | `UUID userId`, `Email email`, `Instant occurredAt` | Создаётся при первом подтверждении email. |
 | `UserAccountUpdatedDomainEvent` | domain event | `UUID userId`, `Set<String> changedFields`, `Instant occurredAt` | Создаётся при значимом изменении данных аккаунта. |
@@ -254,7 +256,7 @@ pullDomainEvents(): List<DomainEvent>
 
 ## Domain: EmailVerification aggregate
 
-### `identity.domain.verification.EmailVerification`
+### `identity.domain.verification.model.EmailVerification`
 
 Стереотип: `aggregate root`.
 
