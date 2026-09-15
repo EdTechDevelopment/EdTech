@@ -311,15 +311,16 @@ invalidate(Instant): void
 | Элемент | Пакет | Основные операции | Назначение |
 |---|---|---|---|
 | `UserPersistenceMapper` | `infrastructure.persistence.mapper` | `toDomain(UserPersistenceData)`, `toPersistence(User)` | Собирает/разбирает агрегат пользователя из users, emails и roles. |
-| `EmailVerificationPersistenceMapper` | `infrastructure.persistence.mapper` | `toDomain(record)`, `toRecord(model)` | Преобразует verification aggregate и jOOQ record/POJO. |
-| `RefreshTokenPersistenceMapper` | `infrastructure.persistence.mapper` | `toApplication(record)`, `toRecord(state)` | Преобразует `RefreshTokenState` и jOOQ record/POJO. |
+| `EmailVerificationPersistenceMapper` | `infrastructure.persistence.mapper` | `toDomain(record)`, `toRecord(model)` | Преобразует verification aggregate и jOOQ record. |
+| `RefreshTokenPersistenceMapper` | `infrastructure.persistence.mapper` | `toApplication(record)`, `toRecord(state)` | Преобразует `RefreshTokenState` и jOOQ record. |
+| `InvalidPersistenceDataException` | `infrastructure.persistence.exception` | infrastructure exception | Прочитанные persistence-данные невозможно собрать в корректную domain/application-модель. |
 
 ## Infrastructure: Persistence data
 
 | Элемент | Пакет | Стереотип / поля | Назначение |
 |---|---|---|---|
-| `UserPersistenceData` | `infrastructure.persistence.data.model` | internal data carrier: `UsersRecord user`, `List<UserEmailsRecord> emails`, `List<UserRolesRecord> roles` | Объединяет строки нескольких таблиц перед восстановлением агрегата. Не покидает persistence. |
-| `UserJooqRepository` | `infrastructure.persistence.data.repository` | repository | Выполняет SQL для `identity_users`, `identity_user_emails`, `identity_user_roles` через `DSLContext`; не импортирует domain. |
+| `UserPersistenceData` | `infrastructure.persistence.data.model` | internal data carrier: `IdentityUsersRecord user`, `List<IdentityUserEmailsRecord> emails`, `List<IdentityUserRolesRecord> roles` | Объединяет строки нескольких таблиц перед восстановлением агрегата. Не покидает persistence. |
+| `UserJooqRepository` | `infrastructure.persistence.data.repository` | `findById`, `findByIdForUpdate`, `findByCurrentEmail`, `existsByEmail`, `save` | Выполняет SQL для `identity_users`, `identity_user_emails`, `identity_user_roles` через `DSLContext`; блокирующее чтение и save требуют внешнюю транзакцию; не импортирует domain. |
 | `EmailVerificationJooqRepository` | `infrastructure.persistence.data.repository` | repository | Выполняет SQL для `identity_email_verifications`; работает с generated records/простыми data types. |
 | `RefreshTokenJooqRepository` | `infrastructure.persistence.data.repository` | repository | Выполняет SQL для `identity_refresh_tokens`, включая блокировку/атомарную ротацию и отзыв family. |
 | `generated` | `infrastructure.persistence.data.generated` | generated package | Содержит jOOQ tables, records и schema types, созданные из Flyway-схемы. Ручное редактирование запрещено. |

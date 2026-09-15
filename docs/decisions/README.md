@@ -351,10 +351,24 @@ active состояния. Только так revoked token сохраняет 
 
 - Flyway migration создаётся раньше изменения jOOQ-модели.
 - jOOQ Codegen запускается после применения всех migration к generation database.
+- Официальный Gradle-плагин jOOQ Codegen использует ту же версию jOOQ, что и
+  runtime. Генерация ограничена таблицами `public.identity_*`.
+- Generated-код сохраняется в `backend/src/generated/java`, фиксируется в Git и
+  входит в основной Java source set. `compileJava` намеренно не зависит от
+  `jooqCodegen`, поэтому обычная сборка не требует доступной generation database.
+- Codegen создаёт table, record, schema, key и index types; POJO и DAO отключены.
 - Низкоуровневый repository работает с `DSLContext`, generated records и
   внутренними data carriers и не импортирует domain.
 - Adapter реализует application port, вызывает low-level repository, использует
   mapper и переводит database violations в application exceptions.
+- `UserJooqRepository` читает три пользовательские таблицы отдельными запросами,
+  чтобы не создавать декартово размножение email и roles. При сохранении он
+  синхронизирует только исчезнувшие/актуальные email kinds и роли; `created_at`
+  после INSERT не обновляется.
+- Read-only сценарии используют `findById`; изменение существующего пользователя
+  начинается с `findByIdForUpdate`, который блокирует головную строку до чтения
+  email и roles. Все writer-ы сначала затрагивают ту же головную строку. Locking
+  read и save имеют `Propagation.MANDATORY`, а транзакцию открывает application service.
 - Domain enums преобразует mapper; generated records не получают их напрямую.
 - PostgreSQL integration tests не заменяются H2.
 
@@ -429,6 +443,7 @@ Spring configuration: application.yml без отдельного local profile
 | `OPEN-012` | `OPEN` | Production deployment platform, secret storage, tracing backend и metrics storage ещё не выбраны. |
 | `OPEN-013` | `OPEN` | Локальный Mailpit и его настройки предусмотрены backend-архитектурой, но пока сознательно не добавлены в Compose. |
 | `OPEN-014` | `OPEN` | Confirm обязан атомарно consume verification, но конкретный persistence-механизм ещё не выбран: `SELECT ... FOR UPDATE` с последующим save или conditional update. Публичный use case от выбора не меняется. |
+| `OPEN-015` | `RESOLVED` | Для изменения существующего пользователя используется `findByIdForUpdate`: `SELECT ... FOR UPDATE` блокирует строку `identity_users` до чтения email/roles и последующего save. Все writer-ы сначала upsert-ят ту же головную строку. Locking read и save требуют внешнюю транзакцию через `Propagation.MANDATORY`. |
 
 ## Известный долг документации
 

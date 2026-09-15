@@ -162,6 +162,8 @@ identity
     │   │   ├── JooqUserRepositoryAdapter
     │   │   ├── JooqEmailVerificationRepositoryAdapter
     │   │   └── JooqRefreshTokenRepositoryAdapter
+    │   ├── exception
+    │   │   └── InvalidPersistenceDataException
     │   ├── mapper
     │   │   ├── UserPersistenceMapper
     │   │   ├── EmailVerificationPersistenceMapper
@@ -234,7 +236,7 @@ identity
 | `persistence.adapter` | Реализации output repositories и координация mapper + data repository |
 | `persistence.mapper` | Преобразование доменных и persistence-моделей |
 | `persistence.data.repository` | Низкоуровневые SQL-операции через `DSLContext` |
-| `persistence.data.generated` | Сгенерированные jOOQ table/record/POJO types |
+| `persistence.data.generated` | Сгенерированные jOOQ table, record, schema, key и index types; ручное редактирование запрещено |
 | `security.password` | BCrypt-реализация `PasswordHasher` |
 | `security.token` | Выпуск JWT, генерация и SHA-256-хеширование opaque tokens |
 | `security.authentication` | Преобразование claims JWT в Spring Security authentication |

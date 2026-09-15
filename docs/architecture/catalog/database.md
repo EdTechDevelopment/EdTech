@@ -2,6 +2,8 @@
 
 Схему создаёт Flyway. После применения миграций jOOQ генерирует Java-типы в `identity.infrastructure.persistence.data.generated`. Сгенерированные типы остаются внутренними для persistence.
 
+Generated-код хранится в `backend/src/generated/java` и входит в основной Java source set. Он фиксируется в Git, поэтому обычная компиляция не зависит от доступности PostgreSQL. Обновление выполняется отдельно командой `./gradlew jooqCodegen` при запущенной локальной БД с применёнными миграциями.
+
 ## Связи таблиц
 
 ```mermaid
@@ -189,13 +191,19 @@ reuse можно было связать с владельцем и family.
 
 Эти данные объединяются в `UserPersistenceData`. Затем `UserPersistenceMapper` находит email с `kind=CURRENT`, необязательный `kind=PENDING`, преобразует роли и восстанавливает `User` через специальную reconstitution factory. Восстановление не создаёт новых domain events.
 
+Чтение выполняется тремя отдельными запросами, чтобы соединение email и roles не размножало строки. `findByCurrentEmail` учитывает только `kind=CURRENT`, а `existsByEmail` — оба вида email, поскольку `PENDING` уже резервирует адрес.
+
+При сохранении `identity_users` используется upsert по `id`, но неизменяемый `created_at` не обновляется. Email и роли синхронизируются дифференциально: удаляются исчезнувшие значения, затем добавляются или обновляются актуальные. При подтверждении нового email строка `PENDING` удаляется до обновления `CURRENT`, чтобы перенос не конфликтовал с `UNIQUE(email)`.
+
+Read-only сценарии используют `findById`. Любой use case, изменяющий существующего пользователя, обязан вызвать `findByIdForUpdate` внутри своей транзакции. Сначала блокируется строка `identity_users` через `SELECT ... FOR UPDATE`, затем читаются email и roles. Все записи пользователя выполняются через `UserJooqRepository.save`, который сначала обновляет заблокированную головную строку; это сериализует конкурирующие изменения одного агрегата. `findByIdForUpdate` и `save` требуют уже существующую транзакцию (`Propagation.MANDATORY`), а не создают её внутри persistence.
+
 ### EmailVerification
 
-`EmailVerificationJooqRepository` возвращает internal generated record/POJO. `EmailVerificationPersistenceMapper` восстанавливает агрегат с исходными `consumedAt` и `invalidatedAt`.
+`EmailVerificationJooqRepository` возвращает internal generated record. `EmailVerificationPersistenceMapper` восстанавливает агрегат с исходными `consumedAt` и `invalidatedAt`.
 
 ### RefreshTokenState
 
-`RefreshTokenJooqRepository` возвращает internal generated record/POJO. `RefreshTokenPersistenceMapper` преобразует его в application-модель `RefreshTokenState`.
+`RefreshTokenJooqRepository` возвращает internal generated record. `RefreshTokenPersistenceMapper` преобразует его в application-модель `RefreshTokenState`.
 
 ## Транзакционные границы
 
@@ -214,7 +222,10 @@ reuse можно было связать с владельцем и family.
 
 1. Flyway migration является источником истины для physical schema.
 2. jOOQ code generation запускается после применения migration к generation database/schema.
-3. `persistence.data.generated` не редактируется вручную.
-4. Domain enums не передаются непосредственно в jOOQ records; преобразование выполняет mapper.
-5. Database constraint violations преобразуются adapter-ом в application exception, например unique email → `EmailAlreadyExistsException`.
-6. Время хранится как UTC-compatible `timestamptz` и представляется `Instant`.
+3. Генерация ограничена таблицами `public.identity_*`; служебная таблица Flyway не входит в generated model.
+4. Генерируются table, record, schema, key и index types. jOOQ POJO и DAO не генерируются.
+5. Результат сохраняется в `backend/src/generated/java`; `compileJava` не запускает `jooqCodegen` автоматически.
+6. `persistence.data.generated` не редактируется вручную.
+7. Domain enums не передаются непосредственно в jOOQ records; преобразование выполняет mapper.
+8. Database constraint violations преобразуются adapter-ом в application exception, например unique email → `EmailAlreadyExistsException`.
+9. PostgreSQL `timestamptz` представлен в generated records как `OffsetDateTime`; persistence mapper явно преобразует его в доменный `Instant` и обратно.

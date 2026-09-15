@@ -111,15 +111,21 @@ public interface LogoutUseCase {
 ```java
 public interface UserRepository {
     Optional<User> findById(UUID userId);
+    Optional<User> findByIdForUpdate(UUID userId);
     Optional<User> findByEmail(Email email);
     boolean existsByEmail(Email email);
-    User save(User user);
+    void save(User user);
 }
 ```
 
 `findByEmail` используется для аутентификации и ищет пользователя только по email
 с `kind = CURRENT`. `existsByEmail` проверяет оба вида (`CURRENT` и `PENDING`),
 потому что pending email уже глобально зарезервирован.
+
+`findByIdForUpdate` используется use case-ами, которые изменяют существующего
+пользователя. Реализация выполняет `SELECT ... FOR UPDATE` основной строки до
+чтения email и roles. Метод вызывается только внутри транзакции application service;
+`MANDATORY` propagation запрещает освободить lock сразу после SELECT.
 
 Реализация: `identity.infrastructure.persistence.adapter.JooqUserRepositoryAdapter`.
 
