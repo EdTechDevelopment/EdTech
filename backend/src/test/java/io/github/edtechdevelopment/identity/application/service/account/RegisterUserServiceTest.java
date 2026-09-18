@@ -1,6 +1,7 @@
 package io.github.edtechdevelopment.identity.application.service.account;
 
 import io.github.edtechdevelopment.identity.api.event.UserRegisteredEvent;
+import io.github.edtechdevelopment.identity.application.command.account.RegistrationRole;
 import io.github.edtechdevelopment.identity.application.command.account.RegisterUserCommand;
 import io.github.edtechdevelopment.identity.application.exception.EmailAlreadyExistsException;
 import io.github.edtechdevelopment.identity.application.exception.InvalidUseCaseInputException;
@@ -192,7 +193,7 @@ class RegisterUserServiceTest {
         );
         assertThrows(
                 InvalidUseCaseInputException.class,
-                () -> service.register(registrationCommand("anna@example.com", "a".repeat(129)))
+                () -> service.register(registrationCommand("anna@example.com", "a".repeat(73)))
         );
     }
 
@@ -223,7 +224,7 @@ class RegisterUserServiceTest {
                 password,
                 "Anna",
                 "Petrova",
-                Set.of(UserRole.STUDENT)
+                Set.of(RegistrationRole.STUDENT)
         );
     }
 }

@@ -138,7 +138,7 @@ public interface EmailVerificationRepository {
         Instant now
     );
 
-    EmailVerification save(EmailVerification verification);
+    void save(EmailVerification verification);
 
     void invalidateActiveForUser(
         UUID userId,
@@ -150,7 +150,8 @@ public interface EmailVerificationRepository {
 
 `findActiveByTokenHashForUpdate` загружает только активную verification и удерживает
 row-level lock до завершения транзакции, чтобы два конкурентных confirm не могли
-использовать один token.
+использовать один token. Locking read, save и массовая инвалидизация требуют уже
+открытую транзакцию application service через `Propagation.MANDATORY`.
 
 Реализация: `identity.infrastructure.persistence.adapter.JooqEmailVerificationRepositoryAdapter`.
 
@@ -304,6 +305,10 @@ public interface NotificationGateway {
 ```
 
 Identity использует только этот интерфейс и публичные типы `notifications.api.command` / `notifications.api.model`.
+Пакеты `notifications.api`, `notifications.api.command` и
+`notifications.api.model` явно объявлены частями одного Spring Modulith
+`@NamedInterface("api")`. Явное объявление всех трёх пакетов не оставляет
+вложенные command/model типы внутренними деталями модуля.
 
 ## Контракты Spring Security
 

@@ -153,12 +153,24 @@ PATCH /api/v1/me
 ```
 
 - Регистрация требует email, пароль, имя, фамилию и 1–2 уникальные роли.
-- Email имеет максимум 254 символа; пароль регистрации — 8–128 печатных
+- Email имеет максимум 254 символа; пароль регистрации — 8–72 печатных
   ASCII-символов от `!` до `~` без пробелов; имя и фамилия — 1–100 символов
-  после trim.
+  после trim. Ограничение в 72 символа одновременно является ограничением в
+  72 байта для разрешённого ASCII-набора и не позволяет BCrypt молча отбросить
+  хвост пароля.
 - Verification token действует 5 минут; значение задаётся configuration property
   `identity.token.verification-ttl`, а не domain-константой.
+- Verification token содержит 32 байта криптографической случайности и кодируется
+  URL-safe Base64 без padding; размер задаётся свойством
+  `identity.token.verification-entropy-bytes`.
+- Пока frontend не подключён, `identity.notification.frontend-base-url` использует
+  явно временный, синтаксически корректный placeholder
+  `http://frontend.example:3000`, а путь подтверждения — `/verify-email`. Реальный
+  frontend URL заменяется конфигурацией без изменения кода.
 - Регистрация создаёт `PENDING_EMAIL_VERIFICATION`, но не выдаёт access/refresh.
+- `POST /api/v1/auth/register` реализован через Presentation → Application →
+  Domain/Infrastructure и отвечает `202`; остальные перечисленные Identity
+  endpoints пока остаются целевым контрактом.
 - Confirm и login возвращают `TokenResponse` и устанавливают refresh cookie.
 - `TokenResponse` содержит только `accessToken`, `tokenType = Bearer` и
   `expiresInSeconds`.
@@ -282,7 +294,9 @@ identity_refresh_tokens:
 
 Статус — `FIXED`, кроме явно отмеченных `OPEN` параметров.
 
-- Пароли хешируются BCrypt; raw password живёт только во время register/login.
+- Пароли хешируются BCrypt со strength `10`, заданным свойством
+  `identity.security.password.bcrypt-strength`; raw password живёт только во
+  время register/login.
 - Access token — короткоживущий JWT RS256 с claims `sub`, `roles`, `iss`, `aud`,
   `iat`, `exp`.
 - Входящий access JWT проверяется локально по public key, issuer, audience и
@@ -339,11 +353,35 @@ active состояния. Только так revoked token сохраняет 
   смене email; unique violation преобразуется в application exception.
 - SMTP не вызывается внутри транзакции Identity. Identity использует только
   `notifications.api`, а Notifications сначала сохраняет запрос доставки.
+- `notifications.api` объявлен публичным Spring Modulith named interface. Identity
+  передаёт готовый confirmation URL, публичный purpose и точный `expiresAt`
+  исходного token; Notifications не обращается к внутренней модели Identity.
+- Raw verification token не сохраняется в таблицах Identity. Согласованный MVP
+  допускает его кратковременное присутствие внутри confirmation URL в защищённом
+  delivery payload Notifications до успешной отправки или истечения срока. Payload
+  не логируется и после этой границы удаляется либо затирается.
+- Durable delivery request хранится в `notification_email_deliveries` без foreign
+  key на Identity. Новое задание создаётся как `PENDING` в той же внешней
+  транзакции, что и вызывающий mutating use case, через `Propagation.MANDATORY`.
+- `RegisterUserService` и `EnqueueVerificationEmailService` регистрируются явными
+  module-owned Spring configurations, а не component scanning. Оба получают
+  transaction proxy; Notifications gateway реально отклоняет вызов без внешней
+  транзакции. Общий UTC `Clock` принадлежит application composition root, а каждый
+  модуль адаптирует его через собственный `TimeProvider`.
+- Для MVP не хранятся `attempt_count`, `available_at` и `lease_until`. Временная
+  ошибка возвращает delivery в `PENDING`; повтор выполняет следующий общий цикл
+  worker-а до `expiresAt`. Зависший `PROCESSING` в будущем определяется по
+  `updated_at` и конфигурируемому processing timeout.
 - Публичное integration event содержит минимальный JDK-only payload и `eventId`,
   публикуется/обрабатывается после commit и требует идемпотентного consumer.
 - `IntegrationEventPublisher` предоставляет отдельную типизированную перегрузку для
   каждого публичного события Identity вместо общего `publish(Object)`. Это не даёт
   application-коду случайно опубликовать domain-объект или произвольное значение.
+- `SpringIntegrationEventPublisher` без преобразований передаёт публичный Java
+  event в `ApplicationEventPublisher`. Такая публикация сама по себе синхронна и
+  хранится только в памяти процесса. Consumer, которому нужны committed данные,
+  использует `@TransactionalEventListener(AFTER_COMMIT)`; асинхронность и durable
+  delivery этим не подразумеваются.
 
 ## Persistence implementation
 
@@ -352,7 +390,9 @@ active состояния. Только так revoked token сохраняет 
 - Flyway migration создаётся раньше изменения jOOQ-модели.
 - jOOQ Codegen запускается после применения всех migration к generation database.
 - Официальный Gradle-плагин jOOQ Codegen использует ту же версию jOOQ, что и
-  runtime. Генерация ограничена таблицами `public.identity_*`.
+  runtime. Execution `identity` ограничен таблицами `public.identity_*`, execution
+  `notifications` — таблицами `public.notification_*`; оба пишут в один
+  `backend/src/generated/java`, но в разные module-owned packages.
 - Generated-код сохраняется в `backend/src/generated/java`, фиксируется в Git и
   входит в основной Java source set. `compileJava` намеренно не зависит от
   `jooqCodegen`, поэтому обычная сборка не требует доступной generation database.
@@ -369,6 +409,12 @@ active состояния. Только так revoked token сохраняет 
   начинается с `findByIdForUpdate`, который блокирует головную строку до чтения
   email и roles. Все writer-ы сначала затрагивают ту же головную строку. Locking
   read и save имеют `Propagation.MANDATORY`, а транзакцию открывает application service.
+- Активная email verification ищется по token hash через `SELECT ... FOR UPDATE`.
+  Locking read, save и массовая инвалидизация требуют внешнюю транзакцию. Save
+  обновляет только `consumed_at`/`invalidated_at`; identity-поля записи неизменяемы.
+- PostgreSQL `timestamptz(6)` хранит микросекунды. Production `TimeProvider`
+  заранее обрезает более точный `Instant` до микросекунд, поэтому один timestamp
+  одинаков в application result, HTTP JSON и сохранённых строках.
 - Domain enums преобразует mapper; generated records не получают их напрямую.
 - PostgreSQL integration tests не заменяются H2.
 
@@ -411,6 +457,10 @@ Spring configuration: application.yml без отдельного local profile
 - Persistence tests используют Testcontainers PostgreSQL, Flyway и реальные SQL,
   constraints, locking и concurrency.
 - Web/security tests проверяют OpenAPI, cookie, JWT, CORS/Origin и `ApiError`.
+- Интеграционный тест регистрации использует явно маркированный адрес
+  `registration-flow-<uuid>@example.test`, проверяет HTTP → Identity → Notifications
+  и выполняется с автоматическим rollback; после транзакции дополнительно
+  проверяется отсутствие тестовых строк.
 - Spring Modulith и ArchUnit проверяют module/layer boundaries.
 
 Рабочее соглашение для пошаговой разработки имеет статус `ACCEPTED`:
@@ -431,7 +481,7 @@ Spring configuration: application.yml без отдельного local profile
 |---|---|---|
 | `OPEN-001` | `OPEN` | OpenAPI HTTP `UserStatus` содержит только `PENDING_EMAIL_VERIFICATION` и `ACTIVE`, а внутренняя/Public Java Identity-модель также содержит `SUSPENDED` и `DEACTIVATED`. Нужно решить, расширять ли OpenAPI или гарантировать, что эти состояния никогда не сериализуются в `UserResponse`. |
 | `OPEN-002` | `OPEN` | Политика почти одновременных refresh-запросов: строгий reuse detection отзывает family для проигравшего повторного запроса. Frontend обязан сериализовать refresh через один promise, но нужно решить, нужен ли серверный grace window для сетевых повторов. |
-| `OPEN-003` | `OPEN` | `verificationTokenTtl` зафиксирован как 5 минут. Точные `accessTokenTtl`, `refreshTokenTtl`, entropy bytes и BCrypt strength ещё не выбраны. Все значения должны быть configuration properties, а не domain constants. |
+| `OPEN-003` | `OPEN` | `verificationTokenTtl` зафиксирован как 5 минут, verification token entropy — 32 байта, BCrypt strength — 10. Точные `accessTokenTtl`, `refreshTokenTtl` и refresh token entropy ещё не выбраны. Все значения должны быть configuration properties, а не domain constants. |
 | `OPEN-004` | `OPEN` | Нужны max absolute lifetime token family и sliding-session policy либо только TTL каждой отдельной refresh-записи. |
 | `OPEN-005` | `OPEN` | Точный retention period, batch size, расписание и владелец фоновой очистки expired verification/refresh rows ещё не определены. Индексы `expires_at` уже сохранены под этот use case. |
 | `OPEN-006` | `OPEN` | Семантика `email_verified_at`: каталог БД называет его временем первого подтверждения, а API contract говорит обновлять при подтверждённой смене email. Нужно выбрать один смысл и синхронизировать имя/описание. |
@@ -439,11 +489,14 @@ Spring configuration: application.yml без отдельного local profile
 | `OPEN-008` | `RESOLVED` | SHA-256 hashes хранятся в каноническом lowercase hex-формате из 64 символов. |
 | `OPEN-009` | `OPEN` | Жизненный цикл hard delete пользователя, сроки хранения и требования аудита/персональных данных не определены. До решения бизнес-деактивация использует `DEACTIVATED`, а `ON DELETE CASCADE` относится только к физическому DELETE. |
 | `OPEN-010` | `OPEN` | При `SUSPENDED/DEACTIVATED` новые login/refresh запрещены, но уже выданный stateless access JWT живёт до expiry. Нужно решить, достаточно ли короткого TTL или критичные endpoints должны дополнительно проверять account status. |
-| `OPEN-011` | `OPEN` | Формат durable outbox для межмодульных events/notification delivery ещё не выбран. Нельзя имитировать требуемую надёжность обычным in-memory event. |
+| `OPEN-011` | `OPEN` | Формат durable outbox для межмодульных integration events ещё не выбран. Нельзя имитировать требуемую надёжность обычным in-memory event. Notification delivery использует отдельную принадлежащую Notifications durable job queue, а не integration-event outbox. |
 | `OPEN-012` | `OPEN` | Production deployment platform, secret storage, tracing backend и metrics storage ещё не выбраны. |
 | `OPEN-013` | `OPEN` | Локальный Mailpit и его настройки предусмотрены backend-архитектурой, но пока сознательно не добавлены в Compose. |
-| `OPEN-014` | `OPEN` | Confirm обязан атомарно consume verification, но конкретный persistence-механизм ещё не выбран: `SELECT ... FOR UPDATE` с последующим save или conditional update. Публичный use case от выбора не меняется. |
+| `OPEN-014` | `RESOLVED` | Confirm атомарно находит активную verification через `SELECT ... FOR UPDATE`, изменяет агрегат и сохраняет `consumed_at` в той же внешней транзакции. `Propagation.MANDATORY` не позволяет освободить row lock раньше завершения use case. |
 | `OPEN-015` | `RESOLVED` | Для изменения существующего пользователя используется `findByIdForUpdate`: `SELECT ... FOR UPDATE` блокирует строку `identity_users` до чтения email/roles и последующего save. Все writer-ы сначала upsert-ят ту же головную строку. Locking read и save требуют внешнюю транзакцию через `Propagation.MANDATORY`. |
+| `OPEN-016` | `OPEN` | Confirm, resend и change-email изменяют `User` и `EmailVerification`. До их application services нужно выбрать единый порядок получения user/verification locks, чтобы разные транзакции не брали те же блокировки в обратном порядке и не создавали deadlock. |
+| `OPEN-017` | `OPEN` | Для MVP confirmation URL временно хранится в чувствительном Notifications delivery payload и удаляется/затирается после отправки либо `expiresAt`. Перед production нужно решить, требуется ли application-level encryption at rest, и выбрать точный retention delivery metadata, включая срок хранения `recipient_email` как персональных данных. |
+| `OPEN-018` | `OPEN` | До реализации delivery worker нужно выбрать poll interval, processing timeout, batch size, правила различения временной/постоянной SMTP-ошибки и индекс под фактический claim query. Для MVP согласована повторная попытка на общем цикле без `attempt_count`, `available_at` и `lease_until`; зависший `PROCESSING` восстанавливается по `updated_at`. |
 
 ## Известный долг документации
 

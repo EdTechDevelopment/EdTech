@@ -1,6 +1,5 @@
 package io.github.edtechdevelopment.identity.application.command.account;
 
-import io.github.edtechdevelopment.identity.domain.user.model.UserRole;
 import org.junit.jupiter.api.Test;
 
 import java.util.EnumSet;
@@ -14,31 +13,31 @@ class RegisterUserCommandTest {
 
     @Test
     void storesRegistrationData() {
-        RegisterUserCommand command = registrationCommand(Set.of(UserRole.STUDENT));
+        RegisterUserCommand command = registrationCommand(Set.of(RegistrationRole.STUDENT));
 
         assertEquals("anna@example.com", command.email());
         assertEquals("secret-password", command.rawPassword());
         assertEquals("Anna", command.firstName());
         assertEquals("Petrova", command.lastName());
-        assertEquals(Set.of(UserRole.STUDENT), command.roles());
+        assertEquals(Set.of(RegistrationRole.STUDENT), command.roles());
     }
 
     @Test
     void protectsRolesFromExternalModification() {
-        Set<UserRole> sourceRoles = EnumSet.of(UserRole.STUDENT);
+        Set<RegistrationRole> sourceRoles = EnumSet.of(RegistrationRole.STUDENT);
         RegisterUserCommand command = registrationCommand(sourceRoles);
 
-        sourceRoles.add(UserRole.TEACHER);
+        sourceRoles.add(RegistrationRole.TEACHER);
 
-        assertEquals(Set.of(UserRole.STUDENT), command.roles());
+        assertEquals(Set.of(RegistrationRole.STUDENT), command.roles());
         assertThrows(
                 UnsupportedOperationException.class,
-                () -> command.roles().add(UserRole.TEACHER));
+                () -> command.roles().add(RegistrationRole.TEACHER));
     }
 
     @Test
     void doesNotExposeRegistrationDataInToString() {
-        RegisterUserCommand command = registrationCommand(Set.of(UserRole.STUDENT));
+        RegisterUserCommand command = registrationCommand(Set.of(RegistrationRole.STUDENT));
 
         String printedCommand = command.toString();
 
@@ -49,7 +48,7 @@ class RegisterUserCommandTest {
         assertFalse(printedCommand.contains(command.lastName()));
     }
 
-    private static RegisterUserCommand registrationCommand(Set<UserRole> roles) {
+    private static RegisterUserCommand registrationCommand(Set<RegistrationRole> roles) {
         return new RegisterUserCommand(
                 "anna@example.com",
                 "secret-password",

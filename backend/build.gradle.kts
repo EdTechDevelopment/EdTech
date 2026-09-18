@@ -28,6 +28,7 @@ dependencies {
     implementation("org.springframework.boot:spring-boot-starter-validation")
     implementation("org.springframework.boot:spring-boot-starter-webmvc")
     implementation("org.flywaydb:flyway-database-postgresql")
+    implementation("org.springframework.security:spring-security-crypto")
     implementation("org.springframework.modulith:spring-modulith-starter-core")
     runtimeOnly("org.postgresql:postgresql")
 
@@ -59,13 +60,6 @@ jooq {
         generator {
             name = "org.jooq.codegen.JavaGenerator"
 
-            database {
-                name = "org.jooq.meta.postgres.PostgresDatabase"
-                inputSchema = "public"
-                includes = "identity_.*"
-                excludes = "flyway_schema_history"
-            }
-
             generate {
                 isDeprecated = false
                 isRelations = true
@@ -74,13 +68,49 @@ jooq {
                 isDaos = false
                 isJavaTimeTypes = true
             }
+        }
+    }
 
-            target {
-                packageName = "io.github.edtechdevelopment.identity.infrastructure.persistence.data.generated"
-                directory = "src/generated/java"
-                encoding = "UTF-8"
-                locale = "en"
-                clean = true
+    executions {
+        create("identity") {
+            configuration {
+                generator {
+                    database {
+                        name = "org.jooq.meta.postgres.PostgresDatabase"
+                        inputSchema = "public"
+                        includes = "identity_.*"
+                        excludes = "flyway_schema_history"
+                    }
+
+                    target {
+                        packageName = "io.github.edtechdevelopment.identity.infrastructure.persistence.data.generated"
+                        directory = "src/generated/java"
+                        encoding = "UTF-8"
+                        locale = "en"
+                        clean = true
+                    }
+                }
+            }
+        }
+
+        create("notifications") {
+            configuration {
+                generator {
+                    database {
+                        name = "org.jooq.meta.postgres.PostgresDatabase"
+                        inputSchema = "public"
+                        includes = "notification_.*"
+                        excludes = "flyway_schema_history"
+                    }
+
+                    target {
+                        packageName = "io.github.edtechdevelopment.notifications.infrastructure.persistence.data.generated"
+                        directory = "src/generated/java"
+                        encoding = "UTF-8"
+                        locale = "en"
+                        clean = true
+                    }
+                }
             }
         }
     }

@@ -1,7 +1,5 @@
 package io.github.edtechdevelopment.identity.application.command.account;
 
-import io.github.edtechdevelopment.identity.domain.user.model.UserRole;
-
 import java.util.Set;
 
 public record RegisterUserCommand(
@@ -9,7 +7,7 @@ public record RegisterUserCommand(
         String rawPassword,
         String firstName,
         String lastName,
-        Set<UserRole> roles
+        Set<RegistrationRole> roles
 ) {
 
     public RegisterUserCommand {

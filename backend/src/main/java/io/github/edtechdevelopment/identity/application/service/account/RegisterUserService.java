@@ -1,6 +1,7 @@
 package io.github.edtechdevelopment.identity.application.service.account;
 
 import io.github.edtechdevelopment.identity.api.event.UserRegisteredEvent;
+import io.github.edtechdevelopment.identity.application.command.account.RegistrationRole;
 import io.github.edtechdevelopment.identity.application.command.account.RegisterUserCommand;
 import io.github.edtechdevelopment.identity.application.exception.EmailAlreadyExistsException;
 import io.github.edtechdevelopment.identity.application.exception.InvalidUseCaseInputException;
@@ -34,11 +35,12 @@ import java.util.List;
 import java.util.Objects;
 import java.util.Set;
 import java.util.UUID;
+import java.util.stream.Collectors;
 
 public class RegisterUserService implements RegisterUserUseCase {
 
     private static final int MIN_PASSWORD_LENGTH = 8;
-    private static final int MAX_PASSWORD_LENGTH = 128;
+    private static final int MAX_PASSWORD_LENGTH = 72;
     private static final char FIRST_ALLOWED_PASSWORD_CHARACTER = '!';
     private static final char LAST_ALLOWED_PASSWORD_CHARACTER = '~';
 
@@ -113,7 +115,7 @@ public class RegisterUserService implements RegisterUserUseCase {
                 passwordHash,
                 command.firstName(),
                 command.lastName(),
-                command.roles(),
+                toDomainRoles(command.roles()),
                 registeredAt
         );
 
@@ -157,12 +159,15 @@ public class RegisterUserService implements RegisterUserUseCase {
             throw new InvalidUseCaseInputException("Password must not be null");
         }
         if (rawPassword.length() < MIN_PASSWORD_LENGTH || rawPassword.length() > MAX_PASSWORD_LENGTH) {
-            throw new InvalidUseCaseInputException("Password must contain from 8 to 128 characters");
+            throw new InvalidUseCaseInputException("Password must contain from 8 to 72 characters");
         }
         if (containsForbiddenPasswordCharacter(rawPassword)) {
             throw new InvalidUseCaseInputException(
                     "Password must contain only printable ASCII characters without spaces"
             );
+        }
+        if (command.roles() == null || command.roles().isEmpty()) {
+            throw new InvalidUseCaseInputException("At least one registration role must be provided");
         }
     }
 
@@ -202,6 +207,22 @@ public class RegisterUserService implements RegisterUserUseCase {
         } catch (InvalidUserDataException exception) {
             throw new InvalidUseCaseInputException(exception.getMessage(), exception);
         }
+    }
+
+    private static Set<UserRole> toDomainRoles(Set<RegistrationRole> roles) {
+        if (roles == null) {
+            return null;
+        }
+        return roles.stream()
+                .map(RegisterUserService::toDomainRole)
+                .collect(Collectors.toUnmodifiableSet());
+    }
+
+    private static UserRole toDomainRole(RegistrationRole role) {
+        return switch (role) {
+            case TEACHER -> UserRole.TEACHER;
+            case STUDENT -> UserRole.STUDENT;
+        };
     }
 
     private static UserRegisteredDomainEvent pullRegistrationEvent(User user) {

@@ -15,7 +15,7 @@ public interface EmailVerificationRepository {
             Instant now
     );
 
-    EmailVerification save(EmailVerification verification);
+    void save(EmailVerification verification);
 
     void invalidateActiveForUser(
             UUID userId,

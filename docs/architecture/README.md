@@ -53,14 +53,17 @@ Infrastructure реализует выходные порты Application. Appli
 2. Текущий и ожидающий подтверждения email принадлежат агрегату `User`, но сохраняются в отдельной таблице `identity_user_emails`.
 3. Конкурентное резервирование email защищено ограничением `UNIQUE(email)` в PostgreSQL.
 4. Access token — короткоживущий JWT RS256. Входящий JWT проверяет Spring Security без обращения к базе на каждый запрос.
-5. Refresh token и verification token выдаются как случайные URL-safe значения; в базе хранится только SHA-256 hash в lowercase hex-формате.
+5. Refresh token и verification token выдаются как случайные URL-safe значения; в таблицах Identity хранится только SHA-256 hash в lowercase hex-формате.
+   Verification token использует 32 байта случайности и URL-safe Base64 без padding.
 6. Refresh token передаётся в cookie с `HttpOnly`, `SameSite=Lax`, ограниченным путём `/api/v1/auth` и `Secure` в production.
 7. После подтверждения email `ConfirmEmailUseCase` возвращает `AuthenticationResult`, а контроллер устанавливает refresh cookie.
-8. Отправка email выполняется через публичный API Notifications. Identity не импортирует внутренние пакеты Notifications.
+8. Отправка email выполняется через публичный API Notifications. Identity не импортирует внутренние пакеты Notifications; запрос доставки атомарно сохраняется в `notification_email_deliveries`.
 9. Внутренние интеграционные события публикуются после успешной фиксации транзакции.
 10. Ошибки контроллеров и Spring Security преобразуются в единый формат `ApiError`.
 11. Refresh token загружается через `findByTokenHashForUpdate`: запись возвращается независимо от состояния и блокируется до завершения транзакции.
 12. Token family отзывается по паре `userId + familyId`, соответствующей составному индексу `(user_id, family_id)`.
+13. Пароли ограничены 8–72 печатными ASCII-символами без пробелов и хешируются BCrypt со strength `10`.
+14. Production `TimeProvider` нормализует `Instant` до микросекундной точности PostgreSQL, чтобы timestamp в HTTP-ответах и сохранённых строках совпадали без округления при записи.
 
 ## Как использовать комплект
 
@@ -82,7 +85,9 @@ Infrastructure реализует выходные порты Application. Appli
 
 - каждый output port имеет одну infrastructure-реализацию;
 - jOOQ records не покидают `infrastructure.persistence`;
-- открытые пароли и открытые refresh/verification tokens не сохраняются;
+- открытые пароли и открытые refresh tokens не сохраняются; raw verification
+  token не хранится в таблицах Identity, но до отправки письма может кратковременно
+  находиться внутри защищённого delivery payload модуля Notifications;
 - JWT проверяется локально по публичному ключу;
 - SMTP и шаблоны отсутствуют в Identity;
 - ошибки Spring Security имеют тот же контракт `ApiError`, что и ошибки REST-контроллеров;

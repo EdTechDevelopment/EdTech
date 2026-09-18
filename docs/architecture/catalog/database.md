@@ -1,8 +1,14 @@
-# Persistence и схема данных Identity
+# Persistence и схемы данных Identity и Notifications
 
-Схему создаёт Flyway. После применения миграций jOOQ генерирует Java-типы в `identity.infrastructure.persistence.data.generated`. Сгенерированные типы остаются внутренними для persistence.
+Схему создаёт Flyway. После применения миграций отдельные jOOQ executions
+генерируют Java-типы Identity и Notifications в соответствующие внутренние
+`infrastructure.persistence.data.generated` packages.
 
-Generated-код хранится в `backend/src/generated/java` и входит в основной Java source set. Он фиксируется в Git, поэтому обычная компиляция не зависит от доступности PostgreSQL. Обновление выполняется отдельно командой `./gradlew jooqCodegen` при запущенной локальной БД с применёнными миграциями.
+Generated-код обоих модулей хранится в `backend/src/generated/java`, который
+подключён как дополнительный каталог основного `main` source set. Он фиксируется
+в Git, поэтому обычная компиляция не зависит от доступности PostgreSQL. Обновление
+выполняется отдельно задачами `jooqCodegenIdentity`, `jooqCodegenNotifications`
+либо общей `jooqCodegen` при запущенной локальной БД с применёнными миграциями.
 
 ## Связи таблиц
 
@@ -55,6 +61,18 @@ erDiagram
         timestamptz expires_at
         timestamptz revoked_at
         timestamptz created_at
+    }
+
+    NOTIFICATION_EMAIL_DELIVERIES {
+        uuid id PK
+        varchar recipient_email
+        text confirmation_url
+        varchar purpose
+        varchar status
+        timestamptz expires_at
+        timestamptz created_at
+        timestamptz updated_at
+        timestamptz sent_at
     }
 ```
 
@@ -146,6 +164,10 @@ INDEX (expires_at)
 
 При повторной отправке предыдущая активная verification того же пользователя и purpose получает `invalidated_at`. Поиск выполняется по hash; открытый token в SQL не попадает.
 
+Активная verification имеет `consumed_at IS NULL`, `invalidated_at IS NULL`, `created_at <= now` и `expires_at > now`. Поиск по hash выполняет `SELECT ... FOR UPDATE`; последующий save изменяет только `consumed_at` и `invalidated_at`, сохраняя identity-поля verification неизменными. Массовая инвалидизация обновляет только активные записи указанного `user_id + purpose`.
+
+Locking read, save и инвалидизация требуют внешнюю транзакцию (`Propagation.MANDATORY`). PostgreSQL `timestamptz(6)` сохраняет микросекундную точность, поэтому `Instant` с наносекундами при записи округляется до поддерживаемой БД точности.
+
 ## `identity_refresh_tokens`
 
 | Столбец | Тип | Null | Назначение |
@@ -179,6 +201,44 @@ family сохраняется в одной транзакции. Повторн
 Отозванные rows сохраняются как минимум до установленной retention boundary, чтобы
 reuse можно было связать с владельцем и family.
 
+## `notification_email_deliveries`
+
+Таблица принадлежит модулю Notifications и создаётся миграцией
+`V2__create_notification_delivery_queue.sql`. У неё намеренно нет foreign key на
+`identity_users`: модули не связывают свои таблицы физическими ссылками, а уже
+принятое задание доставки не зависит от дальнейшего жизненного цикла User.
+
+| Столбец | Тип | Null | Назначение |
+|---|---|---|---|
+| `id` | `uuid` | нет | Primary key задания доставки. |
+| `recipient_email` | `varchar(254)` | нет | Получатель verification-письма. |
+| `confirmation_url` | `text` | да | Чувствительный delivery payload с raw token; обязателен только для активных состояний и затирается в конечном состоянии. |
+| `purpose` | `varchar(32)` | нет | `REGISTRATION` или `EMAIL_CHANGE`. |
+| `status` | `varchar(16)` | нет | `PENDING`, `PROCESSING`, `SENT`, `FAILED` или `EXPIRED`. |
+| `expires_at` | `timestamptz` | нет | Точный deadline исходного verification token. |
+| `created_at` | `timestamptz` | нет | Время постановки задания в очередь. |
+| `updated_at` | `timestamptz` | нет | Время последнего перехода состояния; в будущем также позволит обнаруживать зависший `PROCESSING`. |
+| `sent_at` | `timestamptz` | да | Время успешной доставки; присутствует только для `SENT`. |
+
+Ограничения:
+
+```text
+PRIMARY KEY (id)
+CHECK (purpose IN ('REGISTRATION', 'EMAIL_CHANGE'))
+CHECK (status IN ('PENDING', 'PROCESSING', 'SENT', 'FAILED', 'EXPIRED'))
+CHECK (expires_at > created_at)
+CHECK (updated_at >= created_at)
+CHECK (PENDING/PROCESSING содержит confirmation_url, конечное состояние не содержит)
+CHECK (только SENT содержит sent_at)
+```
+
+Отдельные `attempt_count`, `available_at` и `lease_until` для MVP не хранятся.
+Временная ошибка будущего worker-а возвращает запись в `PENDING`, а следующая
+попытка происходит на очередном общем цикле до `expires_at`. Зависший
+`PROCESSING` определяется по `updated_at` и конфигурируемому processing timeout.
+Кроме primary key дополнительных индексов пока нет: индекс для polling будет
+добавлен вместе с фактическим worker query.
+
 ## Восстановление агрегатов
 
 ### User
@@ -209,7 +269,7 @@ Read-only сценарии используют `findById`. Любой use case,
 
 | Use case | Атомарные изменения |
 |---|---|
-| Register | резервирование email, сохранение User, создание EmailVerification |
+| Register | резервирование email, сохранение User, создание EmailVerification и `PENDING` notification delivery |
 | Confirm registration email | consume verification, активация User, сохранение hash refresh token |
 | Change email | резервирование pending email, сохранение User, создание EmailVerification |
 | Confirm changed email | consume verification, перенос PENDING → CURRENT |
@@ -222,7 +282,7 @@ Read-only сценарии используют `findById`. Любой use case,
 
 1. Flyway migration является источником истины для physical schema.
 2. jOOQ code generation запускается после применения migration к generation database/schema.
-3. Генерация ограничена таблицами `public.identity_*`; служебная таблица Flyway не входит в generated model.
+3. `jooqCodegenIdentity` ограничен таблицами `public.identity_*`, а `jooqCodegenNotifications` — `public.notification_*`; служебная таблица Flyway не входит ни в одну generated model.
 4. Генерируются table, record, schema, key и index types. jOOQ POJO и DAO не генерируются.
 5. Результат сохраняется в `backend/src/generated/java`; `compileJava` не запускает `jooqCodegen` автоматически.
 6. `persistence.data.generated` не редактируется вручную.

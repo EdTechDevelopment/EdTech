@@ -12,5 +12,12 @@ spring:
     locations: classpath:db/migration
 
 identity:
+  notification:
+    frontend-base-url: http://frontend.example:3000
+    email-verification-path: /verify-email
+  security:
+    password:
+      bcrypt-strength: 10
   token:
     verification-ttl: 5m
+    verification-entropy-bytes: 32

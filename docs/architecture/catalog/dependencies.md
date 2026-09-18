@@ -144,6 +144,13 @@ presentation.auth.controller.AuthController
     --> presentation.auth.mapper.AuthPresentationMapper
     --> presentation.auth.cookie.RefreshTokenCookieFactory
 
+presentation.auth.mapper.AuthPresentationMapper
+    --> application.command.account.RegisterUserCommand
+    --> application.result.RegistrationResult
+
+presentation.auth.model.request.RegisterRequest
+    --> application.command.account.RegistrationRole
+
 presentation.auth.controller.EmailVerificationController
     --> application.port.in.verification.ConfirmEmailUseCase
     --> application.port.in.verification.ResendEmailVerificationUseCase
@@ -173,6 +180,8 @@ presentation.error.handler.RestAccessDeniedHandler
 ```
 
 Контроллеры не используют repositories, domain aggregates, jOOQ или infrastructure adapters.
+На текущем этапе из перечисленных зависимостей `AuthController` реализована только
+ветка регистрации; login/refresh/logout и cookie factory остаются целевой схемой.
 
 ## Application services
 
@@ -347,6 +356,7 @@ infrastructure.persistence.data.repository.RefreshTokenJooqRepository
 ```text
 infrastructure.security.password.BCryptPasswordHasher
     --> org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder
+    --> infrastructure.security.configuration.IdentityPasswordProperties
 
 infrastructure.security.token.SpringJwtAccessTokenIssuer
     --> org.springframework.security.oauth2.jwt.JwtEncoder
@@ -359,6 +369,9 @@ infrastructure.security.token.SecureRefreshTokenIssuer
 infrastructure.security.token.SecureVerificationTokenGenerator
     --> java.security.SecureRandom
     --> infrastructure.security.configuration.IdentityTokenProperties
+
+infrastructure.security.token.Sha256VerificationTokenHasher
+    --> java.security.MessageDigest
 
 infrastructure.security.authentication.IdentityJwtAuthenticationConverter
     ..|> org.springframework.core.convert.converter.Converter
@@ -392,9 +405,50 @@ infrastructure.messaging.event.SpringIntegrationEventPublisher
 
 infrastructure.time.SystemTimeProvider
     --> java.time.Clock
+
+io.github.edtechdevelopment.TimeConfiguration
+    --> java.time.Clock
 ```
 
 Notifications сохраняет запрос на доставку внутри своей транзакции/очереди и выполняет SMTP-отправку вне транзакции Identity.
+
+```text
+notifications.api.NotificationGateway
+    <-- notifications.application.service.EnqueueVerificationEmailService
+    --> notifications.application.port.out.TimeProvider
+    --> notifications.application.port.out.persistence.VerificationEmailDeliveryRepository
+    --> notifications.domain.delivery.model.VerificationEmailDelivery
+
+notifications.infrastructure.persistence.adapter.JooqVerificationEmailDeliveryRepositoryAdapter
+    --> notifications.application.port.out.persistence.VerificationEmailDeliveryRepository
+    --> notifications.infrastructure.persistence.mapper.VerificationEmailDeliveryPersistenceMapper
+    --> notifications.infrastructure.persistence.data.repository.VerificationEmailDeliveryJooqRepository
+
+notifications.infrastructure.persistence.data.repository.VerificationEmailDeliveryJooqRepository
+    --> org.jooq.DSLContext
+    --> notifications.infrastructure.persistence.data.generated
+```
+
+Application Notifications не импортирует infrastructure, а low-level jOOQ
+repository не импортирует domain. Identity по-прежнему видит только
+`notifications.api`.
+
+```text
+identity.infrastructure.configuration.IdentityConfiguration
+    --> identity.application.service.account.RegisterUserService
+    --> identity.infrastructure.messaging.email.NotificationVerificationEmailAdapter
+    --> notifications.api.NotificationGateway
+
+notifications.infrastructure.configuration.NotificationsConfiguration
+    --> notifications.application.service.EnqueueVerificationEmailService
+    --> notifications.application.port.out.persistence.VerificationEmailDeliveryRepository
+    --> notifications.infrastructure.time.SystemTimeProvider
+```
+
+Application services не обнаруживаются через `@Service`: module-owned
+Infrastructure configurations явно собирают их из портов и адаптеров. После
+регистрации Spring создаёт transaction proxies для `RegisterUserUseCase` и
+`NotificationGateway`.
 
 ## Проверка зависимостей
 
