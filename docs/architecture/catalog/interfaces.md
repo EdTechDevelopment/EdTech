@@ -111,9 +111,10 @@ public interface LogoutUseCase {
 ```java
 public interface UserRepository {
     Optional<User> findById(UUID userId);
+    Optional<User> findByIdForUpdate(UUID userId);
     Optional<User> findByEmail(Email email);
     boolean existsByEmail(Email email);
-    User save(User user);
+    void save(User user);
 }
 ```
 
@@ -121,18 +122,23 @@ public interface UserRepository {
 с `kind = CURRENT`. `existsByEmail` проверяет оба вида (`CURRENT` и `PENDING`),
 потому что pending email уже глобально зарезервирован.
 
+`findByIdForUpdate` используется use case-ами, которые изменяют существующего
+пользователя. Реализация выполняет `SELECT ... FOR UPDATE` основной строки до
+чтения email и roles. Метод вызывается только внутри транзакции application service;
+`MANDATORY` propagation запрещает освободить lock сразу после SELECT.
+
 Реализация: `identity.infrastructure.persistence.adapter.JooqUserRepositoryAdapter`.
 
 ### `identity.application.port.out.persistence.EmailVerificationRepository`
 
 ```java
 public interface EmailVerificationRepository {
-    Optional<EmailVerification> findActiveByTokenHash(
+    Optional<EmailVerification> findActiveByTokenHashForUpdate(
         VerificationTokenHash tokenHash,
         Instant now
     );
 
-    EmailVerification save(EmailVerification verification);
+    void save(EmailVerification verification);
 
     void invalidateActiveForUser(
         UUID userId,
@@ -141,6 +147,11 @@ public interface EmailVerificationRepository {
     );
 }
 ```
+
+`findActiveByTokenHashForUpdate` загружает только активную verification и удерживает
+row-level lock до завершения транзакции, чтобы два конкурентных confirm не могли
+использовать один token. Locking read, save и массовая инвалидизация требуют уже
+открытую транзакцию application service через `Propagation.MANDATORY`.
 
 Реализация: `identity.infrastructure.persistence.adapter.JooqEmailVerificationRepositoryAdapter`.
 
@@ -261,13 +272,17 @@ public interface VerificationEmailSender {
 
 ```java
 public interface IntegrationEventPublisher {
-    void publish(Object integrationEvent);
+    void publish(UserRegisteredEvent event);
+    void publish(UserActivatedEvent event);
+    void publish(UserAccountUpdatedEvent event);
 }
 ```
 
 Реализация: `identity.infrastructure.messaging.event.SpringIntegrationEventPublisher`.
 
-При реализации вместо общего `Object` допустимо добавить перегруженные методы для публичных событий Identity. Доменные события наружу не публикуются напрямую.
+Типизированные перегрузки разрешают публиковать только публичные integration events
+Identity и дают compile-time защиту от случайной публикации domain-объекта или
+произвольного значения. Доменные события наружу не публикуются напрямую.
 
 ### `identity.application.port.out.TimeProvider`
 
@@ -290,6 +305,10 @@ public interface NotificationGateway {
 ```
 
 Identity использует только этот интерфейс и публичные типы `notifications.api.command` / `notifications.api.model`.
+Пакеты `notifications.api`, `notifications.api.command` и
+`notifications.api.model` явно объявлены частями одного Spring Modulith
+`@NamedInterface("api")`. Явное объявление всех трёх пакетов не оставляет
+вложенные command/model типы внутренними деталями модуля.
 
 ## Контракты Spring Security
 

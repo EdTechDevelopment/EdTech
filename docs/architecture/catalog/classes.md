@@ -28,7 +28,7 @@
 
 | Элемент | Стереотип | Поля | Назначение |
 |---|---|---|---|
-| `RegisterRequest` | `record`, request DTO | `String email`, `String password`, `String firstName`, `String lastName`, `Set<UserRoleView> roles` | JSON-запрос регистрации. Все поля обязательны; roles содержит 1–2 уникальных значения. |
+| `RegisterRequest` | `record`, request DTO | `String email`, `String password`, `String firstName`, `String lastName`, `List<RegistrationRole> roles` | JSON-запрос регистрации. Список сохраняет дубли до Bean Validation, чтобы выполнить OpenAPI `uniqueItems`; mapper передаёт в application уже множество. Password скрыт в `toString()`. |
 | `LoginRequest` | `record`, request DTO | `String email`, `String password` | JSON-запрос входа. Открытый пароль живёт только в пределах обработки запроса. |
 | `ConfirmEmailRequest` | `record`, request DTO | `String token` | Запрос подтверждения email по открытому verification token. |
 | `ResendEmailVerificationRequest` | `record`, request DTO | `String email` | Запрос повторного выпуска verification token. Ответ не должен позволять определить существование email. |
@@ -44,7 +44,7 @@
 
 | Элемент | Пакет | Стереотип | Назначение |
 |---|---|---|---|
-| `AuthController` | `presentation.auth.controller` | `@RestController` | Обрабатывает регистрацию, login, refresh и logout. Вызывает соответствующие input ports, создаёт/очищает refresh cookie и возвращает HTTP DTO. |
+| `AuthController` | `presentation.auth.controller` | `@RestController` | Текущая реализация обрабатывает `POST /api/v1/auth/register`, вызывает `RegisterUserUseCase` и возвращает `202 VerificationPendingResponse`. Login, refresh и logout будут добавлены вместе с соответствующими use cases. |
 | `EmailVerificationController` | `presentation.auth.controller` | `@RestController` | Обрабатывает confirm и resend. При успешном confirm возвращает access token и устанавливает refresh cookie. |
 | `AuthPresentationMapper` | `presentation.auth.mapper` | mapper | Преобразует auth request DTO в application commands, а application results — в response DTO. Не содержит бизнес-правил. |
 | `RefreshTokenCookieFactory` | `presentation.auth.cookie` | component | Создаёт и очищает refresh cookie. Централизует `HttpOnly`, `Secure`, `SameSite=Lax`, path `/api/v1/auth` и срок жизни. |
@@ -85,7 +85,7 @@ POST /api/v1/auth/email-verification/resend
 | `ApiError` | `presentation.error.model` | `record`, response DTO | `ErrorCode code`, `String message`, `List<FieldErrorResponse> fieldErrors`, `String requestId` | Единое тело ошибки REST API. |
 | `FieldErrorResponse` | `presentation.error.model` | `record` | `String field`, `String code`, `String message` | Ошибка конкретного поля запроса. |
 | `ErrorCode` | `presentation.error.model` | `enum` | стабильные машинные коды | Отделяет публичный код ошибки от текста и Java exception class. |
-| `IdentityExceptionHandler` | `presentation.error.handler` | `@RestControllerAdvice` | exception handlers | Преобразует application/domain/validation исключения в HTTP status и `ApiError`. |
+| `IdentityExceptionHandler` | `presentation.error.handler` | `@RestControllerAdvice` | exception handlers | Для реализованных auth-контроллеров преобразует JSON/Bean Validation, application и неожиданные исключения в `400`, `409` или `500` с единым `ApiError`. |
 | `RestAuthenticationEntryPoint` | `presentation.error.handler` | component | `AuthenticationEntryPoint` | Возвращает `ApiError` для запроса без действительной аутентификации. |
 | `RestAccessDeniedHandler` | `presentation.error.handler` | component | `AccessDeniedHandler` | Возвращает `ApiError` для аутентифицированного пользователя без требуемых прав. |
 
@@ -97,7 +97,8 @@ POST /api/v1/auth/email-verification/resend
 
 | Элемент | Стереотип | Поля | Назначение |
 |---|---|---|---|
-| `RegisterUserCommand` | `record` | `String email`, `String rawPassword`, `String firstName`, `String lastName`, `Set<UserRole> roles` | Вход регистрации после HTTP mapping. |
+| `RegistrationRole` | `enum` | `TEACHER`, `STUDENT` | Application-представление запрошенной при регистрации роли; не заставляет Presentation зависеть от Domain. |
+| `RegisterUserCommand` | `record` | `String email`, `String rawPassword`, `String firstName`, `String lastName`, `Set<RegistrationRole> roles` | Вход регистрации после HTTP mapping. Сервис явно преобразует роли в доменный `UserRole`. |
 | `UpdateCurrentUserCommand` | `record` | `UUID userId`, `String email`, `String firstName`, `String lastName` | Изменение текущего пользователя. `userId` формируется из security context, а не из тела запроса. |
 
 ### `identity.application.command.verification`
@@ -196,13 +197,14 @@ UserStatus status
 Instant emailVerifiedAt [0..1]
 Instant createdAt
 Instant updatedAt
-List<DomainEvent> domainEvents
+List<UserDomainEvent> domainEvents
 ```
 
 Основные операции:
 
 ```text
 register(...): User
+reconstitute(...): User
 verifyRegistrationEmail(Email, Instant): void
 requestEmailChange(Email, Instant): void
 confirmPendingEmail(Email, Instant): void
@@ -239,6 +241,7 @@ pullDomainEvents(): List<DomainEvent>
 
 | Элемент | Стереотип | Поля | Назначение |
 |---|---|---|---|
+| `UserDomainEvent` | interface | `Instant occurredAt()` | Общий внутренний тип событий агрегата `User`. |
 | `UserRegisteredDomainEvent` | domain event | `UUID userId`, `Email email`, `Instant occurredAt` | Создаётся при регистрации агрегата. |
 | `UserActivatedDomainEvent` | domain event | `UUID userId`, `Email email`, `Instant occurredAt` | Создаётся при первом подтверждении email. |
 | `UserAccountUpdatedDomainEvent` | domain event | `UUID userId`, `Set<String> changedFields`, `Instant occurredAt` | Создаётся при значимом изменении данных аккаунта. |
@@ -254,7 +257,7 @@ pullDomainEvents(): List<DomainEvent>
 
 ## Domain: EmailVerification aggregate
 
-### `identity.domain.verification.EmailVerification`
+### `identity.domain.verification.model.EmailVerification`
 
 Стереотип: `aggregate root`.
 
@@ -292,7 +295,7 @@ invalidate(Instant): void
 
 | Элемент | Стереотип | Состав / значения | Назначение |
 |---|---|---|---|
-| `VerificationTokenHash` | value object | `String value` | SHA-256 hash verification token, пригодный для сравнения и хранения. |
+| `VerificationTokenHash` | value object | `String value` | SHA-256 hash verification token в каноническом lowercase hex-формате из 64 символов. |
 | `VerificationPurpose` | `enum` | `REGISTRATION`, `EMAIL_CHANGE` | Определяет действие после успешного подтверждения. |
 | `InvalidEmailVerificationException` | domain exception | — | Нарушено состояние или правило жизненного цикла verification. |
 
@@ -309,16 +312,17 @@ invalidate(Instant): void
 | Элемент | Пакет | Основные операции | Назначение |
 |---|---|---|---|
 | `UserPersistenceMapper` | `infrastructure.persistence.mapper` | `toDomain(UserPersistenceData)`, `toPersistence(User)` | Собирает/разбирает агрегат пользователя из users, emails и roles. |
-| `EmailVerificationPersistenceMapper` | `infrastructure.persistence.mapper` | `toDomain(record)`, `toRecord(model)` | Преобразует verification aggregate и jOOQ record/POJO. |
-| `RefreshTokenPersistenceMapper` | `infrastructure.persistence.mapper` | `toApplication(record)`, `toRecord(state)` | Преобразует `RefreshTokenState` и jOOQ record/POJO. |
+| `EmailVerificationPersistenceMapper` | `infrastructure.persistence.mapper` | `toDomain(record)`, `toPersistence(model)` | Преобразует verification aggregate и jOOQ record. |
+| `RefreshTokenPersistenceMapper` | `infrastructure.persistence.mapper` | `toApplication(record)`, `toRecord(state)` | Преобразует `RefreshTokenState` и jOOQ record. |
+| `InvalidPersistenceDataException` | `infrastructure.persistence.exception` | infrastructure exception | Прочитанные persistence-данные невозможно собрать в корректную domain/application-модель. |
 
 ## Infrastructure: Persistence data
 
 | Элемент | Пакет | Стереотип / поля | Назначение |
 |---|---|---|---|
-| `UserPersistenceData` | `infrastructure.persistence.data.model` | internal data carrier: `UsersRecord user`, `List<UserEmailsRecord> emails`, `List<UserRolesRecord> roles` | Объединяет строки нескольких таблиц перед восстановлением агрегата. Не покидает persistence. |
-| `UserJooqRepository` | `infrastructure.persistence.data.repository` | repository | Выполняет SQL для `identity_users`, `identity_user_emails`, `identity_user_roles` через `DSLContext`; не импортирует domain. |
-| `EmailVerificationJooqRepository` | `infrastructure.persistence.data.repository` | repository | Выполняет SQL для `identity_email_verifications`; работает с generated records/простыми data types. |
+| `UserPersistenceData` | `infrastructure.persistence.data.model` | internal data carrier: `IdentityUsersRecord user`, `List<IdentityUserEmailsRecord> emails`, `List<IdentityUserRolesRecord> roles` | Объединяет строки нескольких таблиц перед восстановлением агрегата. Не покидает persistence. |
+| `UserJooqRepository` | `infrastructure.persistence.data.repository` | `findById`, `findByIdForUpdate`, `findByCurrentEmail`, `existsByEmail`, `save` | Выполняет SQL для `identity_users`, `identity_user_emails`, `identity_user_roles` через `DSLContext`; блокирующее чтение и save требуют внешнюю транзакцию; не импортирует domain. |
+| `EmailVerificationJooqRepository` | `infrastructure.persistence.data.repository` | `findActiveByTokenHashForUpdate`, `save`, `invalidateActiveForUser` | Выполняет SQL для `identity_email_verifications`; locking read и writes требуют внешнюю транзакцию; работает с generated records/простыми data types. |
 | `RefreshTokenJooqRepository` | `infrastructure.persistence.data.repository` | repository | Выполняет SQL для `identity_refresh_tokens`, включая блокировку/атомарную ротацию и отзыв family. |
 | `generated` | `infrastructure.persistence.data.generated` | generated package | Содержит jOOQ tables, records и schema types, созданные из Flyway-схемы. Ручное редактирование запрещено. |
 
@@ -326,31 +330,51 @@ invalidate(Instant): void
 
 | Элемент | Пакет | Реализует / тип | Назначение |
 |---|---|---|---|
-| `BCryptPasswordHasher` | `infrastructure.security.password` | `PasswordHasher` | Хеширует и проверяет пароли через BCrypt; strength задаётся конфигурацией. |
+| `BCryptPasswordHasher` | `infrastructure.security.password` | `PasswordHasher` | Хеширует и проверяет пароли через BCrypt; strength `10` задаётся конфигурацией. Защитно отклоняет пароль длиннее 72 UTF-8 байт. |
 | `SpringJwtAccessTokenIssuer` | `infrastructure.security.token` | `AccessTokenIssuer` | Подписывает access JWT алгоритмом RS256. Claims: `sub`, `roles`, `iss`, `aud`, `iat`, `exp`. |
 | `SecureRefreshTokenIssuer` | `infrastructure.security.token` | `RefreshTokenIssuer` | Создаёт криптографически случайный URL-safe refresh token достаточной энтропии и задаёт expiration. |
 | `Sha256RefreshTokenHasher` | `infrastructure.security.token` | `RefreshTokenHasher` | Вычисляет стабильный SHA-256 hash refresh token перед поиском или сохранением. |
-| `SecureVerificationTokenGenerator` | `infrastructure.security.token` | `VerificationTokenGenerator` | Создаёт криптографически случайный URL-safe verification token. |
-| `Sha256VerificationTokenHasher` | `infrastructure.security.token` | `VerificationTokenHasher` | Вычисляет SHA-256 hash verification token. |
+| `SecureVerificationTokenGenerator` | `infrastructure.security.token` | `VerificationTokenGenerator` | Через `SecureRandom` создаёт verification token из 32 случайных байт и кодирует его URL-safe Base64 без padding. |
+| `Sha256VerificationTokenHasher` | `infrastructure.security.token` | `VerificationTokenHasher` | Вычисляет стабильный SHA-256 hash verification token и возвращает lowercase hex из 64 символов. |
 | `IdentityJwtAuthenticationConverter` | `infrastructure.security.authentication` | `Converter<Jwt, AbstractAuthenticationToken>` | Читает `sub` и `roles`, создаёт `JwtAuthenticationToken`, добавляет ожидаемый authority prefix. |
 | `SecurityConfiguration` | `infrastructure.security.configuration` | `@Configuration` | Настраивает stateless `SecurityFilterChain`, Resource Server, CORS, CSRF-решение и публичные endpoints; принимает стандартные security handlers. |
 | `JwtConfiguration` | `infrastructure.security.configuration` | `@Configuration` | Создаёт `JwtEncoder`, `JwtDecoder` и связанные beans из внешних RSA keys и properties. |
-| `IdentityTokenProperties` | `infrastructure.security.configuration` | `@ConfigurationProperties` | Хранит `issuer`, `audience`, access/refresh/verification TTL, RSA key locations и cookie security settings. |
+| `IdentityPasswordProperties` | `infrastructure.security.configuration` | `@ConfigurationProperties` | Хранит BCrypt strength из `identity.security.password`; текущее значение — `10`. |
+| `IdentityTokenProperties` | `infrastructure.security.configuration` | `@ConfigurationProperties` | Сейчас хранит verification TTL и entropy bytes из `identity.token`; по мере реализации JWT/refresh будет расширен остальными token-настройками. |
 
 ## Infrastructure: Messaging и Time
 
 | Элемент | Пакет | Реализует | Назначение |
 |---|---|---|---|
-| `NotificationVerificationEmailAdapter` | `infrastructure.messaging.email` | `VerificationEmailSender` | Формирует confirmation URL, преобразует purpose и вызывает `notifications.api.NotificationGateway.enqueue(...)`. |
-| `IdentityNotificationProperties` | `infrastructure.messaging.email` | `@ConfigurationProperties` | Хранит базовый frontend URL и относительный путь страницы подтверждения. |
-| `SpringIntegrationEventPublisher` | `infrastructure.messaging.event` | `IntegrationEventPublisher` | Публикует публичные события через Spring `ApplicationEventPublisher`; подписчики обрабатывают их после commit. |
-| `SystemTimeProvider` | `infrastructure.time` | `TimeProvider` | Возвращает `Instant.now(clock)` через внедрённый `java.time.Clock`, что делает время тестируемым. |
+| `NotificationVerificationEmailAdapter` | `infrastructure.messaging.email` | `VerificationEmailSender` | Формирует confirmation URL, явно преобразует Identity purpose в публичный Notifications purpose и вызывает `notifications.api.NotificationGateway.enqueue(...)`; регистрируется через `IdentityConfiguration`. |
+| `IdentityNotificationProperties` | `infrastructure.messaging.email` | `@ConfigurationProperties` | Хранит `identity.notification.frontend-base-url` и относительный путь страницы подтверждения; проверяет абсолютный HTTP(S) URL и корректный path. |
+| `SpringIntegrationEventPublisher` | `infrastructure.messaging.event` | `IntegrationEventPublisher` | Передаёт публичные события без преобразования в Spring `ApplicationEventPublisher`. Публикация сама по себе синхронна; подписчики, которым нужны зафиксированные данные, используют `@TransactionalEventListener(AFTER_COMMIT)`. |
+| `IdentityConfiguration` | `infrastructure.configuration` | `@Configuration` | Собирает `IdentityApiMapper`, `VerificationEmailSender` и транзакционный `RegisterUserUseCase` из существующих output-port adapters и configuration properties. |
+| `TimeConfiguration` | `io.github.edtechdevelopment` | `@Configuration` | В composition root предоставляет единый production `Clock.systemUTC()` для модулей. |
+| `SystemTimeProvider` | `infrastructure.time` | `TimeProvider` | Возвращает время внедрённого `java.time.Clock`, нормализованное до микросекундной точности PostgreSQL, что сохраняет равенство timestamp в HTTP и БД и делает время тестируемым. |
 
 ## Внешний публичный контракт Notifications
 
 | Элемент | Пакет | Стереотип / поля | Назначение |
 |---|---|---|---|
-| `SendVerificationEmailCommand` | `notifications.api.command` | `record`: `String recipientEmail`, `URI confirmationUrl`, `VerificationEmailPurpose purpose`, `Instant expiresAt` | Типизированная команда постановки письма в очередь доставки. |
+| `NotificationGateway` | `notifications.api` | public module interface | Принимает типизированную команду через `enqueue(...)`; persistence и SMTP остаются внутри Notifications. |
+| `SendVerificationEmailCommand` | `notifications.api.command` | `record`: `String recipientEmail`, `URI confirmationUrl`, `VerificationEmailPurpose purpose`, `Instant expiresAt` | Типизированная команда постановки письма в очередь доставки. `expiresAt` повторяет deadline token, чтобы Notifications не отправлял уже бесполезную ссылку; `toString()` скрывает sensitive payload. |
 | `VerificationEmailPurpose` | `notifications.api.model` | `enum`: `REGISTRATION`, `EMAIL_CHANGE` | Публичное назначение письма без зависимости Notifications от domain Identity. |
 
 `NotificationGateway` описан в [каталоге интерфейсов](interfaces.md).
+
+## Внутренняя очередь Notifications
+
+| Элемент | Пакет | Реализует / тип | Назначение |
+|---|---|---|---|
+| `VerificationEmailDelivery` | `notifications.domain.delivery.model` | domain model | Создаёт новое задание только в состоянии `PENDING`, проверяет email, URL и временные границы; защищённый `toString()` не раскрывает получателя и confirmation URL. |
+| `DeliveryStatus` | `notifications.domain.delivery.model` | `enum` | Состояния `PENDING`, `PROCESSING`, `SENT`, `FAILED`, `EXPIRED`. Переходы worker-а пока не реализованы. |
+| `VerificationEmailDeliveryPurpose` | `notifications.domain.delivery.model` | `enum` | Внутреннее назначение доставки без зависимости domain от публичного API. |
+| `EnqueueVerificationEmailService` | `notifications.application.service` | `NotificationGateway` | В уже существующей транзакции создаёт `PENDING` delivery и сохраняет его; использует `Propagation.MANDATORY` и регистрируется через `NotificationsConfiguration`. Класс не `final`, потому что Spring создаёт class-based transaction proxy. |
+| `TimeProvider` | `notifications.application.port.out` | output port | Даёт application-сервису тестируемое текущее время, не импортируя внутренний порт Identity. |
+| `VerificationEmailDeliveryRepository` | `notifications.application.port.out.persistence` | output port | Сохраняет доменную модель delivery. |
+| `JooqVerificationEmailDeliveryRepositoryAdapter` | `notifications.infrastructure.persistence.adapter` | `VerificationEmailDeliveryRepository` | Преобразует domain model в generated record и делегирует SQL repository. |
+| `VerificationEmailDeliveryPersistenceMapper` | `notifications.infrastructure.persistence.mapper` | mapper | Преобразует `Instant` в UTC `OffsetDateTime` и enum-значения в строки БД. |
+| `VerificationEmailDeliveryJooqRepository` | `notifications.infrastructure.persistence.data.repository` | jOOQ repository | Выполняет явный `INSERT` в `notification_email_deliveries`; запись требует внешнюю транзакцию. |
+| `NotificationsConfiguration` | `notifications.infrastructure.configuration` | `@Configuration` | Создаёт module-owned `TimeProvider` и публикует `EnqueueVerificationEmailService` как `NotificationGateway`. |
+| `SystemTimeProvider` | `notifications.infrastructure.time` | `TimeProvider` | Адаптирует общий application `Clock` к внутреннему time port Notifications и нормализует `Instant` до микросекундной точности PostgreSQL. |

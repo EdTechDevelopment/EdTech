@@ -86,6 +86,7 @@ identity
 │   │   └── TimeProvider
 │   ├── command
 │   │   ├── account
+│   │   │   ├── RegistrationRole
 │   │   │   ├── RegisterUserCommand
 │   │   │   └── UpdateCurrentUserCommand
 │   │   ├── verification
@@ -140,6 +141,7 @@ identity
 │   │   │   ├── UserRole
 │   │   │   └── UserStatus
 │   │   ├── event
+│   │   │   ├── UserDomainEvent
 │   │   │   ├── UserRegisteredDomainEvent
 │   │   │   ├── UserActivatedDomainEvent
 │   │   │   └── UserAccountUpdatedDomainEvent
@@ -149,16 +151,22 @@ identity
 │   │       ├── InvalidUserStateException
 │   │       └── EmailNotVerifiedException
 │   └── verification
-│       ├── EmailVerification
-│       ├── VerificationTokenHash
-│       ├── VerificationPurpose
-│       └── InvalidEmailVerificationException
+│       ├── model
+│       │   ├── EmailVerification
+│       │   ├── VerificationTokenHash
+│       │   └── VerificationPurpose
+│       └── exception
+│           └── InvalidEmailVerificationException
 └── infrastructure
+    ├── configuration
+    │   └── IdentityConfiguration
     ├── persistence
     │   ├── adapter
     │   │   ├── JooqUserRepositoryAdapter
     │   │   ├── JooqEmailVerificationRepositoryAdapter
     │   │   └── JooqRefreshTokenRepositoryAdapter
+    │   ├── exception
+    │   │   └── InvalidPersistenceDataException
     │   ├── mapper
     │   │   ├── UserPersistenceMapper
     │   │   ├── EmailVerificationPersistenceMapper
@@ -185,6 +193,7 @@ identity
     │   └── configuration
     │       ├── SecurityConfiguration
     │       ├── JwtConfiguration
+    │       ├── IdentityPasswordProperties
     │       └── IdentityTokenProperties
     ├── messaging
     │   ├── email
@@ -195,6 +204,57 @@ identity
     └── time
         └── SystemTimeProvider
 ```
+
+Общий `io.github.edtechdevelopment.TimeConfiguration` находится в composition
+root приложения, а не внутри бизнес-модуля. Он предоставляет один UTC `Clock`
+для module-owned time adapters Identity и Notifications.
+
+## Публичная граница Notifications, используемая Identity
+
+```text
+notifications
+└── api                       @NamedInterface("api")
+    ├── NotificationGateway
+    ├── command               @NamedInterface("api")
+    │   └── SendVerificationEmailCommand
+    └── model                 @NamedInterface("api")
+        └── VerificationEmailPurpose
+```
+
+Identity импортирует только этот named interface. Persistence, delivery worker,
+SMTP и шаблоны остаются внутренними пакетами Notifications.
+
+Реализованная внутренняя часть очереди:
+
+```text
+notifications
+├── domain.delivery
+│   ├── exception
+│   └── model
+├── application
+│   ├── service
+│   └── port.out
+└── infrastructure
+    ├── configuration
+    │   └── NotificationsConfiguration
+    ├── persistence
+    │   ├── adapter
+    │   ├── data.repository
+    │   ├── data.generated
+    │   └── mapper
+    └── time
+        └── SystemTimeProvider
+```
+
+`NotificationsConfiguration` публикует `EnqueueVerificationEmailService` как
+транзакционный Spring bean публичного типа `NotificationGateway` и связывает его
+с собственными persistence/time adapters. Worker, SMTP и template packages ещё
+не реализованы.
+
+В текущем реализованном срезе Presentation присутствуют registration-части
+`AuthController`, `RegisterRequest`, `VerificationPendingResponse`,
+`AuthPresentationMapper` и общий формат ошибок. Остальные элементы дерева
+остаются целевой структурой следующих use cases.
 
 ## Ответственность верхних пакетов
 
@@ -231,7 +291,7 @@ identity
 | `persistence.adapter` | Реализации output repositories и координация mapper + data repository |
 | `persistence.mapper` | Преобразование доменных и persistence-моделей |
 | `persistence.data.repository` | Низкоуровневые SQL-операции через `DSLContext` |
-| `persistence.data.generated` | Сгенерированные jOOQ table/record/POJO types |
+| `persistence.data.generated` | Сгенерированные jOOQ table, record, schema, key и index types; ручное редактирование запрещено |
 | `security.password` | BCrypt-реализация `PasswordHasher` |
 | `security.token` | Выпуск JWT, генерация и SHA-256-хеширование opaque tokens |
 | `security.authentication` | Преобразование claims JWT в Spring Security authentication |
