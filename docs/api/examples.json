@@ -4,9 +4,20 @@
     "password": "example-password",
     "firstName": "Анна",
     "lastName": "Петрова",
+    "birthDate": "2010-05-14",
     "roles": [
       "STUDENT"
-    ]
+    ],
+    "studentProfile": {
+      "displayName": "Анна",
+      "contactEmail": "anna@example.com",
+      "contactDetails": [],
+      "subjectCodes": [
+        "MATH"
+      ],
+      "photoUrl": null,
+      "birthDateVisibility": "LINKED_USERS"
+    }
   },
   "VerificationPendingResponse": {
     "email": "anna@example.com",
@@ -33,6 +44,7 @@
     "pendingEmail": null,
     "firstName": "Анна",
     "lastName": "Петрова",
+    "birthDate": "2010-05-14",
     "roles": [
       "STUDENT"
     ],
@@ -44,23 +56,6 @@
   "UpdateMeRequest": {
     "firstName": "Анна-Мария",
     "email": "anna.new@example.com"
-  },
-  "TeacherProfileUpsertRequest": {
-    "subjectCodes": [
-      "MATH"
-    ],
-    "description": "Готовлю к экзаменам",
-    "education": null,
-    "experienceYears": 5,
-    "city": "Москва",
-    "photoUrl": null
-  },
-  "StudentProfileUpsertRequest": {
-    "birthDate": "2010-05-14",
-    "subjectCodes": [
-      "MATH"
-    ],
-    "photoUrl": null
   },
   "SubjectListResponse": {
     "items": [
@@ -77,9 +72,8 @@
     "id": "inv_001",
     "teacher": {
       "id": "u_001",
-      "email": "alex@example.com",
-      "firstName": "Алексей",
-      "lastName": "Иванов"
+      "displayName": "Алексей — физика",
+      "contactEmail": "alex.teacher@example.com"
     },
     "studentEmail": "anna@example.com",
     "studentUserId": "u_002",
@@ -108,14 +102,12 @@
     "id": "l_001",
     "teacher": {
       "id": "u_001",
-      "firstName": "Алексей",
-      "lastName": "Иванов"
+      "displayName": "Алексей — физика"
     },
     "participants": [
       {
         "id": "u_002",
-        "firstName": "Анна",
-        "lastName": "Петрова"
+        "displayName": "Анна"
       }
     ],
     "subjectCode": "MATH",
@@ -137,15 +129,13 @@
     "id": "l_001",
     "teacher": {
       "id": "u_001",
-      "email": "alex@example.com",
-      "firstName": "Алексей",
-      "lastName": "Иванов"
+      "displayName": "Алексей — физика",
+      "contactEmail": "alex.teacher@example.com"
     },
     "participants": [
       {
         "id": "u_002",
-        "firstName": "Анна",
-        "lastName": "Петрова"
+        "displayName": "Анна"
       }
     ],
     "subjectCode": "MATH",
@@ -173,5 +163,63 @@
     "message": "Участник уже занят в это время",
     "fieldErrors": [],
     "requestId": "req_001"
+  },
+  "TeacherProfileInput": {
+    "displayName": "Анна — математика",
+    "contactEmail": "teacher.anna@example.com",
+    "contactDetails": [
+      "Telegram: @anna_teacher"
+    ],
+    "subjectCodes": [
+      "MATH"
+    ],
+    "description": "Готовлю к экзаменам",
+    "education": null,
+    "experienceYears": 5,
+    "city": "Москва",
+    "photoUrl": null,
+    "birthDateVisibility": "PRIVATE"
+  },
+  "StudentProfileInput": {
+    "displayName": "Анна",
+    "contactEmail": "anna@example.com",
+    "contactDetails": [],
+    "subjectCodes": [
+      "MATH"
+    ],
+    "photoUrl": null,
+    "birthDateVisibility": "LINKED_USERS"
+  },
+  "TeacherProfileUpdateRequest": {
+    "displayName": "Анна — математика",
+    "contactDetails": [
+      "Telegram: @anna_teacher"
+    ],
+    "subjectCodes": [
+      "MATH"
+    ],
+    "description": "Готовлю к экзаменам",
+    "education": null,
+    "experienceYears": 5,
+    "city": "Москва",
+    "photoUrl": null,
+    "birthDateVisibility": "PRIVATE"
+  },
+  "StudentProfileUpdateRequest": {
+    "displayName": "Анна",
+    "contactDetails": [],
+    "subjectCodes": [
+      "MATH"
+    ],
+    "photoUrl": null,
+    "birthDateVisibility": "LINKED_USERS"
+  },
+  "ProfileEmailChangeRequest": {
+    "email": "anna.profile@example.com"
+  },
+  "ProfileEmailVerificationPendingResponse": {
+    "profileRole": "STUDENT",
+    "email": "anna.profile@example.com",
+    "verificationExpiresAt": "2026-09-14T13:00:00Z"
   }
 }

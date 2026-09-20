@@ -141,12 +141,12 @@
 | Поле | Тип | Ограничения |
 |---|---|---|
 | `email` | string | Корректный email, максимум 254 символа, уникален без учёта регистра |
-| `password` | string | От 8 до 72 символов; только печатные ASCII-символы от `!` до `~`, без пробелов; только для записи. Предел 72 соответствует максимальному числу байт, обрабатываемому BCrypt |
+| `password` | string | От 8 до 128 символов, только для записи |
 | `firstName` | string | От 1 до 100 символов после `trim` |
 | `lastName` | string | От 1 до 100 символов после `trim` |
 | `roles` | `UserRole[]` | От 1 до 2 уникальных значений: `TEACHER`, `STUDENT` |
 
-После регистрации сервер хранит bcrypt-хэш пароля, создаёт пользователя со статусом `PENDING_EMAIL_VERIFICATION`, атомарно ставит письмо в durable-очередь Notifications и отвечает `202 VerificationPendingResponse`. Фактическую SMTP-доставку выполняет отдельный worker Notifications. Access и refresh token появляются только после подтверждения email или успешного login.
+После регистрации сервер хранит bcrypt-хэш пароля, создаёт пользователя со статусом `PENDING_EMAIL_VERIFICATION`, отправляет письмо и отвечает `202 VerificationPendingResponse`. Access и refresh token появляются только после подтверждения email или успешного login.
 
 ### `TokenResponse`
 
