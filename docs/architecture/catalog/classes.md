@@ -28,7 +28,7 @@
 
 | Элемент | Стереотип | Поля | Назначение |
 |---|---|---|---|
-| `RegisterRequest` | `record`, request DTO | `String email`, `String password`, `String firstName`, `String lastName`, `Set<RegistrationRole> roles` | JSON-запрос регистрации. Все поля обязательны; roles содержит 1–2 уникальных значения. Password скрыт в `toString()`. |
+| `RegisterRequest` | `record`, request DTO | `String email`, `String password`, `String firstName`, `String lastName`, `List<RegistrationRole> roles` | JSON-запрос регистрации. Список сохраняет дубли до Bean Validation, чтобы выполнить OpenAPI `uniqueItems`; mapper передаёт в application уже множество. Password скрыт в `toString()`. |
 | `LoginRequest` | `record`, request DTO | `String email`, `String password` | JSON-запрос входа. Открытый пароль живёт только в пределах обработки запроса. |
 | `ConfirmEmailRequest` | `record`, request DTO | `String token` | Запрос подтверждения email по открытому verification token. |
 | `ResendEmailVerificationRequest` | `record`, request DTO | `String email` | Запрос повторного выпуска verification token. Ответ не должен позволять определить существование email. |

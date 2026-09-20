@@ -184,6 +184,54 @@ class RegistrationFlowIntegrationTest {
     }
 
     @Test
+    void rejectsDuplicateRoles() throws Exception {
+        String requestBody = validRegistrationJson(testEmail)
+                .replace("[\"STUDENT\", \"TEACHER\"]", "[\"STUDENT\", \"STUDENT\"]");
+
+        mockMvc.perform(post("/api/v1/auth/register")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(requestBody))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.code").value("VALIDATION_ERROR"))
+                .andExpect(jsonPath("$.fieldErrors[0].field").value("roles"))
+                .andExpect(jsonPath("$.fieldErrors[0].code").value("UniqueElements"));
+
+        assertNoTestRecordsRemain();
+    }
+
+    @Test
+    void rejectsNullRole() throws Exception {
+        String requestBody = validRegistrationJson(testEmail)
+                .replace("[\"STUDENT\", \"TEACHER\"]", "[\"STUDENT\", null]");
+
+        mockMvc.perform(post("/api/v1/auth/register")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(requestBody))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.code").value("VALIDATION_ERROR"))
+                .andExpect(jsonPath("$.fieldErrors[0].code").value("NotNull"));
+
+        assertNoTestRecordsRemain();
+    }
+
+    @Test
+    void rejectsUnknownJsonProperties() throws Exception {
+        String requestBody = validRegistrationJson(testEmail)
+                .replace("\n}", ",\n  \"unexpectedField\": true\n}");
+
+        mockMvc.perform(post("/api/v1/auth/register")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(requestBody))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.code").value("VALIDATION_ERROR"))
+                .andExpect(jsonPath("$.message").value(
+                        "Request body is malformed or contains an unsupported value"
+                ));
+
+        assertNoTestRecordsRemain();
+    }
+
+    @Test
     void returnsConflictWhenEmailIsAlreadyRegistered() throws Exception {
         mockMvc.perform(post("/api/v1/auth/register")
                         .contentType(MediaType.APPLICATION_JSON)

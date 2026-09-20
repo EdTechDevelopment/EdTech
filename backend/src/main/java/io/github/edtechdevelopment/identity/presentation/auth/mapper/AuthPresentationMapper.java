@@ -7,6 +7,7 @@ import io.github.edtechdevelopment.identity.presentation.auth.model.response.Ver
 import org.springframework.stereotype.Component;
 
 import java.util.Objects;
+import java.util.Set;
 
 @Component
 public final class AuthPresentationMapper {
@@ -18,7 +19,7 @@ public final class AuthPresentationMapper {
                 request.password(),
                 request.firstName(),
                 request.lastName(),
-                request.roles()
+                Set.copyOf(request.roles())
         );
     }
 

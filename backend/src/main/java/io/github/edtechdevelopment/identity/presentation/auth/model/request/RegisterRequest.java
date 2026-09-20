@@ -7,8 +7,11 @@ import jakarta.validation.constraints.NotEmpty;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Pattern;
 import jakarta.validation.constraints.Size;
+import org.hibernate.validator.constraints.UniqueElements;
 
-import java.util.Set;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.List;
 
 public record RegisterRequest(
         @NotBlank(message = "Email must not be blank")
@@ -34,14 +37,17 @@ public record RegisterRequest(
 
         @NotEmpty(message = "At least one registration role must be provided")
         @Size(max = 2, message = "No more than two registration roles may be provided")
-        Set<@NotNull(message = "Registration role must not be null") RegistrationRole> roles
+        @UniqueElements(message = "Registration roles must not contain duplicates")
+        List<@NotNull(message = "Registration role must not be null") RegistrationRole> roles
 ) {
 
     public RegisterRequest {
         email = stripNullable(email);
         firstName = stripNullable(firstName);
         lastName = stripNullable(lastName);
-        roles = roles == null ? null : Set.copyOf(roles);
+        roles = roles == null
+                ? null
+                : Collections.unmodifiableList(new ArrayList<>(roles));
     }
 
     @Override
