@@ -442,10 +442,18 @@ container: edtech-postgres
 database/user/password: edtech/edtech/edtech
 host port: 5432
 Spring configuration: application.yml без отдельного local profile
+Mailpit image/container: axllent/mailpit:v1.31.1 / edtech-mailpit
+Mailpit SMTP/Web ports: 1025 / 8025
+local sender address: no-reply@edtech.local
 ```
 
-Эти credentials и публикация `5432:5432` допустимы только для локальной
-разработки и не переносятся в production.
+Эти credentials, адрес отправителя и публикация портов `5432`, `1025`, `8025`
+допустимы только для локальной разработки и не переносятся в production.
+Mailpit является локальным SMTP-catcher и не отправляет письма в реальные
+почтовые системы. В production тот же Spring Mail adapter подключается к
+внешнему SMTP-провайдеру; host, port, username, password, TLS/auth flags и
+настоящий `from`-адрес поступают из deployment configuration/secret storage и
+не хранятся в репозитории.
 
 ## Логирование, наблюдаемость и тесты
 
@@ -494,12 +502,12 @@ Spring configuration: application.yml без отдельного local profile
 | `OPEN-010` | `OPEN` | При `SUSPENDED/DEACTIVATED` новые login/refresh запрещены, но уже выданный stateless access JWT живёт до expiry. Нужно решить, достаточно ли короткого TTL или критичные endpoints должны дополнительно проверять account status. |
 | `OPEN-011` | `OPEN` | Формат durable outbox для межмодульных integration events ещё не выбран. Нельзя имитировать требуемую надёжность обычным in-memory event. Notification delivery использует отдельную принадлежащую Notifications durable job queue, а не integration-event outbox. |
 | `OPEN-012` | `OPEN` | Production deployment platform, secret storage, tracing backend и metrics storage ещё не выбраны. |
-| `OPEN-013` | `OPEN` | Локальный Mailpit и его настройки предусмотрены backend-архитектурой, но пока сознательно не добавлены в Compose. |
+| `OPEN-013` | `RESOLVED` | Для локальной разработки используется `axllent/mailpit:v1.31.1`: SMTP `localhost:1025`, Web UI `localhost:8025`. Mailpit запрещён в production; production использует внешний SMTP-провайдер и секреты окружения. |
 | `OPEN-014` | `RESOLVED` | Confirm атомарно находит активную verification через `SELECT ... FOR UPDATE`, изменяет агрегат и сохраняет `consumed_at` в той же внешней транзакции. `Propagation.MANDATORY` не позволяет освободить row lock раньше завершения use case. |
 | `OPEN-015` | `RESOLVED` | Для изменения существующего пользователя используется `findByIdForUpdate`: `SELECT ... FOR UPDATE` блокирует строку `identity_users` до чтения email/roles и последующего save. Все writer-ы сначала upsert-ят ту же головную строку. Locking read и save требуют внешнюю транзакцию через `Propagation.MANDATORY`. |
 | `OPEN-016` | `OPEN` | Confirm, resend и change-email изменяют `User` и `EmailVerification`. До их application services нужно выбрать единый порядок получения user/verification locks, чтобы разные транзакции не брали те же блокировки в обратном порядке и не создавали deadlock. |
 | `OPEN-017` | `OPEN` | Для MVP confirmation URL временно хранится в чувствительном Notifications delivery payload и удаляется/затирается после отправки либо `expiresAt`. Перед production нужно решить, требуется ли application-level encryption at rest, и выбрать точный retention delivery metadata, включая срок хранения `recipient_email` как персональных данных. |
-| `OPEN-018` | `OPEN` | До реализации delivery worker нужно выбрать poll interval, processing timeout, batch size, правила различения временной/постоянной SMTP-ошибки и индекс под фактический claim query. Для MVP согласована повторная попытка на общем цикле без `attempt_count`, `available_at` и `lease_until`; зависший `PROCESSING` восстанавливается по `updated_at`. |
+| `OPEN-018` | `RESOLVED` | MVP worker использует `batch-size=10`, `poll-delay=10s`, `initial-delay=10s`, `processing-timeout=1m`, один scheduler и повторную попытку на общем цикле без `attempt_count`, `available_at`, `lease_until`. Ошибка подготовки письма постоянная; прочие известные Spring Mail transport/auth ошибки временные. Зависший `PROCESSING` восстанавливается по `updated_at`. При текущем малом объёме отдельный claim-индекс не добавляется; решение пересматривается перед несколькими instances или ростом очереди. |
 
 ## Известный долг документации
 

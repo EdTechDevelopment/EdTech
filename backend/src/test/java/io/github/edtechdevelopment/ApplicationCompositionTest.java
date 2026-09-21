@@ -9,6 +9,8 @@ import io.github.edtechdevelopment.notifications.api.NotificationGateway;
 import io.github.edtechdevelopment.notifications.api.command.SendVerificationEmailCommand;
 import io.github.edtechdevelopment.notifications.api.model.VerificationEmailPurpose;
 import io.github.edtechdevelopment.notifications.application.service.EnqueueVerificationEmailService;
+import io.github.edtechdevelopment.notifications.application.service.ProcessVerificationEmailDeliveriesService;
+import io.github.edtechdevelopment.notifications.infrastructure.messaging.email.SpringMailVerificationEmailSender;
 import org.junit.jupiter.api.Test;
 import org.springframework.aop.support.AopUtils;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -29,6 +31,9 @@ class ApplicationCompositionTest {
     private final RegisterUserUseCase registerUserUseCase;
     private final NotificationGateway notificationGateway;
     private final VerificationEmailSender verificationEmailSender;
+    private final io.github.edtechdevelopment.notifications.application.port.out.email.VerificationEmailSender
+            notificationDeliveryEmailSender;
+    private final ProcessVerificationEmailDeliveriesService processingService;
     private final IdentityApiMapper identityApiMapper;
 
     @Autowired
@@ -36,11 +41,16 @@ class ApplicationCompositionTest {
             RegisterUserUseCase registerUserUseCase,
             NotificationGateway notificationGateway,
             VerificationEmailSender verificationEmailSender,
+            io.github.edtechdevelopment.notifications.application.port.out.email.VerificationEmailSender
+                    notificationDeliveryEmailSender,
+            ProcessVerificationEmailDeliveriesService processingService,
             IdentityApiMapper identityApiMapper
     ) {
         this.registerUserUseCase = registerUserUseCase;
         this.notificationGateway = notificationGateway;
         this.verificationEmailSender = verificationEmailSender;
+        this.notificationDeliveryEmailSender = notificationDeliveryEmailSender;
+        this.processingService = processingService;
         this.identityApiMapper = identityApiMapper;
     }
 
@@ -57,6 +67,14 @@ class ApplicationCompositionTest {
                 () -> assertEquals(
                         NotificationVerificationEmailAdapter.class,
                         verificationEmailSender.getClass()
+                ),
+                () -> assertEquals(
+                        SpringMailVerificationEmailSender.class,
+                        notificationDeliveryEmailSender.getClass()
+                ),
+                () -> assertEquals(
+                        ProcessVerificationEmailDeliveriesService.class,
+                        processingService.getClass()
                 ),
                 () -> assertEquals(IdentityApiMapper.class, identityApiMapper.getClass())
         );

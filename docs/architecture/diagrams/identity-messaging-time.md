@@ -29,6 +29,11 @@ sequenceDiagram
 отправлять истёкшую ссылку. HTML/text template, SMTP credentials, retry и
 delivery status принадлежат Notifications.
 
+Локально Spring Mail подключён к Mailpit (`localhost:1025`, UI
+`localhost:8025`) исключительно для разработки. В production Mailpit не
+используется: тот же Notifications SMTP adapter получает настройки внешнего
+SMTP-провайдера и секреты из deployment environment.
+
 Raw verification token не сохраняется в таблицах Identity. Реализованная delivery
 queue хранит полный confirmation URL в `notification_email_deliveries` как
 чувствительный payload до успешной отправки или `expiresAt`; такой payload нельзя
@@ -36,10 +41,11 @@ queue хранит полный confirmation URL в `notification_email_deliveri
 остаётся отдельным открытым усилением.
 
 Для MVP очередь не хранит `attempt_count`, `available_at` и `lease_until`.
-Временная ошибка будущего worker-а возвращает задание в `PENDING`, после чего оно
+Временная ошибка worker-а возвращает задание в `PENDING`, после чего оно
 повторяется на следующем общем polling cycle. Зависший `PROCESSING` будет
-определяться по `updated_at` и processing timeout. Конкретные worker/SMTP-параметры
-зафиксированы как открытое решение `OPEN-018`.
+определяться по `updated_at` и processing timeout. MVP использует batch `10`,
+poll/initial delay `10s`, processing timeout `1m` и один scheduler; решение
+зафиксировано в `OPEN-018` как `RESOLVED`.
 
 ## Интеграционные события
 

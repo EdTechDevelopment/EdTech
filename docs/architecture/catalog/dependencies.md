@@ -419,6 +419,20 @@ notifications.api.NotificationGateway
     --> notifications.application.port.out.persistence.VerificationEmailDeliveryRepository
     --> notifications.domain.delivery.model.VerificationEmailDelivery
 
+notifications.application.service.ProcessVerificationEmailDeliveriesService
+    --> notifications.application.port.out.TimeProvider
+    --> notifications.application.port.out.email.VerificationEmailSender
+    --> notifications.application.port.out.persistence.VerificationEmailDeliveryRepository
+    --> notifications.domain.delivery.model.VerificationEmailDelivery
+    --> org.springframework.transaction.support.TransactionOperations
+
+notifications.infrastructure.messaging.email.SpringMailVerificationEmailSender
+    --> notifications.application.port.out.email.VerificationEmailSender
+    --> org.springframework.mail.javamail.JavaMailSender
+
+notifications.infrastructure.scheduling.VerificationEmailDeliveryScheduler
+    --> notifications.application.service.ProcessVerificationEmailDeliveriesService
+
 notifications.infrastructure.persistence.adapter.JooqVerificationEmailDeliveryRepositoryAdapter
     --> notifications.application.port.out.persistence.VerificationEmailDeliveryRepository
     --> notifications.infrastructure.persistence.mapper.VerificationEmailDeliveryPersistenceMapper
@@ -441,6 +455,9 @@ identity.infrastructure.configuration.IdentityConfiguration
 
 notifications.infrastructure.configuration.NotificationsConfiguration
     --> notifications.application.service.EnqueueVerificationEmailService
+    --> notifications.application.service.ProcessVerificationEmailDeliveriesService
+    --> notifications.infrastructure.messaging.email.SpringMailVerificationEmailSender
+    --> notifications.infrastructure.scheduling.VerificationEmailDeliveryScheduler
     --> notifications.application.port.out.persistence.VerificationEmailDeliveryRepository
     --> notifications.infrastructure.time.SystemTimeProvider
 ```
@@ -448,7 +465,10 @@ notifications.infrastructure.configuration.NotificationsConfiguration
 Application services не обнаруживаются через `@Service`: module-owned
 Infrastructure configurations явно собирают их из портов и адаптеров. После
 регистрации Spring создаёт transaction proxies для `RegisterUserUseCase` и
-`NotificationGateway`.
+`NotificationGateway`. `ProcessVerificationEmailDeliveriesService`, Spring Mail
+sender и условный scheduler также явно зарегистрированы в
+`NotificationsConfiguration`; processing service управляет короткими
+транзакциями через `TransactionOperations`, поэтому отдельный proxy ему не нужен.
 
 ## Проверка зависимостей
 
