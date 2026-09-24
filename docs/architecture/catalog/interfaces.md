@@ -310,6 +310,48 @@ Identity использует только этот интерфейс и пуб
 `@NamedInterface("api")`. Явное объявление всех трёх пакетов не оставляет
 вложенные command/model типы внутренними деталями модуля.
 
+## Внутренние output-порты Notifications
+
+### `notifications.application.port.out.TimeProvider`
+
+```java
+public interface TimeProvider {
+    Instant now();
+}
+```
+
+Реализация: `notifications.infrastructure.time.SystemTimeProvider`.
+
+### `notifications.application.port.out.persistence.VerificationEmailDeliveryRepository`
+
+```java
+public interface VerificationEmailDeliveryRepository {
+    void save(VerificationEmailDelivery delivery);
+    List<VerificationEmailDelivery> findPending(Instant now, int limit);
+    List<VerificationEmailDelivery> findStaleProcessing(
+        Instant staleBefore,
+        Instant now,
+        int limit
+    );
+    List<VerificationEmailDelivery> findExpired(Instant now, int limit);
+    void update(VerificationEmailDelivery delivery);
+}
+```
+
+Реализация: `JooqVerificationEmailDeliveryRepositoryAdapter`.
+
+### `notifications.application.port.out.email.VerificationEmailSender`
+
+```java
+public interface VerificationEmailSender {
+    void send(VerificationEmailMessage message);
+}
+```
+
+Production-реализация: `SpringMailVerificationEmailSender`. Локально её
+`JavaMailSender` подключён к Mailpit, а в production — к внешнему
+SMTP-провайдеру через deployment configuration и secrets.
+
 ## Контракты Spring Security
 
 Следующие классы реализуют стандартные framework-интерфейсы:
@@ -352,3 +394,5 @@ identity.infrastructure.security.authentication.IdentityJwtAuthenticationConvert
 | `VerificationEmailSender` | `NotificationVerificationEmailAdapter` | 1 |
 | `IntegrationEventPublisher` | `SpringIntegrationEventPublisher` | 1 |
 | `TimeProvider` | `SystemTimeProvider` | 1 |
+| `notifications VerificationEmailDeliveryRepository` | `JooqVerificationEmailDeliveryRepositoryAdapter` | 1 |
+| `notifications VerificationEmailSender` | `SpringMailVerificationEmailSender` | 1 |

@@ -74,7 +74,7 @@
 | Схема | Вид | Поля или значения |
 |---|---|---|
 | `UserRole` | enum | `TEACHER`, `STUDENT` |
-| `UserStatus` | enum | `PENDING_EMAIL_VERIFICATION`, `ACTIVE` |
+| `UserStatus` | enum | `PENDING_EMAIL_VERIFICATION`, `ACTIVE`, `SUSPENDED`, `DEACTIVATED` |
 | `UserResponse` | object | `id`, `email`, `pendingEmail`, `firstName`, `lastName`, `roles`, `status`, `emailVerifiedAt`, `createdAt`, `updatedAt` |
 | `UserSummary` | object | `id`, `firstName`, `lastName` |
 | `TeacherSummary` | object | `id`, `firstName`, `lastName` |

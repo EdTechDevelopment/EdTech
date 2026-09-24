@@ -236,8 +236,8 @@ DTO может объединять данные нескольких модул
 | Генерация SQL-модели | jOOQ Codegen | Tables/records из применённой Flyway-схемы |
 | Миграции | Flyway | Единственный источник истины physical schema |
 | Пул соединений | HikariCP | JDBC connection pooling |
-| Почта | Spring Mail, `JavaMailSender` | SMTP-адаптер модуля Notifications |
-| Локальная почта | Mailpit | Просмотр тестовых писем при локальной разработке |
+| Почта | Spring Mail, `JavaMailSender` | Единый SMTP-адаптер модуля Notifications; в production подключается к внешнему SMTP-провайдеру |
+| Локальная почта | Mailpit | Только локальный SMTP-catcher для разработки и просмотра тестовых писем; не используется в production |
 | API-документация | OpenAPI 3, Swagger UI | Контракт и интерактивная документация REST API |
 | Unit tests | JUnit 5, AssertJ, Mockito | Domain/application tests и тестовые doubles портов |
 | Integration tests | Spring Boot Test, MockMvc, Spring Security Test | Web/security/application integration tests |
@@ -330,12 +330,19 @@ backend
 
 ## Конфигурация и окружения
 
-- Общие безопасные defaults находятся в `application.yml`.
-- Локальные overrides — в `application-local.yml` или environment variables.
+- На текущем MVP-этапе локальные настройки находятся в одном `application.yml` без отдельного local profile.
+- Production переопределяет параметры БД и Spring Mail через deployment configuration, environment variables и secret storage.
 - Пароли БД, private keys и SMTP credentials поступают извне.
 - Configuration properties типизированы и проверяются при старте.
 - `Clock`, token lifetimes, issuer, audience, allowed origins и frontend base URL внедряются через конфигурацию.
 - Production profile включает secure cookies и запрещает небезопасные defaults.
+
+Mailpit из Docker Compose является исключительно локальным инструментом. В
+production приложение использует тот же `SpringMailVerificationEmailSender`, но
+`JavaMailSender` подключается к выбранному внешнему SMTP-провайдеру. Production
+SMTP host, port, username, password, TLS/auth flags и настоящий `from`-адрес
+поступают извне и не сохраняются в Git. Mailpit container, порты `1025`/`8025`
+и адрес `no-reply@edtech.local` в production запрещены.
 
 ## Логирование и наблюдаемость
 

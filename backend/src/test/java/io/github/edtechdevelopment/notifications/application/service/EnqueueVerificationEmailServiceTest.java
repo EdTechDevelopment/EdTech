@@ -51,7 +51,7 @@ class EnqueueVerificationEmailServiceTest {
         assertAll(
                 () -> assertNotNull(delivery.id()),
                 () -> assertEquals("anna@example.com", delivery.recipientEmail()),
-                () -> assertEquals(CONFIRMATION_URL, delivery.confirmationUrl()),
+                () -> assertEquals(CONFIRMATION_URL, delivery.confirmationUrl().orElseThrow()),
                 () -> assertEquals(VerificationEmailDeliveryPurpose.REGISTRATION, delivery.purpose()),
                 () -> assertEquals(DeliveryStatus.PENDING, delivery.status()),
                 () -> assertEquals(CREATED_AT, delivery.createdAt()),

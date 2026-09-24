@@ -237,19 +237,24 @@ notifications
 └── infrastructure
     ├── configuration
     │   └── NotificationsConfiguration
+    ├── messaging.email
+    │   └── SpringMailVerificationEmailSender
     ├── persistence
     │   ├── adapter
     │   ├── data.repository
     │   ├── data.generated
     │   └── mapper
+    ├── scheduling
+    │   └── VerificationEmailDeliveryScheduler
     └── time
         └── SystemTimeProvider
 ```
 
 `NotificationsConfiguration` публикует `EnqueueVerificationEmailService` как
 транзакционный Spring bean публичного типа `NotificationGateway` и связывает его
-с собственными persistence/time adapters. Worker, SMTP и template packages ещё
-не реализованы.
+с собственными persistence/time adapters. Там же явно собираются Spring Mail
+sender, processing service и условный scheduler. Локально sender подключён к
+Mailpit; production использует внешний SMTP provider и внешние secrets.
 
 В текущем реализованном срезе Presentation присутствуют registration-части
 `AuthController`, `RegisterRequest`, `VerificationPendingResponse`,

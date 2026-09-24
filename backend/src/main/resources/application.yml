@@ -11,6 +11,16 @@ spring:
     enabled: true
     locations: classpath:db/migration
 
+  mail:
+    host: localhost
+    port: 1025
+    properties:
+      mail:
+        smtp:
+          auth: false
+          starttls:
+            enable: false
+
   jackson:
     deserialization:
       fail-on-unknown-properties: true
@@ -25,3 +35,13 @@ identity:
   token:
     verification-ttl: 5m
     verification-entropy-bytes: 32
+
+notifications:
+  delivery:
+    batch-size: 10
+    processing-timeout: 1m
+    poll-delay: 10s
+    initial-delay: 10s
+    scheduler-enabled: true
+  mail:
+    from-address: no-reply@edtech.local

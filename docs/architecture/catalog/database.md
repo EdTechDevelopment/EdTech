@@ -217,7 +217,7 @@ reuse можно было связать с владельцем и family.
 | `status` | `varchar(16)` | нет | `PENDING`, `PROCESSING`, `SENT`, `FAILED` или `EXPIRED`. |
 | `expires_at` | `timestamptz` | нет | Точный deadline исходного verification token. |
 | `created_at` | `timestamptz` | нет | Время постановки задания в очередь. |
-| `updated_at` | `timestamptz` | нет | Время последнего перехода состояния; в будущем также позволит обнаруживать зависший `PROCESSING`. |
+| `updated_at` | `timestamptz` | нет | Время последнего перехода состояния; worker использует его для обнаружения зависшего `PROCESSING`. |
 | `sent_at` | `timestamptz` | да | Время успешной доставки; присутствует только для `SENT`. |
 
 Ограничения:
@@ -233,11 +233,12 @@ CHECK (только SENT содержит sent_at)
 ```
 
 Отдельные `attempt_count`, `available_at` и `lease_until` для MVP не хранятся.
-Временная ошибка будущего worker-а возвращает запись в `PENDING`, а следующая
+Временная ошибка worker-а возвращает запись в `PENDING`, а следующая
 попытка происходит на очередном общем цикле до `expires_at`. Зависший
 `PROCESSING` определяется по `updated_at` и конфигурируемому processing timeout.
-Кроме primary key дополнительных индексов пока нет: индекс для polling будет
-добавлен вместе с фактическим worker query.
+Кроме primary key дополнительных индексов пока нет: для одного MVP worker-а и
+малого объёма очереди это сознательное упрощение. Индекс под polling/claim query
+пересматривается перед несколькими instances или заметным ростом таблицы.
 
 ## Восстановление агрегатов
 
