@@ -11,10 +11,10 @@
 Источники разделены по назначению:
 
 1. Этот документ определяет глобальные границы backend и общие правила.
-2. `docs/architecture/IDENTITY_ARCHITECTURE.md` определяет актуальную внутреннюю архитектуру Identity.
-3. `docs/architecture/TUTORING_STAGE_1_BOUNDARIES_AND_USE_CASES.md` определяет границы и сценарии Tutoring.
+2. `docs/architecture/identity/IDENTITY_ARCHITECTURE.md` определяет внутреннюю архитектуру Identity.
+3. `docs/architecture/tutoring/TUTORING_ARCHITECTURE.md` определяет целевую архитектуру Tutoring; подробности собраны в `docs/architecture/tutoring/README.md`.
 4. `docs/api/scheduling.openapi.json` определяет уже синхронизированный HTTP-контракт.
-5. `docs/architecture/architecture.vpp` и опубликованный HTML являются UML-снимком на дату последней публикации.
+5. `docs/architecture/identity/architecture.vpp` и опубликованный HTML являются историческим снимком модели Identity.
 
 Решения от 2026-09-13 меняют регистрацию, профили и владение `birthDate`. До синхронизации соответствующих схем OpenAPI их нельзя реализовывать по старому контракту. Не создавай параллельные варианты DTO или enum.
 
@@ -79,7 +79,9 @@ Tutoring.TeacherProfile.userId
 Tutoring.StudentProfile.userId
 
 Identity.User.birthDate
-    ↑ закрытое чтение через IdentityPersonalDataQuery
+    ↓ копируется доверенным workflow при создании профиля
+Tutoring.TeacherProfile.birthDate / StudentProfile.birthDate
+    ↓ выдаётся связанному пользователю после проверки TeacherStudent
 Workflows.StudentCardQueryFacade
 
 Tutoring.TeacherStudent
@@ -163,16 +165,15 @@ RoleOnboardingWorkflow
     → TutoringRegistrationCommands
 
 UnlinkStudentWorkflow
-    → SchedulingManagement
-    → TutoringManagement
+    → Scheduling guard и обработка уроков
+    → TutoringRelationshipCommands
 
 MeQueryFacade
     → IdentityQuery
-    → TutoringQuery
+    → TutoringProfileQuery
 
 StudentCardQueryFacade
-    → IdentityPersonalDataQuery
-    → TutoringQuery
+    → TutoringProfileQuery (linked-view после проверки связи)
     → SchedulingQuery
 ```
 
@@ -399,7 +400,7 @@ architecture tests
 
 - публичный API соответствует OpenAPI;
 - роль и обязательный профиль создаются одной workflow-транзакцией;
-- `birthDate` хранится только Identity;
+- `Identity.User.birthDate` остаётся источником истины; Tutoring хранит копию в каждом созданном учебном профиле;
 - profile display name/email хранятся только Tutoring;
 - изменение размещено в модуле-владельце данных;
 - слои зависят только в разрешённом направлении;
