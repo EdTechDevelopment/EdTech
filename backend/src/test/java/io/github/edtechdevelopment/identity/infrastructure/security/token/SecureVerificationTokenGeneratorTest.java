@@ -12,7 +12,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 class SecureVerificationTokenGeneratorTest {
 
     private final SecureVerificationTokenGenerator tokenGenerator =
-            new SecureVerificationTokenGenerator(new IdentityTokenProperties(Duration.ofMinutes(5), 32));
+            new SecureVerificationTokenGenerator(tokenProperties());
 
     @Test
     void generatesUrlSafeTokenFromConfiguredEntropy() {
@@ -25,5 +25,17 @@ class SecureVerificationTokenGeneratorTest {
     @Test
     void generatesDifferentTokens() {
         assertNotEquals(tokenGenerator.generate(), tokenGenerator.generate());
+    }
+
+    private static IdentityTokenProperties tokenProperties() {
+        return new IdentityTokenProperties(
+                Duration.ofMinutes(5),
+                32,
+                Duration.ofMinutes(15),
+                Duration.ofDays(30),
+                32,
+                "edtech-backend",
+                "edtech-api"
+        );
     }
 }

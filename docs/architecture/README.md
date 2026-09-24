@@ -33,6 +33,18 @@
 - SMTP и шаблоны писем принадлежат модулю Notifications;
 - JPA в модуле Identity не используется.
 
+## Статус реализации
+
+Identity завершён как самостоятельный MVP-фундамент, но не как весь целевой
+модуль. Реализованы регистрация аккаунта, verification/resend, authentication,
+refresh rotation/logout, изменение account-данных, persistence/security,
+доставка писем и `IdentityQuery.findUserById`.
+
+До полной готовности нужны Tutoring и Workflows: они позволят добавить
+`birthDate`, атомарную регистрацию с обязательными профилями, onboarding второй
+роли и составной `GET /me`. Production-hardening и актуальные открытые решения
+перечислены в [реестре решений](../decisions/README.md).
+
 ## Границы модуля
 
 Модуль построен по принципам портов и адаптеров:
@@ -43,7 +55,10 @@ presentation → application → domain
             infrastructure
 ```
 
-`identity.api` — единственный публичный пакет модуля. Остальные пакеты являются внутренними деталями реализации. Другие бизнес-модули обращаются к Identity через `identity.api.IdentityQuery` и получают интеграционные события из `identity.api.event`.
+`identity.api` — публичная named interface модуля. Остальные пакеты являются
+внутренними деталями реализации. Другие бизнес-модули обращаются к Identity через
+`identity.api.query.IdentityQuery`, используют модели из `identity.api.model` и
+получают интеграционные события из `identity.api.event`.
 
 Infrastructure реализует выходные порты Application. Application и Domain не импортируют Infrastructure. Presentation вызывает только входные порты Application.
 
@@ -58,9 +73,14 @@ Infrastructure реализует выходные порты Application. Appli
 6. Refresh token передаётся в cookie с `HttpOnly`, `SameSite=Lax`, ограниченным путём `/api/v1/auth` и `Secure` в production.
 7. После подтверждения email `ConfirmEmailUseCase` возвращает `AuthenticationResult`, а контроллер устанавливает refresh cookie.
 8. Отправка email выполняется через публичный API Notifications. Identity не импортирует внутренние пакеты Notifications; запрос доставки атомарно сохраняется в `notification_email_deliveries`.
-9. Внутренние интеграционные события публикуются после успешной фиксации транзакции.
+9. Публичное событие передаётся в Spring внутри транзакционного use case;
+   подписчики, которым нужны зафиксированные данные, обрабатывают его через
+   `@TransactionalEventListener(AFTER_COMMIT)`. Durable delivery требует outbox.
 10. Ошибки контроллеров и Spring Security преобразуются в единый формат `ApiError`.
-11. Refresh token загружается через `findByTokenHashForUpdate`: запись возвращается независимо от состояния и блокируется до завершения транзакции.
+11. Refresh сначала неблокирующе находит владельца token, затем блокирует User и
+    повторно загружает token через `findByTokenHashForUpdate`. Единый порядок
+    `User -> RefreshToken` исключает обратный порядок блокировок относительно
+    операций над аккаунтом; token остаётся заблокирован до завершения транзакции.
 12. Token family отзывается по паре `userId + familyId`, соответствующей составному индексу `(user_id, family_id)`.
 13. Пароли ограничены 8–72 печатными ASCII-символами без пробелов и хешируются BCrypt со strength `10`.
 14. Production `TimeProvider` нормализует `Instant` до микросекундной точности PostgreSQL, чтобы timestamp в HTTP-ответах и сохранённых строках совпадали без округления при записи.

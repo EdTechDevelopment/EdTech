@@ -8,18 +8,45 @@ import java.util.Objects;
 @ConfigurationProperties(prefix = "identity.token")
 public record IdentityTokenProperties(
         Duration verificationTtl,
-        int verificationEntropyBytes
+        int verificationEntropyBytes,
+        Duration accessTtl,
+        Duration refreshFamilyTtl,
+        int refreshEntropyBytes,
+        String issuer,
+        String audience
 ) {
 
-    private static final int MIN_VERIFICATION_ENTROPY_BYTES = 32;
+    private static final int MIN_TOKEN_ENTROPY_BYTES = 32;
 
     public IdentityTokenProperties {
-        Objects.requireNonNull(verificationTtl, "Verification token TTL must not be null");
-        if (verificationTtl.isZero() || verificationTtl.isNegative()) {
-            throw new IllegalArgumentException("Verification token TTL must be positive");
-        }
-        if (verificationEntropyBytes < MIN_VERIFICATION_ENTROPY_BYTES) {
+        requirePositiveDuration(verificationTtl, "Verification token TTL");
+        requirePositiveDuration(accessTtl, "Access token TTL");
+        requirePositiveDuration(refreshFamilyTtl, "Refresh token family TTL");
+
+        if (verificationEntropyBytes < MIN_TOKEN_ENTROPY_BYTES) {
             throw new IllegalArgumentException("Verification token entropy must be at least 32 bytes");
         }
+        if (refreshEntropyBytes < MIN_TOKEN_ENTROPY_BYTES) {
+            throw new IllegalArgumentException("Refresh token entropy must be at least 32 bytes");
+        }
+
+        issuer = requireText(issuer, "Token issuer");
+        audience = requireText(audience, "Token audience");
+    }
+
+    private static void requirePositiveDuration(Duration duration, String propertyName) {
+        Objects.requireNonNull(duration, propertyName + " must not be null");
+        if (duration.isZero() || duration.isNegative()) {
+            throw new IllegalArgumentException(propertyName + " must be positive");
+        }
+    }
+
+    private static String requireText(String value, String propertyName) {
+        Objects.requireNonNull(value, propertyName + " must not be null");
+        String normalizedValue = value.strip();
+        if (normalizedValue.isEmpty()) {
+            throw new IllegalArgumentException(propertyName + " must not be blank");
+        }
+        return normalizedValue;
     }
 }

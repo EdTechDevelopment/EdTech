@@ -115,12 +115,15 @@ class UserJooqRepositoryIntegrationTest {
     }
 
     @Test
-    void searchesOnlyByCurrentEmailButReservesBothEmailKinds() {
+    void separatesCurrentEmailLookupFromCurrentOrPendingLookup() {
         repository.save(userData(USER_ID, CURRENT_EMAIL, PENDING_EMAIL, List.of("STUDENT")));
 
         assertAll(
                 () -> assertTrue(repository.findByCurrentEmail(CURRENT_EMAIL).isPresent()),
                 () -> assertTrue(repository.findByCurrentEmail(PENDING_EMAIL).isEmpty()),
+                () -> assertTrue(repository.findByAnyEmail(CURRENT_EMAIL).isPresent()),
+                () -> assertTrue(repository.findByAnyEmail(PENDING_EMAIL).isPresent()),
+                () -> assertTrue(repository.findByAnyEmail("free@example.com").isEmpty()),
                 () -> assertTrue(repository.existsByEmail(CURRENT_EMAIL)),
                 () -> assertTrue(repository.existsByEmail(PENDING_EMAIL)),
                 () -> assertFalse(repository.existsByEmail("free@example.com"))

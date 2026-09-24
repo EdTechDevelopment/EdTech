@@ -38,7 +38,7 @@ flowchart TB
         LOUC -. implemented by .-> LOS
     end
 
-    IQ[identity.api.IdentityQuery] -. implemented by .-> IQS
+    IQ[identity.api.query.IdentityQuery] -. implemented by .-> IQS
 ```
 
 ## Выходные порты

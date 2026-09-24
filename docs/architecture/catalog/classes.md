@@ -10,7 +10,8 @@
 |---|---|---|---|
 | `UserSummary` | `record` | `UUID id`, `String email`, `String firstName`, `String lastName`, `Set<UserRoleView> roles`, `UserStatusView status` | Безопасное публичное представление пользователя для других модулей. Не раскрывает password hash, pending email и token data. |
 | `UserRoleView` | `enum` | `TEACHER`, `STUDENT` | Публичное представление роли. Один пользователь может иметь обе роли. |
-| `UserStatusView` | `enum` | `PENDING_EMAIL_VERIFICATION`, `ACTIVE`, `SUSPENDED`, `DEACTIVATED` | Публичное Java-представление состояния учётной записи. Расхождение с HTTP enum отмечено в реестре решений. |
+| `UserStatusView` | `enum` | `PENDING_EMAIL_VERIFICATION`, `ACTIVE`, `SUSPENDED`, `DEACTIVATED` | Публичное Java-представление состояния учётной записи; синхронизировано с HTTP/OpenAPI `UserStatus`. |
+| `AccountEmailVerificationPurpose` | `enum` | `REGISTRATION`, `EMAIL_CHANGE` | Публичная причина подтверждения account email, не раскрывающая domain enum за границей модуля. |
 
 ### `identity.api.event`
 
@@ -19,6 +20,7 @@
 | `UserRegisteredEvent` | `record`, integration event | `UUID eventId`, `UUID userId`, `String email`, `Instant occurredAt` | Сообщает другим модулям, что пользователь зарегистрирован и ожидает подтверждения. |
 | `UserActivatedEvent` | `record`, integration event | `UUID eventId`, `UUID userId`, `String email`, `Instant occurredAt` | Сообщает, что email подтверждён и пользователь активирован. |
 | `UserAccountUpdatedEvent` | `record`, integration event | `UUID eventId`, `UUID userId`, `Set<String> changedFields`, `Instant occurredAt` | Сообщает об изменении публично значимых данных пользователя. |
+| `AccountEmailVerifiedEvent` | `record`, integration event | `UUID eventId`, `UUID userId`, `String email`, `AccountEmailVerificationPurpose purpose`, `Instant occurredAt` | Сообщает о подтверждении владения конкретным account email при регистрации или смене адреса. |
 
 Публичные события являются стабильными контрактами. Они создаются из доменных событий или результата use case, но не содержат ссылки на domain-типы.
 
@@ -38,16 +40,16 @@
 | Элемент | Стереотип | Поля | Назначение |
 |---|---|---|---|
 | `TokenResponse` | `record`, response DTO | `String accessToken`, `String tokenType`, `long expiresInSeconds` | Тело успешного login/confirm/refresh. Refresh token отсутствует в JSON и записывается в cookie. |
-| `VerificationPendingResponse` | `record`, response DTO | `String email`, `Instant verificationExpiresAt` | Ответ регистрации или повторной отправки подтверждения. Не раскрывает userId. |
+| `VerificationPendingResponse` | `record`, response DTO | `String email`, `Instant verificationExpiresAt` | Ответ регистрации до подтверждения email. Не раскрывает userId. Resend по публичному контракту возвращает нейтральный `202` без тела. |
 
 ### Контроллеры и вспомогательные классы Auth
 
 | Элемент | Пакет | Стереотип | Назначение |
 |---|---|---|---|
-| `AuthController` | `presentation.auth.controller` | `@RestController` | Текущая реализация обрабатывает `POST /api/v1/auth/register`, вызывает `RegisterUserUseCase` и возвращает `202 VerificationPendingResponse`. Login, refresh и logout будут добавлены вместе с соответствующими use cases. |
-| `EmailVerificationController` | `presentation.auth.controller` | `@RestController` | Обрабатывает confirm и resend. При успешном confirm возвращает access token и устанавливает refresh cookie. |
+| `AuthController` | `presentation.auth.controller` | `@RestController` | Обрабатывает register, login, refresh и идемпотентный logout. Вызывает только application input ports; refresh cookie создаёт, ротирует или очищает через `RefreshTokenCookieFactory`. |
+| `EmailVerificationController` | `presentation.auth.controller` | `@RestController` | Реализует confirm и resend. Confirm возвращает access token и refresh cookie; resend всегда отвечает нейтральным `202` без тела. |
 | `AuthPresentationMapper` | `presentation.auth.mapper` | mapper | Преобразует auth request DTO в application commands, а application results — в response DTO. Не содержит бизнес-правил. |
-| `RefreshTokenCookieFactory` | `presentation.auth.cookie` | component | Создаёт и очищает refresh cookie. Централизует `HttpOnly`, `Secure`, `SameSite=Lax`, path `/api/v1/auth` и срок жизни. |
+| `RefreshTokenCookieFactory` | `presentation.auth.cookie` | component | Создаёт и очищает refresh cookie. Централизует `HttpOnly`, configurable `Secure`, `SameSite=Lax`, path `/api/v1/auth` и фактический оставшийся срок жизни. |
 
 Рекомендуемые HTTP-операции:
 
@@ -73,7 +75,7 @@ POST /api/v1/auth/email-verification/resend
 
 | Элемент | Пакет | Стереотип | Назначение |
 |---|---|---|---|
-| `CurrentUserController` | `presentation.account.controller` | `@RestController` | Обрабатывает `GET /api/v1/me` и `PATCH /api/v1/me`; user ID получает из проверенного `Authentication`. |
+| `CurrentUserController` | `presentation.account.controller` | `@RestController` | Реализует `PATCH /api/v1/me`; user ID получает из проверенного `Authentication`. Составной `GET /api/v1/me` будет добавлен вместе с внешней query facade. |
 | `UserPresentationMapper` | `presentation.account.mapper` | mapper | Преобразует `UpdateCurrentUserRequest` в command и `CurrentUserResult` в `UserResponse`. |
 | `ValidAccountUpdate` | `presentation.account.validation` | `@Constraint` | Аннотация составной валидации `UpdateCurrentUserRequest`. |
 | `AccountUpdateValidator` | `presentation.account.validation` | `ConstraintValidator` | Проверяет, что указан хотя бы один изменяемый атрибут и что сочетание значений допустимо на уровне HTTP-контракта. |
@@ -114,7 +116,7 @@ POST /api/v1/auth/email-verification/resend
 |---|---|---|---|
 | `LoginCommand` | `record` | `String email`, `String rawPassword` | Вход по email и паролю. |
 | `RefreshTokenCommand` | `record` | `String rawRefreshToken` | Ротация refresh token и выпуск новой пары токенов. Значение приходит из cookie. |
-| `LogoutCommand` | `record` | `String rawRefreshToken` | Идемпотентный отзыв предъявленного refresh token. |
+| `LogoutCommand` | `record` | `String rawRefreshToken` | Идемпотентный отзыв session-family предъявленного refresh token; значение может отсутствовать. |
 
 ### `identity.application.query`
 
@@ -130,7 +132,7 @@ POST /api/v1/auth/email-verification/resend
 |---|---|---|---|
 | `RegistrationResult` | `record` | `String email`, `Instant verificationExpiresAt` | Результат регистрации до подтверждения email. |
 | `ResendVerificationResult` | `record` | `String email`, `Instant verificationExpiresAt` | Нейтральный результат повторной отправки. Не раскрывает наличие аккаунта. |
-| `AuthenticationResult` | `record` | `IssuedAccessToken accessToken`, `IssuedRefreshToken refreshToken`, `CurrentUserResult user` | Общий результат login, confirm и refresh. Presentation помещает refresh token в cookie. |
+| `AuthenticationResult` | `record` | `IssuedAccessToken accessToken`, `IssuedRefreshToken refreshToken` | Общий результат confirm, login и refresh. Пользователь загружается отдельно через `GET /me`; Presentation помещает refresh token в cookie. |
 | `CurrentUserResult` | `record` | `UUID id`, `String email`, `String? pendingEmail`, `String firstName`, `String lastName`, `Set<UserRole> roles`, `UserStatus status`, `Instant? emailVerifiedAt`, `Instant createdAt`, `Instant updatedAt` | Представление пользователя на application-границе. |
 
 ### `identity.application.model`
@@ -139,6 +141,7 @@ POST /api/v1/auth/email-verification/resend
 |---|---|---|---|
 | `IssuedAccessToken` | `record` | `String value`, `Instant expiresAt` | Выпущенный JWT для передачи клиенту. |
 | `IssuedRefreshToken` | `record` | `String value`, `Instant expiresAt` | Выпущенное открытое значение refresh token. Живёт только до записи cookie и не сохраняется как есть. |
+| `RefreshSession` | `record` | `IssuedRefreshToken token`, `RefreshTokenState state` | Связывает raw token для cookie с сохраняемым hash-состоянием одной новой refresh-family. |
 | `RefreshTokenState` | `record` | `UUID id`, `UUID userId`, `String tokenHash`, `UUID familyId`, `Instant expiresAt`, `Instant revokedAt`, `Instant createdAt` | Сохраняемое состояние refresh token. `revokedAt` может отсутствовать. |
 
 ## Application: Services
@@ -146,14 +149,15 @@ POST /api/v1/auth/email-verification/resend
 | Элемент | Пакет | Реализует | Ответственность |
 |---|---|---|---|
 | `RegisterUserService` | `service.account` | `RegisterUserUseCase` | Нормализует email, проверяет доступность, хеширует пароль, создаёт `User` и `EmailVerification`, сохраняет их, ставит письмо в очередь и публикует событие регистрации. |
-| `GetCurrentUserService` | `service.account` | `GetCurrentUserUseCase` | Загружает пользователя по ID и преобразует в `CurrentUserResult`. |
-| `UpdateCurrentUserService` | `service.account` | `UpdateCurrentUserUseCase` | Изменяет профиль; при смене email резервирует pending email и запускает новое подтверждение. |
-| `IdentityQueryService` | `service.account` | `identity.api.IdentityQuery` | Реализует публичное чтение для других модулей и возвращает `UserSummary`. |
-| `ConfirmEmailService` | `service.verification` | `ConfirmEmailUseCase` | Хеширует входной token, загружает активную verification, подтверждает email, активирует пользователя при регистрации, помечает verification использованной и выдаёт пару токенов. |
-| `ResendEmailVerificationService` | `service.verification` | `ResendEmailVerificationUseCase` | Инвалидирует прежнюю verification, создаёт новую и ставит письмо в очередь; сохраняет нейтральный ответ для неизвестного email. |
-| `LoginService` | `service.authentication` | `LoginUseCase` | Проверяет пароль и состояние пользователя, затем выпускает access и refresh tokens и сохраняет hash refresh token. |
-| `RefreshTokenService` | `service.authentication` | `RefreshTokenUseCase` | Загружает token любого состояния по hash с row-level lock, проверяет expiry/revocation, ротирует активный token в той же family и выдаёт новый access token. Повторное использование отозванного token отзывает family по `userId + familyId`. |
-| `LogoutService` | `service.authentication` | `LogoutUseCase` | Хеширует полученный refresh token и отзывает найденный токен. Операция идемпотентна. |
+| `GetCurrentUserService` | `service.account` | `GetCurrentUserUseCase` | Запланирован вместе с полным `GET /me`; до появления Tutoring не реализуется как неиспользуемый внутренний сервис. |
+| `UpdateCurrentUserService` | `service.account` | `UpdateCurrentUserUseCase` | Под row lock изменяет имя/фамилию; для действительно нового email резервирует `pendingEmail`, инвалидирует прежнюю `EMAIL_CHANGE` verification, создаёт новую на 5 минут и ставит письмо в очередь одной транзакцией. Текущий и уже pending email обрабатываются как no-op. |
+| `IdentityQueryService` | `service.account` | `identity.api.query.IdentityQuery` | Реализует read-only межмодульное чтение по ID и возвращает безопасный `UserSummary`; не является HTTP endpoint. |
+| `ConfirmEmailService` | `service.verification` | `ConfirmEmailUseCase` | В порядке `User → EmailVerification` блокирует изменяемые строки, подтверждает email, consume verification, создаёт новую refresh family, сохраняет только hash refresh token, выдаёт access/refresh и публикует события. |
+| `ResendEmailVerificationService` | `service.verification` | `ResendEmailVerificationUseCase` | После lock User выбирает `REGISTRATION` для CURRENT email неподтверждённого аккаунта или `EMAIL_CHANGE` для PENDING email активного аккаунта. Инвалидирует прежнюю verification purpose, создаёт новую и ставит письмо в очередь; остальные адреса получают нейтральный no-op. |
+| `LoginService` | `service.authentication` | `LoginUseCase` | Всегда выполняет BCrypt-проверку, не различает неизвестный email и неверный пароль, проверяет status только после пароля, затем выпускает access/refresh и сохраняет hash refresh token новой family. |
+| `RefreshSessionFactory` | `service.authentication` | — | Общий алгоритм выпуска raw refresh token и создания `RefreshTokenState`: `create` начинает новую family для confirm/login, `rotate` сохраняет family и `expiresAt`; сам ничего не сохраняет. |
+| `RefreshTokenService` | `service.authentication` | `RefreshTokenUseCase` | В порядке `User → RefreshToken` повторно валидирует token под row lock, ротирует active token с прежними family/expiry и выдаёт access JWT. Reuse или non-active account фиксирует отзыв family даже при ответе `401/403`. |
+| `LogoutService` | `service.authentication` | `LogoutUseCase` | Хеширует token, в порядке `User → RefreshToken` повторно сверяет запись под row lock и отзывает всю найденную family. Пустое, неизвестное или уже отозванное значение обрабатывается идемпотентно. |
 
 Application services не вызывают друг друга. Общие преобразования находятся в mapper, общие бизнес-правила — в domain, а технические операции — за output ports.
 
@@ -175,6 +179,7 @@ Application services не вызывают друг друга. Общие пр�
 | `EmailVerificationRequiredException` | `application.exception` | Вход запрещён до подтверждения email. |
 | `InvalidVerificationTokenException` | `application.exception` | Verification token неизвестен, истёк, использован или отозван. |
 | `InvalidRefreshTokenException` | `application.exception` | Refresh token неизвестен, истёк, отозван или повторно использован. |
+| `RefreshAccessDeniedException` | `application.exception` | Token принадлежит аккаунту, состояние которого запрещает продолжать refresh-сессию. |
 | `AccountOperationNotAllowedException` | `application.exception` | Состояние аккаунта запрещает запрошенную операцию. |
 
 ## Domain: User aggregate
@@ -313,7 +318,7 @@ invalidate(Instant): void
 |---|---|---|---|
 | `UserPersistenceMapper` | `infrastructure.persistence.mapper` | `toDomain(UserPersistenceData)`, `toPersistence(User)` | Собирает/разбирает агрегат пользователя из users, emails и roles. |
 | `EmailVerificationPersistenceMapper` | `infrastructure.persistence.mapper` | `toDomain(record)`, `toPersistence(model)` | Преобразует verification aggregate и jOOQ record. |
-| `RefreshTokenPersistenceMapper` | `infrastructure.persistence.mapper` | `toApplication(record)`, `toRecord(state)` | Преобразует `RefreshTokenState` и jOOQ record. |
+| `RefreshTokenPersistenceMapper` | `infrastructure.persistence.mapper` | `toApplication(record)`, `toPersistence(state)` | Преобразует `RefreshTokenState` и jOOQ record. |
 | `InvalidPersistenceDataException` | `infrastructure.persistence.exception` | infrastructure exception | Прочитанные persistence-данные невозможно собрать в корректную domain/application-модель. |
 
 ## Infrastructure: Persistence data
@@ -321,9 +326,9 @@ invalidate(Instant): void
 | Элемент | Пакет | Стереотип / поля | Назначение |
 |---|---|---|---|
 | `UserPersistenceData` | `infrastructure.persistence.data.model` | internal data carrier: `IdentityUsersRecord user`, `List<IdentityUserEmailsRecord> emails`, `List<IdentityUserRolesRecord> roles` | Объединяет строки нескольких таблиц перед восстановлением агрегата. Не покидает persistence. |
-| `UserJooqRepository` | `infrastructure.persistence.data.repository` | `findById`, `findByIdForUpdate`, `findByCurrentEmail`, `existsByEmail`, `save` | Выполняет SQL для `identity_users`, `identity_user_emails`, `identity_user_roles` через `DSLContext`; блокирующее чтение и save требуют внешнюю транзакцию; не импортирует domain. |
+| `UserJooqRepository` | `infrastructure.persistence.data.repository` | `findById`, `findByIdForUpdate`, `findByCurrentEmail`, `findByAnyEmail`, `existsByEmail`, `save` | Выполняет SQL для `identity_users`, `identity_user_emails`, `identity_user_roles` через `DSLContext`; current-only lookup используется login, lookup обоих kinds — verification; блокирующее чтение и save требуют внешнюю транзакцию. |
 | `EmailVerificationJooqRepository` | `infrastructure.persistence.data.repository` | `findActiveByTokenHashForUpdate`, `save`, `invalidateActiveForUser` | Выполняет SQL для `identity_email_verifications`; locking read и writes требуют внешнюю транзакцию; работает с generated records/простыми data types. |
-| `RefreshTokenJooqRepository` | `infrastructure.persistence.data.repository` | repository | Выполняет SQL для `identity_refresh_tokens`, включая блокировку/атомарную ротацию и отзыв family. |
+| `RefreshTokenJooqRepository` | `infrastructure.persistence.data.repository` | `findByTokenHash`, `findByTokenHashForUpdate`, `save`, `revoke`, `revokeFamily` | Выполняет SQL для `identity_refresh_tokens`: предварительно находит владельца без блокировки, повторно читает token с row lock, вставляет новое состояние и отзывает token/family. Все операции требуют внешнюю транзакцию. |
 | `generated` | `infrastructure.persistence.data.generated` | generated package | Содержит jOOQ tables, records и schema types, созданные из Flyway-схемы. Ручное редактирование запрещено. |
 
 ## Infrastructure: Security
@@ -337,10 +342,12 @@ invalidate(Instant): void
 | `SecureVerificationTokenGenerator` | `infrastructure.security.token` | `VerificationTokenGenerator` | Через `SecureRandom` создаёт verification token из 32 случайных байт и кодирует его URL-safe Base64 без padding. |
 | `Sha256VerificationTokenHasher` | `infrastructure.security.token` | `VerificationTokenHasher` | Вычисляет стабильный SHA-256 hash verification token и возвращает lowercase hex из 64 символов. |
 | `IdentityJwtAuthenticationConverter` | `infrastructure.security.authentication` | `Converter<Jwt, AbstractAuthenticationToken>` | Читает `sub` и `roles`, создаёт `JwtAuthenticationToken`, добавляет ожидаемый authority prefix. |
+| `CookieCredentialOriginFilter` | `infrastructure.security.request` | `OncePerRequestFilter` | Для POST refresh/logout требует присутствующий `Origin` из configured allowlist до обработки cookie credential и CORS. |
 | `SecurityConfiguration` | `infrastructure.security.configuration` | `@Configuration` | Настраивает stateless `SecurityFilterChain`, Resource Server, CORS, CSRF-решение и публичные endpoints; принимает стандартные security handlers. |
-| `JwtConfiguration` | `infrastructure.security.configuration` | `@Configuration` | Создаёт `JwtEncoder`, `JwtDecoder` и связанные beans из внешних RSA keys и properties. |
+| `JwtConfiguration` | `infrastructure.security.configuration` | `@Configuration` | Получает внешние RSA-ключи через Spring `@Value`, создаёт `JwtEncoder`, `JwtDecoder` и `AccessTokenIssuer`. Encoder использует `NimbusJwtEncoder.withKeyPair(...)`; decoder принимает только RS256, требует `exp` и использует clock skew `0`; `iss`/`aud` в MVP отдельно не валидируются. |
+| `IdentityCorsProperties` | `infrastructure.security.configuration` | `@ConfigurationProperties` | Хранит непустой allowlist frontend origins для CORS. |
 | `IdentityPasswordProperties` | `infrastructure.security.configuration` | `@ConfigurationProperties` | Хранит BCrypt strength из `identity.security.password`; текущее значение — `10`. |
-| `IdentityTokenProperties` | `infrastructure.security.configuration` | `@ConfigurationProperties` | Сейчас хранит verification TTL и entropy bytes из `identity.token`; по мере реализации JWT/refresh будет расширен остальными token-настройками. |
+| `IdentityTokenProperties` | `infrastructure.security.configuration` | `@ConfigurationProperties` | Хранит verification/access/refresh TTL, entropy bytes, issuer и audience из `identity.token`. |
 
 ## Infrastructure: Messaging и Time
 

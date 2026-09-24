@@ -252,7 +252,7 @@ CHECK (только SENT содержит sent_at)
 
 Эти данные объединяются в `UserPersistenceData`. Затем `UserPersistenceMapper` находит email с `kind=CURRENT`, необязательный `kind=PENDING`, преобразует роли и восстанавливает `User` через специальную reconstitution factory. Восстановление не создаёт новых domain events.
 
-Чтение выполняется тремя отдельными запросами, чтобы соединение email и roles не размножало строки. `findByCurrentEmail` учитывает только `kind=CURRENT`, а `existsByEmail` — оба вида email, поскольку `PENDING` уже резервирует адрес.
+Чтение выполняется тремя отдельными запросами, чтобы соединение email и roles не размножало строки. `findByCurrentEmail` учитывает только `kind=CURRENT` для login, `findByAnyEmail` находит `CURRENT` или `PENDING` для verification flow, а `existsByEmail` проверяет оба вида, поскольку `PENDING` уже резервирует адрес.
 
 При сохранении `identity_users` используется upsert по `id`, но неизменяемый `created_at` не обновляется. Email и роли синхронизируются дифференциально: удаляются исчезнувшие значения, затем добавляются или обновляются актуальные. При подтверждении нового email строка `PENDING` удаляется до обновления `CURRENT`, чтобы перенос не конфликтовал с `UNIQUE(email)`.
 
@@ -275,7 +275,7 @@ Read-only сценарии используют `findById`. Любой use case,
 | Change email | резервирование pending email, сохранение User, создание EmailVerification |
 | Confirm changed email | consume verification, перенос PENDING → CURRENT |
 | Refresh | отзыв старого token, сохранение нового token той же family |
-| Logout | отзыв найденного refresh token |
+| Logout | идемпотентный отзыв всей family предъявленного refresh token |
 
 Письмо не отправляется через SMTP внутри транзакции Identity. Identity вызывает публичный gateway Notifications, который надёжно сохраняет запрос на доставку, а фактическая отправка выполняется асинхронно.
 

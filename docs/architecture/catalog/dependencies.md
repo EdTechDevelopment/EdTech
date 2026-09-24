@@ -7,7 +7,7 @@ A ..|> B    A реализует интерфейс B
 A --> B     A использует B
 A *-- B     A владеет B как частью своего состояния
 A ..> B     пакет A зависит от пакета B
-```
+письмо уже приходит, но backend ещё не умеет обра```
 
 Блоки ниже можно копировать в описание диаграмм или использовать как чек-лист при создании связей в Visual Paradigm.
 
@@ -66,7 +66,7 @@ identity                      -X-> notifications.internal
 application.service.account.RegisterUserService
     ..|> application.port.in.account.RegisterUserUseCase
 
-application.service.account.GetCurrentUserService
+application.service.account.GetCurrentUserService [PLANNED]
     ..|> application.port.in.account.GetCurrentUserUseCase
 
 application.service.account.UpdateCurrentUserService
@@ -146,7 +146,9 @@ presentation.auth.controller.AuthController
 
 presentation.auth.mapper.AuthPresentationMapper
     --> application.command.account.RegisterUserCommand
+    --> application.command.verification.ConfirmEmailCommand
     --> application.result.RegistrationResult
+    --> application.result.AuthenticationResult
 
 presentation.auth.model.request.RegisterRequest
     --> application.command.account.RegistrationRole
@@ -169,6 +171,7 @@ presentation.error.handler.IdentityExceptionHandler
     --> presentation.error.model.ApiError
     --> presentation.error.model.FieldErrorResponse
     --> presentation.error.model.ErrorCode
+    --> presentation.auth.cookie.RefreshTokenCookieFactory
 
 presentation.error.handler.RestAuthenticationEntryPoint
     ..|> org.springframework.security.web.AuthenticationEntryPoint
@@ -180,8 +183,8 @@ presentation.error.handler.RestAccessDeniedHandler
 ```
 
 Контроллеры не используют repositories, domain aggregates, jOOQ или infrastructure adapters.
-На текущем этапе из перечисленных зависимостей `AuthController` реализована только
-ветка регистрации; login/refresh/logout и cookie factory остаются целевой схемой.
+На текущем этапе реализованы регистрация, confirm, resend, login, refresh с
+ротацией refresh cookie и идемпотентный logout текущей session-family.
 
 ## Application services
 
@@ -198,7 +201,7 @@ application.service.account.RegisterUserService
     --> domain.user.model.User
     --> domain.verification.model.EmailVerification
 
-application.service.account.GetCurrentUserService
+application.service.account.GetCurrentUserService [PLANNED]
     --> application.port.out.persistence.UserRepository
     --> application.mapper.UserResultMapper
 
@@ -226,7 +229,7 @@ application.service.verification.ConfirmEmailService
     --> application.port.out.security.RefreshTokenHasher
     --> application.port.out.messaging.IntegrationEventPublisher
     --> application.port.out.TimeProvider
-    --> application.mapper.UserResultMapper
+    --> application.mapper.IdentityApiMapper
 
 application.service.verification.ResendEmailVerificationService
     --> application.port.out.persistence.UserRepository
@@ -253,9 +256,10 @@ application.service.authentication.RefreshTokenService
     --> application.port.out.security.RefreshTokenIssuer
     --> application.port.out.security.AccessTokenIssuer
     --> application.port.out.TimeProvider
-    --> application.mapper.UserResultMapper
+    --> application.service.authentication.RefreshSessionFactory
 
 application.service.authentication.LogoutService
+    --> application.port.out.persistence.UserRepository
     --> application.port.out.persistence.RefreshTokenRepository
     --> application.port.out.security.RefreshTokenHasher
     --> application.port.out.TimeProvider
@@ -381,6 +385,12 @@ infrastructure.security.configuration.SecurityConfiguration
     --> org.springframework.security.web.AuthenticationEntryPoint
     --> org.springframework.security.web.access.AccessDeniedHandler
     --> infrastructure.security.authentication.IdentityJwtAuthenticationConverter
+    --> infrastructure.security.request.CookieCredentialOriginFilter
+    --> infrastructure.security.configuration.IdentityCorsProperties
+
+infrastructure.security.request.CookieCredentialOriginFilter
+    --> org.springframework.security.web.access.AccessDeniedHandler
+    --> infrastructure.security.configuration.IdentityCorsProperties
 
 infrastructure.security.configuration.JwtConfiguration
     --> infrastructure.security.configuration.IdentityTokenProperties

@@ -172,11 +172,23 @@ PATCH /api/v1/me
   frontend URL заменяется конфигурацией без изменения кода.
 - Регистрация создаёт `PENDING_EMAIL_VERIFICATION`, но не выдаёт access/refresh.
 - `POST /api/v1/auth/register` реализован через Presentation → Application →
-  Domain/Infrastructure и отвечает `202`; остальные перечисленные Identity
-  endpoints пока остаются целевым контрактом.
+  Domain/Infrastructure и отвечает `202`.
+- `POST /api/v1/auth/email-verification/confirm` реализован полностью: атомарно
+  consume verification, активирует/обновляет User, создаёт refresh family,
+  возвращает access JWT и устанавливает refresh cookie.
+- `POST /api/v1/auth/login` реализован полностью: принимает нормализованный
+  `CURRENT` email и пароль, возвращает access JWT, создаёт независимую refresh
+  family и устанавливает refresh cookie.
+- `POST /api/v1/auth/refresh` реализован полностью: читает token только из
+  `HttpOnly` cookie, проверяет обязательный разрешённый `Origin`, ротирует token в
+  прежней family с прежним `expiresAt`, возвращает новый access JWT и заменяет
+  cookie. Logout реализован идемпотентно и отзывает предъявленную family.
 - Confirm и login возвращают `TokenResponse` и устанавливают refresh cookie.
 - `TokenResponse` содержит только `accessToken`, `tokenType = Bearer` и
   `expiresInSeconds`.
+- Внутренний `AuthenticationResult` содержит только `IssuedAccessToken` и
+  `IssuedRefreshToken`. Данные пользователя не дублируются: frontend получает их
+  отдельным `GET /me`, что соответствует актуальному HTTP-контракту.
 - Refresh token, password, password hash и verification token никогда не входят
   в response JSON.
 - Access token передаётся как Bearer и хранится frontend в памяти, а не в
@@ -185,7 +197,11 @@ PATCH /api/v1/me
   roles, status и system timestamps через него не изменяются.
 - Новый email находится в `pendingEmail`; старый остаётся current до confirm.
 - Login по неизвестному email и неверному паролю неразличим для клиента.
-- Resend не раскрывает существование аккаунта и подлежит rate limit.
+- Resend реализован для обоих purpose: `REGISTRATION` по CURRENT email
+  неподтверждённого аккаунта и `EMAIL_CHANGE` по PENDING email активного
+  аккаунта. Старый активный token purpose инвалидируется; неизвестные и
+  неподходящие адреса получают тот же `202` без письма. Endpoint подлежит
+  будущему rate limit.
 - Формат ошибки: `{code, message, fieldErrors, requestId}`; каждый field error
   содержит `{field, code, message}`.
 - Внешнее время — RFC 3339 с offset, ответы формируются в UTC; внутреннее время —
@@ -300,20 +316,55 @@ identity_refresh_tokens:
 - Пароли хешируются BCrypt со strength `10`, заданным свойством
   `identity.security.password.bcrypt-strength`; raw password живёт только во
   время register/login.
+- Login всегда выполняет одну BCrypt-проверку. Для неизвестного email используется
+  фиксированный фиктивный BCrypt hash; неизвестный email и неверный пароль дают
+  одинаковый `401 INVALID_CREDENTIALS`, чтобы не раскрывать наличие аккаунта ни
+  телом ответа, ни очевидной разницей времени выполнения.
+- Статус аккаунта проверяется только после правильного пароля. Для
+  `PENDING_EMAIL_VERIFICATION` login возвращает `403 EMAIL_NOT_VERIFIED`, а для
+  `SUSPENDED/DEACTIVATED` — общий `403 FORBIDDEN` без раскрытия деталей состояния.
+- Login не блокирует строку `User`: use case не изменяет агрегат, а создаёт только
+  новую refresh-family. Уже выпущенный stateless access JWT при последующей смене
+  статуса всё равно действует до `exp`, не более 15 минут.
 - Access token — короткоживущий JWT RS256 с claims `sub`, `roles`, `iss`, `aud`,
   `iat`, `exp`.
-- Входящий access JWT проверяется локально по public key, issuer, audience и
-  expiry без SQL-запроса на каждый request.
-- Refresh token — криптографически случайное opaque URL-safe значение.
+- Access token TTL — 15 минут; `iss = edtech-backend`, `aud = edtech-api`.
+- RSA private/public keys загружаются из внешних PEM-файлов и не хранятся в
+  репозитории или `application.yml`. `JwtConfiguration` получает пути через
+  Spring `@Value`, а встроенный Spring Security converter читает PEM и создаёт
+  `RSAPrivateKey`/`RSAPublicKey`; отдельный application loader не используется.
+- Для single-instance MVP входящий access JWT проверяется локально по RSA public
+  key, фиксированному алгоритму RS256 и `exp` с clock skew `0`, без SQL-запроса
+  на каждый request. Подписанные `iss` и `aud` сохраняются в token, но пока не
+  участвуют в решении о допустимости: используется отдельная RSA-пара только
+  этого backend API. При разделении issuer/resource servers их проверка станет
+  обязательной.
+- `sub` и `roles` не проверяются отдельным набором JWT validators.
+  `IdentityJwtAuthenticationConverter` один раз преобразует `sub` в UUID, а
+  известные роли — в `ROLE_*`; невозможность преобразования означает
+  недействительную Bearer-аутентификацию (`401`). Domain `User` при этом не
+  создаётся и из БД не загружается.
+- Refresh token — криптографически случайное opaque URL-safe значение из 32
+  random bytes в Base64URL без padding. В БД хранится только lowercase SHA-256
+  hex hash.
+- Lifetime refresh-token family — фиксированные 30 дней от login; rotation не
+  сдвигает общую дату истечения family.
 - Refresh cookie: `HttpOnly`, `SameSite=Lax`, path `/api/v1/auth`, `Secure` в
-  production, Max-Age равен lifetime refresh token.
-- Refresh/logout endpoints защищаются согласованными SameSite, CORS и Origin
-  checks; CORS разрешает только configured frontend origins.
+  production, Max-Age равен фактическому оставшемуся lifetime refresh token.
+  Локально `identity.security.refresh-cookie.secure=false` из-за HTTP; production
+  обязан передать `IDENTITY_REFRESH_COOKIE_SECURE=true` и использовать HTTPS.
+- Refresh/logout endpoints защищаются согласованными SameSite, CORS и строгой
+  Origin-проверкой; для POST на эти endpoints `Origin` обязателен и должен точно
+  входить в configured frontend origins. Запрещённый Origin отклоняется до чтения
+  cookie и не очищает её, чтобы внешний сайт не мог инициировать logout через
+  ошибочный запрос.
 - Каждый login создаёт новую `familyId`; rotation создаёт новый token в той же
   family и отзывает предыдущий.
 - Повторное предъявление отозванного refresh token отзывает активные tokens этой
   family в границах пользователя.
-- Logout идемпотентно отзывает предъявленный refresh token и очищает cookie.
+- Logout идемпотентно отзывает всю family предъявленного refresh token и очищает
+  cookie. Отсутствующий или неизвестный token также приводит к `204`; другие
+  login-family пользователя не затрагиваются.
 - Старые отозванные refresh rows нельзя удалять немедленно: до retention boundary
   они нужны для reuse detection.
 - Raw passwords, JWT, cookies, raw tokens, token hashes и private keys не
@@ -325,19 +376,23 @@ identity_refresh_tokens:
 
 ```java
 public interface RefreshTokenRepository {
+    Optional<RefreshTokenState> findByTokenHash(String tokenHash);
     Optional<RefreshTokenState> findByTokenHashForUpdate(String tokenHash);
 
-    RefreshTokenState save(RefreshTokenState token);
+    void save(RefreshTokenState token);
     void revoke(UUID tokenId, Instant revokedAt);
     void revokeFamily(UUID userId, UUID familyId, Instant revokedAt);
 }
 ```
 
-`findByTokenHashForUpdate` ищет запись независимо от expiry/revocation и выполняет
-`SELECT ... FOR UPDATE`. Метод не изменяет строку сам: он удерживает row-level lock
-до конца transaction. `RefreshTokenService` различает unknown, expired, revoked и
-active состояния. Только так revoked token сохраняет доступные `userId/familyId`
-для reuse detection.
+Оба lookup ищут запись независимо от expiry/revocation. Неблокирующий
+`findByTokenHash` нужен только для предварительного определения `userId`.
+Refresh затем блокирует `User`, повторно читает token через
+`findByTokenHashForUpdate` (`SELECT ... FOR UPDATE`) и заново сверяет token ID и
+owner. Единый порядок `User → RefreshToken` предотвращает цикл с будущей
+деактивацией, которая сначала блокирует User, а затем отзывает его sessions.
+`RefreshTokenService` различает unknown, expired, revoked и active состояния;
+revoked row сохраняет `userId/familyId` для reuse detection.
 
 ## Транзакции, конкурентность и messaging
 
@@ -350,8 +405,11 @@ active состояния. Только так revoked token сохраняет 
   verification.
 - Confirm атомарно блокирует/consume verification, меняет User и сохраняет refresh
   hash; один verification token нельзя consume дважды.
-- Refresh атомарно блокирует старый token, проверяет состояние пользователя,
-  отзывает старый и сохраняет новый token той же family.
+- Refresh атомарно блокирует `User → RefreshToken`, проверяет повторно прочитанное
+  состояние, отзывает старый и сохраняет новый token той же family. Для ожидаемых
+  отказов reuse/non-active используется `noRollbackFor`: намеренный отзыв family
+  фиксируется вместе с ответом `401/403`; любая неожиданная ошибка по-прежнему
+  откатывает транзакцию.
 - Database constraints являются последней защитой при конкурентной регистрации и
   смене email; unique violation преобразуется в application exception.
 - SMTP не вызывается внутри транзакции Identity. Identity использует только
@@ -375,8 +433,10 @@ active состояния. Только так revoked token сохраняет 
   ошибка возвращает delivery в `PENDING`; повтор выполняет следующий общий цикл
   worker-а до `expiresAt`. Зависший `PROCESSING` в будущем определяется по
   `updated_at` и конфигурируемому processing timeout.
-- Публичное integration event содержит минимальный JDK-only payload и `eventId`,
-  публикуется/обрабатывается после commit и требует идемпотентного consumer.
+- Публичное integration event содержит минимальный JDK-only payload и `eventId`.
+  `ApplicationEventPublisher` получает его внутри транзакционного use case, а
+  consumer, которому нужны committed данные, обрабатывает событие после commit и
+  остаётся идемпотентным.
 - `IntegrationEventPublisher` предоставляет отдельную типизированную перегрузку для
   каждого публичного события Identity вместо общего `publish(Object)`. Это не даёт
   application-коду случайно опубликовать domain-объект или произвольное значение.
@@ -428,6 +488,19 @@ active состояния. Только так revoked token сохраняет 
 - Текущие параметры подключения к локальной PostgreSQL в `application.yml`
   являются временными локальными значениями, а не production-конфигурацией.
 - Environment variables и command-line properties могут переопределять YAML.
+- Локальная RSA-2048 пара находится в ignored-каталоге
+  `backend/.local/keys`; `application.yml` содержит только пути к PKCS#8 private
+  key и X.509 public key. Между перезапусками локальные ключи сохраняются.
+- После clone локальная пара создаётся из `backend` командами:
+
+  ```bash
+  mkdir -p .local/keys
+  openssl genpkey -algorithm RSA -pkeyopt rsa_keygen_bits:2048 -out .local/keys/identity-private.pem
+  openssl pkey -in .local/keys/identity-private.pem -pubout -out .local/keys/identity-public.pem
+  chmod 600 .local/keys/identity-private.pem
+  ```
+
+  Содержимое private key не копируется в конфигурацию и не выводится в логи.
 - Production secrets, RSA private key и SMTP credentials поступают извне и не
   хранятся в Git.
 - Production profile обязан включать secure cookies и запрещать небезопасные
@@ -455,18 +528,72 @@ Mailpit является локальным SMTP-catcher и не отправл�
 настоящий `from`-адрес поступают из deployment configuration/secret storage и
 не хранятся в репозитории.
 
+## Статус реализации Identity для MVP
+
+Статус модуля — `PARTIAL / MVP FOUNDATION COMPLETE`.
+
+Завершён самостоятельный Identity-срез:
+
+- регистрация упрощённым account-only запросом;
+- подтверждение registration email с немедленной выдачей access/refresh tokens;
+- resend для `REGISTRATION` и `EMAIL_CHANGE`;
+- login, refresh rotation/reuse detection и logout;
+- изменение имени, фамилии и account email через pending verification;
+- доставка verification-писем через durable очередь Notifications, Spring Mail
+  и локальный Mailpit;
+- публичный Java query `IdentityQuery.findUserById(UUID)`;
+- Flyway/jOOQ persistence, JWT/security и транзакционные блокировки;
+- unit, application, web/security, PostgreSQL integration и Spring Modulith tests.
+
+Модуль не считается полностью завершённым относительно целевой архитектуры.
+После появления Tutoring и Workflows необходимо:
+
+- заменить прямую account-only регистрацию на `RegistrationWorkflow`, который
+  атомарно создаёт Identity User и обязательные Tutoring profiles;
+- добавить принадлежащий Identity `birthDate` в `User`, migration, jOOQ,
+  persistence, public API и registration workflow;
+- реализовать `IdentityRegistrationCommands` с `operationId` и присоединением к
+  внешней workflow-транзакции;
+- реализовать добавление второй роли через `RoleOnboardingWorkflow` и
+  `AddUserRoleService`, одновременно создавая соответствующий профиль;
+- завершить составной `GET /api/v1/me`, `MeResponse`, `MeQueryFacade` и
+  `GetCurrentUserUseCase` без временных `null`-профилей;
+- расширить `IdentityQuery` пакетным/email-чтением только при появлении реальных
+  Tutoring use cases;
+- синхронизировать целевые registration/profile/birthDate схемы OpenAPI и
+  frontend DTO с этой архитектурой.
+
+До production также остаются открытые `OPEN-005`, `OPEN-009`, `OPEN-011`,
+`OPEN-012`, `OPEN-017`, `OPEN-019` и `OPEN-020`.
+
+### Контрольная проверка 2026-09-24
+
+- полный `./gradlew build` завершён успешно;
+- выполнено 277 тестов в 65 test suites: `0 failures`, `0 errors`, `0 skipped`;
+- успешно собраны `jar` и `bootJar`, выполнены `check` и Spring Modulith
+  verification;
+- OpenAPI проверен как корректный JSON, staged/working diff не содержит
+  whitespace errors;
+- после первого полного прогона PostgreSQL-проверка показала отсутствие строк в
+  `identity_users`, тестовых `@example.test` email и тестовых notification
+  deliveries; DB flow-тесты используют rollback и дополнительно проверяют cleanup.
+
 ## Логирование, наблюдаемость и тесты
 
-Статус архитектурных требований — `FIXED`.
+Статус требований — `PARTIAL`.
 
-- Каждый request получает requestId/trace ID; публичная ошибка возвращает
-  `requestId`.
+- Сейчас каждый `ApiError` получает уникальный ID при формировании ошибки;
+  unexpected error логируется с тем же ID.
+- Единый request-wide `requestId`/trace ID для всего запроса и всех логов пока не
+  реализован и должен появиться вместе с полноценной observability.
 - Логируются use case, технический результат, длительность и безопасные ID.
 - Actuator публикует наружу только явно разрешённые endpoints.
 - Domain unit tests проверяют инварианты без Spring.
 - Application tests используют fake/mock output ports.
-- Persistence tests используют Testcontainers PostgreSQL, Flyway и реальные SQL,
-  constraints, locking и concurrency.
+- Текущие persistence/integration tests используют локальный PostgreSQL из
+  Docker Compose, Flyway и реальные SQL, constraints, locking и concurrency.
+  Переход на изолированный Testcontainers PostgreSQL остаётся улучшением
+  тестовой инфраструктуры, а не выполненным фактом.
 - Web/security tests проверяют OpenAPI, cookie, JWT, CORS/Origin и `ApiError`.
 - Интеграционный тест регистрации использует явно маркированный адрес
   `registration-flow-<uuid>@example.test`, проверяет HTTP → Identity → Notifications
@@ -490,24 +617,28 @@ Mailpit является локальным SMTP-catcher и не отправл�
 
 | ID | Статус | Вопрос и влияние |
 |---|---|---|
-| `OPEN-001` | `OPEN` | OpenAPI HTTP `UserStatus` содержит только `PENDING_EMAIL_VERIFICATION` и `ACTIVE`, а внутренняя/Public Java Identity-модель также содержит `SUSPENDED` и `DEACTIVATED`. Нужно решить, расширять ли OpenAPI или гарантировать, что эти состояния никогда не сериализуются в `UserResponse`. |
-| `OPEN-002` | `OPEN` | Политика почти одновременных refresh-запросов: строгий reuse detection отзывает family для проигравшего повторного запроса. Frontend обязан сериализовать refresh через один promise, но нужно решить, нужен ли серверный grace window для сетевых повторов. |
-| `OPEN-003` | `OPEN` | `verificationTokenTtl` зафиксирован как 5 минут, verification token entropy — 32 байта, BCrypt strength — 10. Точные `accessTokenTtl`, `refreshTokenTtl` и refresh token entropy ещё не выбраны. Все значения должны быть configuration properties, а не domain constants. |
-| `OPEN-004` | `OPEN` | Нужны max absolute lifetime token family и sliding-session policy либо только TTL каждой отдельной refresh-записи. |
+| `OPEN-001` | `RESOLVED` | HTTP/OpenAPI `UserStatus`, public Java `UserStatusView` и внутренняя Identity-модель содержат одинаковые четыре состояния: `PENDING_EMAIL_VERIFICATION`, `ACTIVE`, `SUSPENDED`, `DEACTIVATED`. API не скрывает suspended/deactivated state, если такой User возвращается разрешённым endpoint. |
+| `OPEN-002` | `RESOLVED` | MVP использует строгий reuse detection без grace window: повторное предъявление отозванного refresh token отзывает активные tokens его family. Frontend сериализует refresh через один общий promise и не выполняет автоматический retry самого `/auth/refresh`. |
+| `OPEN-003` | `RESOLVED` | Verification TTL — 5 минут, access JWT TTL — 15 минут, refresh family lifetime — 30 дней, verification/refresh entropy — 32 байта, BCrypt strength — 10. Для single-instance MVP JWT clock skew равен 0. Значения задаются configuration properties, а не domain constants. |
+| `OPEN-004` | `RESOLVED` | MVP не использует sliding session: family имеет фиксированный 30-дневный lifetime, а каждый token, созданный при rotation, наследует исходный `expiresAt` family. Refresh не продлевает общую аутентификацию. |
 | `OPEN-005` | `OPEN` | Точный retention period, batch size, расписание и владелец фоновой очистки expired verification/refresh rows ещё не определены. Индексы `expires_at` уже сохранены под этот use case. |
-| `OPEN-006` | `OPEN` | Семантика `email_verified_at`: каталог БД называет его временем первого подтверждения, а API contract говорит обновлять при подтверждённой смене email. Нужно выбрать один смысл и синхронизировать имя/описание. |
-| `OPEN-007` | `OPEN` | Resend принимает только email. Нужно формально определить, как он выбирает `REGISTRATION` или `EMAIL_CHANGE`, когда email может быть CURRENT или PENDING, сохраняя нейтральный ответ. |
+| `OPEN-006` | `RESOLVED` | `email_verified_at` хранит время подтверждения текущего account email. При успешном `EMAIL_CHANGE` значение обновляется; первоначальное время активации при необходимости должно храниться отдельным полем. |
+| `OPEN-007` | `RESOLVED` | Resend выбирает `REGISTRATION`, если адрес является CURRENT email пользователя в `PENDING_EMAIL_VERIFICATION`, и `EMAIL_CHANGE`, если адрес является PENDING email. Для подтверждённого CURRENT, неизвестного или неподходящего адреса письмо не создаётся; HTTP-ответ во всех случаях остаётся нейтральным `202`. |
 | `OPEN-008` | `RESOLVED` | SHA-256 hashes хранятся в каноническом lowercase hex-формате из 64 символов. |
 | `OPEN-009` | `OPEN` | Жизненный цикл hard delete пользователя, сроки хранения и требования аудита/персональных данных не определены. До решения бизнес-деактивация использует `DEACTIVATED`, а `ON DELETE CASCADE` относится только к физическому DELETE. |
-| `OPEN-010` | `OPEN` | При `SUSPENDED/DEACTIVATED` новые login/refresh запрещены, но уже выданный stateless access JWT живёт до expiry. Нужно решить, достаточно ли короткого TTL или критичные endpoints должны дополнительно проверять account status. |
+| `OPEN-010` | `RESOLVED` | Для MVP `SUSPENDED/DEACTIVATED` запрещают новые login/refresh, но уже выданный stateless access JWT действует до `exp` (не более 15 минут). SQL-проверка account status на каждом endpoint и access-token blacklist не вводятся. Решение пересматривается при появлении критичных операций с требованием мгновенного отзыва. |
 | `OPEN-011` | `OPEN` | Формат durable outbox для межмодульных integration events ещё не выбран. Нельзя имитировать требуемую надёжность обычным in-memory event. Notification delivery использует отдельную принадлежащую Notifications durable job queue, а не integration-event outbox. |
 | `OPEN-012` | `OPEN` | Production deployment platform, secret storage, tracing backend и metrics storage ещё не выбраны. |
 | `OPEN-013` | `RESOLVED` | Для локальной разработки используется `axllent/mailpit:v1.31.1`: SMTP `localhost:1025`, Web UI `localhost:8025`. Mailpit запрещён в production; production использует внешний SMTP-провайдер и секреты окружения. |
 | `OPEN-014` | `RESOLVED` | Confirm атомарно находит активную verification через `SELECT ... FOR UPDATE`, изменяет агрегат и сохраняет `consumed_at` в той же внешней транзакции. `Propagation.MANDATORY` не позволяет освободить row lock раньше завершения use case. |
 | `OPEN-015` | `RESOLVED` | Для изменения существующего пользователя используется `findByIdForUpdate`: `SELECT ... FOR UPDATE` блокирует строку `identity_users` до чтения email/roles и последующего save. Все writer-ы сначала upsert-ят ту же головную строку. Locking read и save требуют внешнюю транзакцию через `Propagation.MANDATORY`. |
-| `OPEN-016` | `OPEN` | Confirm, resend и change-email изменяют `User` и `EmailVerification`. До их application services нужно выбрать единый порядок получения user/verification locks, чтобы разные транзакции не брали те же блокировки в обратном порядке и не создавали deadlock. |
+| `OPEN-016` | `RESOLVED` | Все операции, изменяющие `User` и `EmailVerification`, получают locks в порядке `User → EmailVerification`. Confirm сначала неблокирующе читает verification, чтобы узнать `userId`, затем блокирует User, повторно читает verification с `FOR UPDATE` и заново валидирует её состояние. |
 | `OPEN-017` | `OPEN` | Для MVP confirmation URL временно хранится в чувствительном Notifications delivery payload и удаляется/затирается после отправки либо `expiresAt`. Перед production нужно решить, требуется ли application-level encryption at rest, и выбрать точный retention delivery metadata, включая срок хранения `recipient_email` как персональных данных. |
 | `OPEN-018` | `RESOLVED` | MVP worker использует `batch-size=10`, `poll-delay=10s`, `initial-delay=10s`, `processing-timeout=1m`, один scheduler и повторную попытку на общем цикле без `attempt_count`, `available_at`, `lease_until`. Ошибка подготовки письма постоянная; прочие известные Spring Mail transport/auth ошибки временные. Зависший `PROCESSING` восстанавливается по `updated_at`. При текущем малом объёме отдельный claim-индекс не добавляется; решение пересматривается перед несколькими instances или ростом очереди. |
+| `OPEN-019` | `OPEN` | HTTP-контракт предусматривает `429`, но rate limiting для login, register и verification endpoints ещё не реализован. Нужно отдельно выбрать лимиты, ключи ограничения (IP/account/device), хранилище счётчиков и поведение за reverse proxy. |
+| `OPEN-020` | `OPEN` | Resend или замена `pendingEmail` через `PATCH /me` инвалидирует прежний verification token, но уже сохранённая `PENDING` delivery Notifications пока не отменяется. Worker может отправить старое письмо с уже недействительной ссылкой перед новым. Безопасность сохраняется, однако до production нужно выбрать deduplication/cancellation contract Notifications или закрыть окно согласованным rate limit. |
+| `OPEN-021` | `RESOLVED` | До реализации Tutoring не создаётся временный HTTP `GET /me` с одним `UserResponse` или `null`-профилями. Identity предоставляет межмодульный `IdentityQuery.findUserById(UUID) → Optional<UserSummary>`. Полный `GET /me`, `MeResponse`, `MeQueryFacade` и `GetCurrentUserUseCase` завершаются во время разработки Tutoring. |
+| `OPEN-022` | `PLANNED` | Текущий `ApiError.requestId` создаётся только при формировании ошибки. Полноценный request-wide correlation/trace ID, пробрасываемый через весь запрос, ответы и логи, будет реализован вместе с observability; документация не должна описывать его как уже работающий. |
 
 ## Известный долг документации
 

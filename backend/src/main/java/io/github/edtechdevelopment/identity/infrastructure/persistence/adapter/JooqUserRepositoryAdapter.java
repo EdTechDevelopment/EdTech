@@ -44,6 +44,12 @@ public class JooqUserRepositoryAdapter implements UserRepository {
     }
 
     @Override
+    public Optional<User> findByCurrentOrPendingEmail(Email email) {
+        Objects.requireNonNull(email, "Email must not be null");
+        return repository.findByAnyEmail(email.value()).map(mapper::toDomain);
+    }
+
+    @Override
     public boolean existsByEmail(Email email) {
         Objects.requireNonNull(email, "Email must not be null");
         return repository.existsByEmail(email.value());

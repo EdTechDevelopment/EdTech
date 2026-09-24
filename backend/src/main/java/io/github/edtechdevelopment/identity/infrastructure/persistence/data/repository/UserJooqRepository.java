@@ -90,6 +90,18 @@ public class UserJooqRepository {
         return userId == null ? Optional.empty() : findById(userId);
     }
 
+    public Optional<UserPersistenceData> findByAnyEmail(String email) {
+        Objects.requireNonNull(email, "Email must not be null");
+
+        UUID userId = dslContext
+                .select(IDENTITY_USER_EMAILS.USER_ID)
+                .from(IDENTITY_USER_EMAILS)
+                .where(IDENTITY_USER_EMAILS.EMAIL.eq(email))
+                .fetchOne(IDENTITY_USER_EMAILS.USER_ID);
+
+        return userId == null ? Optional.empty() : findById(userId);
+    }
+
     public boolean existsByEmail(String email) {
         Objects.requireNonNull(email, "Email must not be null");
 
