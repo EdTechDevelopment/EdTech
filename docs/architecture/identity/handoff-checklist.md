@@ -18,7 +18,7 @@ identity-architecture/
 └── identity-architecture-docs.zip
 ```
 
-`architecture.vpp` содержит редактируемую модель и Class Repository. Markdown и PDF дают доступ к архитектуре без Visual Paradigm. В подготовленном текстовом комплекте `.vpp` и PDF пока отсутствуют: их нужно добавить после сохранения и экспорта актуальной модели из Visual Paradigm.
+`architecture.vpp` содержит редактируемую модель и Class Repository. Markdown и PDF дают доступ к архитектуре без Visual Paradigm. В этом каталоге `.vpp` присутствует; PDF-экспорты отсутствуют и могут быть добавлены после сверки модели с текстовыми решениями.
 
 ## Подготовка Visual Paradigm
 
@@ -55,7 +55,7 @@ identity-architecture/
 
 Передавать нужно всю папку `identity-web`, сохраняя её внутреннюю структуру. После распаковки разработчик открывает `identity-web/index.html`. В опубликованном сайте доступны Diagram Navigator, Model Explorer, Class Navigator, страницы элементов, описания и relationships.
 
-В текущем комплекте экспорт опубликован непосредственно в корень `docs/architecture`. Стартовый `index.html` заменён более читаемым интерфейсом с раскрывающимся деревом пакетов, поиском и вкладкой диаграмм. Стандартный интерфейс Visual Paradigm сохранён как `visual-paradigm-report.html`.
+В текущем комплекте экспорт опубликован в `docs/architecture/identity`. Стартовый `index.html` заменён более читаемым интерфейсом с раскрывающимся деревом пакетов, поиском и вкладкой диаграмм. Стандартный интерфейс Visual Paradigm сохранён как `visual-paradigm-report.html`.
 
 Если повторная публикация Visual Paradigm перезапишет `index.html` и `content/report.css`, улучшенный интерфейс можно восстановить скриптом `tools/build_readable_browser.py` или попросить Codex пересобрать его.
 

@@ -2,7 +2,7 @@
 
 ## 1. Статус и назначение
 
-Этот документ — актуальная исполняемая спецификация модуля `identity` для агента-разработчика. Редакция учитывает решение от 2026-09-13:
+Этот документ — целевая спецификация модуля `identity` для агента-разработчика. Редакция учитывает решение от 2026-09-13:
 
 - дата рождения принадлежит Identity;
 - регистрация обязательно создаёт минимум один учебный профиль;
@@ -12,6 +12,8 @@
 - изменение второй роли координирует `RoleOnboardingWorkflow`;
 - у профилей Tutoring есть собственные имя и email;
 - Identity публикует отдельное событие подтверждения account email.
+
+Уточнение от 2026-09-25: `Identity.User.birthDate` остаётся первоисточником, но при создании `TeacherProfile` и `StudentProfile` доверенный workflow передаёт дату в Tutoring, где хранится обязательная копия. Linked-карточки читают дату из профиля после проверки связи. Прежние упоминания `IdentityPersonalDataQuery` для `STUDENT_CARD` и настройки видимости даты в этом документе являются историческими и не должны реализовываться как отдельный путь чтения; актуальное правило описано в `docs/architecture/tutoring/TUTORING_ARCHITECTURE.md`.
 
 Package paths приведены относительно корневого Java package проекта.
 
@@ -1357,9 +1359,9 @@ Integration:
 ## 21. Связанные материалы
 
 - `docs/architecture/BACKEND_ARCHITECTURE.md` — архитектура backend.
-- `docs/architecture/TUTORING_STAGE_1_BOUNDARIES_AND_USE_CASES.md` — границы Tutoring.
-- `docs/architecture/CHANGES_AFTER_TUTORING_STAGE_1.md` — журнал согласованных изменений.
-- `docs/architecture/index.html` — опубликованный UML-снимок.
-- `docs/architecture/architecture.vpp` — исходная модель Visual Paradigm.
-- `docs/architecture/catalog` — каталоги предыдущего UML-снимка.
+- `docs/architecture/tutoring/TUTORING_ARCHITECTURE.md` — итоговая архитектура Tutoring.
+- `docs/architecture/tutoring/tutoring-stage-1-boundaries-and-use-cases.md` — границы Tutoring.
+- `docs/architecture/identity/index.html` — опубликованный UML-снимок Identity.
+- `docs/architecture/identity/architecture.vpp` — исходная модель Visual Paradigm.
+- `docs/architecture/identity/catalog` — каталоги предыдущего UML-снимка.
 - `docs/api` — HTTP-контракты, которые должны быть синхронизированы до реализации endpoint.

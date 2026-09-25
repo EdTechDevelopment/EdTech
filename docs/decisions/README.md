@@ -28,8 +28,8 @@ Identity. Он объединяет обязательные правила back
 2. `docs/api/api-contracts.md` и `docs/api/frontend-contracts.md` — смысл
    публичного API и правила frontend-интеграции.
 3. Общие backend-правила, зафиксированные в этом реестре.
-4. Текстовая архитектура Identity в `docs/architecture`.
-5. `docs/architecture/architecture.vpp`, сгенерированные HTML, изображения и
+4. Текстовая архитектура Identity в `docs/architecture/identity/IDENTITY_ARCHITECTURE.md`.
+5. `docs/architecture/identity/architecture.vpp`, сгенерированные HTML, изображения и
    прочий UML-экспорт.
 
 Если публичный контракт меняется, сначала обновляются OpenAPI, примеры и
