@@ -15,6 +15,20 @@
 
 Package paths приведены относительно корневого Java package проекта.
 
+### Текущий статус реализации
+
+Этот документ описывает целевую, зафиксированную архитектуру Identity. На
+2026-09-24 реализован самостоятельный MVP-фундамент: account-only регистрация,
+verification/resend, login, access/refresh/logout, изменение основных данных и
+account email, Notifications delivery и одиночный `IdentityQuery.findUserById`.
+
+Identity пока реализован частично относительно этой целевой схемы. `birthDate`,
+`RegistrationWorkflow`, атомарное создание Tutoring profiles, public registration
+commands с `operationId`, role onboarding и составной `GET /me` появятся после
+реализации Tutoring и Workflows. До этого прямой `POST /auth/register` является
+осознанным временным account-only входом, а не окончательной реализацией
+регистрационной архитектуры.
+
 ## 2. Источники истины
 
 Для внутреннего устройства Identity этот документ имеет приоритет над ранее экспортированными UML-каталогами. HTTP-контракты находятся в `docs/api`; регистрационный и профильный контракты должны быть синхронизированы с решениями этой редакции до реализации соответствующих endpoint.
@@ -229,6 +243,7 @@ identity
 │   ├── model
 │   │   ├── IssuedAccessToken
 │   │   ├── IssuedRefreshToken
+│   │   ├── RefreshSession
 │   │   └── RefreshTokenState
 │   ├── service
 │   │   ├── account
@@ -243,6 +258,7 @@ identity
 │   │   │   └── ResendEmailVerificationService
 │   │   └── authentication
 │   │       ├── LoginService
+│   │       ├── RefreshSessionFactory
 │   │       ├── RefreshTokenService
 │   │       └── LogoutService
 │   ├── mapper
@@ -257,6 +273,7 @@ identity
 │       ├── EmailVerificationRequiredException
 │       ├── InvalidVerificationTokenException
 │       ├── InvalidRefreshTokenException
+│       ├── RefreshAccessDeniedException
 │       └── AccountOperationNotAllowedException
 ├── domain
 │   ├── user
@@ -309,9 +326,12 @@ identity
     │   │   └── Sha256VerificationTokenHasher
     │   ├── authentication
     │   │   └── IdentityJwtAuthenticationConverter
+    │   ├── request
+    │   │   └── CookieCredentialOriginFilter
     │   └── configuration
     │       ├── SecurityConfiguration
     │       ├── JwtConfiguration
+    │       ├── IdentityCorsProperties
     │       └── IdentityTokenProperties
     ├── messaging
     │   ├── email
@@ -340,6 +360,11 @@ public interface IdentityQuery {
 ```
 
 `findUsersByIds` предотвращает N+1 при составных списках. `findUserByVerifiedEmail` используется для приглашений и возвращает только аккаунт с подтверждённым текущим email.
+
+Текущий MVP-фундамент реализует только `findUserById(UUID)` и возвращает
+`UserSummary`. Batch-метод и поиск по подтверждённому email добавляются вместе с
+конкретными сценариями Tutoring, чтобы не проектировать неиспользуемые запросы
+заранее.
 
 Дата рождения не входит в общий `UserSummary`. Доступ к ней имеет только доверенная query facade после проверки бизнес-основания:
 
@@ -483,14 +508,18 @@ Identity Presentation отвечает за login, refresh, logout, подтве
 | Метод и путь | Input port | Ответ |
 |---|---|---|
 | `POST /api/v1/auth/email-verification/confirm` | `ConfirmEmailUseCase` | `200 TokenResponse` + refresh cookie |
-| `POST /api/v1/auth/email-verification/resend` | `ResendEmailVerificationUseCase` | `202 VerificationPendingResponse` |
+| `POST /api/v1/auth/email-verification/resend` | `ResendEmailVerificationUseCase` | нейтральный `202` без тела |
 | `POST /api/v1/auth/login` | `LoginUseCase` | `200 TokenResponse` + refresh cookie |
 | `POST /api/v1/auth/refresh` | `RefreshTokenUseCase` | `200 TokenResponse` + rotated cookie |
 | `POST /api/v1/auth/logout` | `LogoutUseCase` | `204` + cleared cookie |
-| `GET /api/v1/me` | составной `MeQueryFacade` | `200 MeResponse` |
+| `GET /api/v1/me` | составной `MeQueryFacade` | `200 MeResponse`; отложен до реализации Tutoring |
 | `PATCH /api/v1/me` | `UpdateCurrentUserUseCase` | `200 UserResponse` |
 
 Identity может реализовать внутреннюю часть чтения текущего User, но составной `GET /me` находится во внешней query facade, потому что возвращает также профили Tutoring.
+
+До появления Tutoring не создаётся временный `GET /me`, возвращающий только
+`UserResponse` или `null`-профили. Реализованный `IdentityQuery` является
+межмодульным Java API, а не REST endpoint.
 
 ### 7.2 DTO Identity
 
@@ -540,12 +569,12 @@ UserResponse
 
 | Класс | Ответственность |
 |---|---|
-| `AuthController` | Login, refresh и logout; register здесь отсутствует |
-| `EmailVerificationController` | Confirm и resend account email |
+| `AuthController` | Реализованные простая регистрация, login, refresh и идемпотентный logout |
+| `EmailVerificationController` | Реализованные confirm account email и нейтральный resend для `REGISTRATION`/`EMAIL_CHANGE` |
 | `CurrentUserController` | Identity-часть чтения и изменение текущего аккаунта |
 | `AuthPresentationMapper` | Auth request → command; result → response |
 | `UserPresentationMapper` | Account request/query/result mapping |
-| `RefreshTokenCookieFactory` | Создание и очистка `REFRESH_TOKEN` cookie |
+| `RefreshTokenCookieFactory` | Создание, ротация и очистка `REFRESH_TOKEN` cookie |
 | `ValidAccountUpdate` | Class-level transport constraint |
 | `AccountUpdateValidator` | Проверка структуры PATCH без domain/repository calls |
 
@@ -654,7 +683,6 @@ ResendVerificationResult
 AuthenticationResult
     accessToken: IssuedAccessToken
     refreshToken: IssuedRefreshToken
-    user: CurrentUserResult
 
 CurrentUserResult
     id: UUID
@@ -693,6 +721,7 @@ RefreshTokenState
 public interface UserRepository {
     Optional<User> findById(UUID userId);
     Optional<User> findByEmail(Email email);
+    Optional<User> findByCurrentOrPendingEmail(Email email);
     Map<UUID, User> findByIds(Set<UUID> userIds);
     boolean existsByEmail(Email email);
     User save(User user);
@@ -704,7 +733,12 @@ public interface EmailVerificationRepository {
         Instant now
     );
 
-    EmailVerification save(EmailVerification verification);
+    Optional<EmailVerification> findActiveByTokenHashForUpdate(
+        VerificationTokenHash tokenHash,
+        Instant now
+    );
+
+    void save(EmailVerification verification);
 
     void invalidateActiveForUser(
         UUID userId,
@@ -714,14 +748,12 @@ public interface EmailVerificationRepository {
 }
 
 public interface RefreshTokenRepository {
-    Optional<RefreshTokenState> findActiveByTokenHash(
-        String tokenHash,
-        Instant now
-    );
+    Optional<RefreshTokenState> findByTokenHash(String tokenHash);
+    Optional<RefreshTokenState> findByTokenHashForUpdate(String tokenHash);
 
-    RefreshTokenState save(RefreshTokenState token);
+    void save(RefreshTokenState token);
     void revoke(UUID tokenId, Instant revokedAt);
-    void revokeFamily(UUID familyId, Instant revokedAt);
+    void revokeFamily(UUID userId, UUID familyId, Instant revokedAt);
 }
 
 public interface PasswordHasher {
@@ -730,11 +762,11 @@ public interface PasswordHasher {
 }
 
 public interface AccessTokenIssuer {
-    IssuedAccessToken issue(User user);
+    IssuedAccessToken issue(User user, Instant issuedAt);
 }
 
 public interface RefreshTokenIssuer {
-    IssuedRefreshToken issue();
+    IssuedRefreshToken issue(Instant expiresAt);
 }
 
 public interface RefreshTokenHasher {
@@ -777,11 +809,11 @@ public interface TimeProvider {
 | `UpdateCurrentUserService` | `UpdateCurrentUserUseCase` | Изменяет account data; при смене email создаёт verification |
 | `IdentityQueryService` | `IdentityQuery` | Публичное одиночное, пакетное и email-чтение |
 | `IdentityPersonalDataQueryService` | `IdentityPersonalDataQuery` | Узкое чтение birthDate для разрешённых facades |
-| `ConfirmEmailService` | `ConfirmEmailUseCase` | Подтверждает account email, consume verification, выпускает tokens, публикует events |
-| `ResendEmailVerificationService` | `ResendEmailVerificationUseCase` | Инвалидирует старую verification, создаёт новую и ставит письмо в очередь |
+| `ConfirmEmailService` | `ConfirmEmailUseCase` | Соблюдает lock order `User → EmailVerification`, подтверждает account email, consume verification, создаёт refresh family, сохраняет hash refresh token, выпускает tokens и публикует events |
+| `ResendEmailVerificationService` | `ResendEmailVerificationUseCase` | Под lock User выбирает `REGISTRATION` для CURRENT email pending-аккаунта или `EMAIL_CHANGE` для PENDING email active-аккаунта; инвалидирует старую verification purpose, создаёт новую и ставит письмо в очередь; остальные случаи — нейтральный no-op |
 | `LoginService` | `LoginUseCase` | Проверяет пароль/status и выпускает пару tokens |
-| `RefreshTokenService` | `RefreshTokenUseCase` | Атомарно ротирует refresh token family и выпускает access JWT |
-| `LogoutService` | `LogoutUseCase` | Идемпотентно отзывает refresh token |
+| `RefreshTokenService` | `RefreshTokenUseCase` | В порядке `User → RefreshToken` атомарно ротирует token с прежними family/expiry, выполняет reuse detection и выпускает access JWT |
+| `LogoutService` | `LogoutUseCase` | В порядке `User → RefreshToken` идемпотентно отзывает всю family предъявленного token; неизвестное или отсутствующее значение является успешным no-op |
 
 `RegisterUserService` и `AddUserRoleService` присоединяются к внешней транзакции Workflow. Для production рекомендуется `Propagation.MANDATORY`. Остальные mutating use cases используют транзакционную границу своего application service.
 
@@ -972,11 +1004,21 @@ UserPersistenceData
 | `Sha256RefreshTokenHasher` | `RefreshTokenHasher` | SHA-256 до поиска/хранения |
 | `SecureVerificationTokenGenerator` | `VerificationTokenGenerator` | `SecureRandom`, URL-safe one-time token |
 | `Sha256VerificationTokenHasher` | `VerificationTokenHasher` | SHA-256 до поиска/хранения |
-| `IdentityJwtAuthenticationConverter` | Spring Converter | `sub` → UUID principal, roles → authorities |
+| `IdentityJwtAuthenticationConverter` | Spring Converter | Проверяет `sub` как UUID, устанавливает его в `Authentication.getName()` и преобразует roles → authorities; domain `User` не создаётся |
 
-`SecurityConfiguration` создаёт stateless chain, подключает Resource Server JWT, CORS, Origin/CSRF-политику cookie endpoints и единые error handlers.
+`SecurityConfiguration` создаёт stateless chain, подключает Resource Server JWT,
+CORS и единые error handlers. Confirm устанавливает refresh cookie, но не
+аутентифицирует запрос по автоматически отправленной cookie: подтверждение
+требует verification token из тела. Стандартный CSRF token mechanism пока
+отключён. Для refresh/logout, которые принимают cookie как credential,
+`CookieCredentialOriginFilter` до CORS требует точный разрешённый `Origin`;
+`RefreshTokenCookieFactory` дополнительно задаёт `SameSite=Lax`.
 
-JWT проверяется локально без SQL на каждый запрос. После добавления второй роли клиент выполняет refresh, чтобы получить JWT с актуальными claims.
+JWT проверяется локально по RSA-подписи, фиксированному RS256 и `exp` с clock
+skew `0`, без SQL на каждый запрос. Для single-instance MVP `iss` и `aud`
+остаются подписанными claims, но decoder их отдельно не валидирует. После
+добавления второй роли клиент выполняет refresh, чтобы получить JWT с
+актуальными claims.
 
 ### 10.3 Messaging и Time
 
@@ -1076,8 +1118,7 @@ revoked_at    timestamptz null
 created_at    timestamptz not null
 
 CHECK expires_at > created_at
-INDEX (user_id)
-INDEX (family_id)
+INDEX (user_id, family_id)
 INDEX (expires_at)
 ```
 
@@ -1171,7 +1212,7 @@ AccountEmailVerifiedEvent
 | Confirm changed account email | Verification consume + PENDING → CURRENT |
 | Login | Refresh hash creation |
 | Refresh | Revoke current + create next token in family |
-| Logout | Revoke matching refresh token |
+| Logout | Revoke presented refresh-token family |
 
 Concurrency rules:
 
@@ -1180,7 +1221,7 @@ Concurrency rules:
 - verification consume использует lock или conditional update;
 - refresh rotation использует row lock/conditional update;
 - reuse отозванного refresh token отзывает family;
-- logout идемпотентен;
+- logout идемпотентен и отзывает только family текущей сессии, не затрагивая другие login-family пользователя;
 - resend не раскрывает существование аккаунта.
 
 ## 15. JWT и cookie
@@ -1188,8 +1229,11 @@ Concurrency rules:
 ```text
 Algorithm: RS256
 Claims: sub, roles, iss, aud, iat, exp
-Access token: short-lived, response JSON
-Refresh token: opaque random value, HttpOnly cookie
+Access token: 15 minutes, response JSON, clock skew 0 for the single-instance MVP
+Access validation: RSA signature + fixed RS256 + required non-expired exp
+Issuer/audience validation: deferred until separate issuers/resource servers exist
+Refresh token: 32 random bytes, opaque URL-safe value, HttpOnly cookie
+Refresh family: fixed 30-day lifetime without sliding extension
 Stored refresh value: SHA-256 hash only
 ```
 

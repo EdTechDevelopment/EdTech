@@ -9,11 +9,13 @@ identity
 │   ├── model
 │   │   ├── UserSummary
 │   │   ├── UserRoleView
-│   │   └── UserStatusView
+│   │   ├── UserStatusView
+│   │   └── AccountEmailVerificationPurpose
 │   └── event
 │       ├── UserRegisteredEvent
 │       ├── UserActivatedEvent
-│       └── UserAccountUpdatedEvent
+│       ├── UserAccountUpdatedEvent
+│       └── AccountEmailVerifiedEvent
 ├── presentation
 │   ├── auth
 │   │   ├── controller
@@ -131,6 +133,7 @@ identity
 │       ├── EmailVerificationRequiredException
 │       ├── InvalidVerificationTokenException
 │       ├── InvalidRefreshTokenException
+│       ├── RefreshAccessDeniedException
 │       └── AccountOperationNotAllowedException
 ├── domain
 │   ├── user
@@ -190,9 +193,12 @@ identity
     │   │   └── Sha256VerificationTokenHasher
     │   ├── authentication
     │   │   └── IdentityJwtAuthenticationConverter
+    │   ├── request
+    │   │   └── CookieCredentialOriginFilter
     │   └── configuration
     │       ├── SecurityConfiguration
     │       ├── JwtConfiguration
+    │       ├── IdentityCorsProperties
     │       ├── IdentityPasswordProperties
     │       └── IdentityTokenProperties
     ├── messaging

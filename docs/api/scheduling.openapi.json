@@ -201,6 +201,7 @@
           "Auth"
         ],
         "summary": "Повторно отправить подтверждение",
+        "description": "Для неподтверждённого CURRENT email создаёт новую REGISTRATION verification, для ACTIVE account с совпавшим PENDING email — EMAIL_CHANGE. Предыдущая активная verification того же purpose инвалидируется. Ответ не раскрывает существование или состояние аккаунта.",
         "security": [],
         "requestBody": {
           "required": true,
@@ -447,15 +448,11 @@
           "Auth"
         ],
         "summary": "Завершить текущую аутентификацию",
-        "security": [
-          {
-            "refreshCookie": []
-          }
-        ],
-        "description": "Отзывает refresh token, переданный в HttpOnly cookie, и удаляет cookie. Тело запроса отсутствует.",
+        "security": [],
+        "description": "Идемпотентно отзывает всю session-family refresh token, переданного в HttpOnly cookie, и удаляет cookie. Отсутствующая, неизвестная, просроченная или уже отозванная cookie также считается успешно обработанной. Тело запроса отсутствует.",
         "responses": {
           "204": {
-            "description": "Refresh token отозван, cookie удалена.",
+            "description": "Session-family отозвана при её наличии, cookie удалена.",
             "headers": {
               "Set-Cookie": {
                 "description": "Удаляет refresh token cookie REFRESH_TOKEN с Max-Age=0.",
@@ -465,18 +462,8 @@
               }
             }
           },
-          "401": {
-            "description": "Не аутентифицирован.",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ApiError"
-                }
-              }
-            }
-          },
           "403": {
-            "description": "Действие запрещено.",
+            "description": "Отсутствует разрешённый Origin или действие запрещено.",
             "content": {
               "application/json": {
                 "schema": {
@@ -544,7 +531,7 @@
           "Profiles"
         ],
         "summary": "Изменить общие данные текущего пользователя",
-        "description": "При смене email текущий адрес сохраняется в email, а новый записывается в pendingEmail до подтверждения.",
+        "description": "При смене email текущий адрес сохраняется в email, новый записывается в pendingEmail, а письмо EMAIL_CHANGE ставится в очередь до фиксации той же транзакции. Повторное письмо запрашивается отдельным resend endpoint.",
         "requestBody": {
           "required": true,
           "content": {
@@ -561,7 +548,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/MeResponse"
+                  "$ref": "#/components/schemas/UserResponse"
                 }
               }
             }
@@ -2388,7 +2375,9 @@
         "type": "string",
         "enum": [
           "PENDING_EMAIL_VERIFICATION",
-          "ACTIVE"
+          "ACTIVE",
+          "SUSPENDED",
+          "DEACTIVATED"
         ]
       },
       "UserResponse": {
@@ -2731,8 +2720,10 @@
           "password": {
             "type": "string",
             "format": "password",
-            "minLength": 1,
-            "maxLength": 128,
+            "minLength": 8,
+            "maxLength": 72,
+            "pattern": "^[!-~]+$",
+            "description": "Only printable ASCII characters from ! to ~; spaces are not allowed.",
             "writeOnly": true
           }
         },

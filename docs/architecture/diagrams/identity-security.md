@@ -34,7 +34,7 @@ sequenceDiagram
     participant API as Protected Controller
 
     C->>F: Authorization: Bearer JWT
-    F->>D: verify signature, iss, aud, exp
+    F->>D: verify RS256 signature and exp
     D-->>F: verified Jwt
     F->>X: convert(jwt)
     X-->>F: JwtAuthenticationToken(sub, roles)
@@ -51,32 +51,43 @@ sequenceDiagram
     participant S as RefreshTokenService
     participant H as RefreshTokenHasher
     participant DB as RefreshTokenRepository
+    participant U as UserRepository
     participant I as RefreshTokenIssuer
 
     C->>S: raw token from cookie
     S->>H: hash(raw token)
     H-->>S: token hash
-    S->>DB: findByTokenHashForUpdate(hash)
-    DB-->>S: token state or empty
+    S->>DB: findByTokenHash(hash)
+    DB-->>S: preliminary token state or empty
     alt token is unknown
         S-->>C: INVALID_REFRESH_TOKEN
-    else token is revoked (reuse)
-        S->>DB: revokeFamily(userId, familyId, now)
-        S-->>C: INVALID_REFRESH_TOKEN
-    else token is expired
-        S-->>C: INVALID_REFRESH_TOKEN
-    else token is active
-        S->>DB: revoke(current token)
-        S->>I: issue()
-        I-->>S: new raw token
-        S->>H: hash(new raw token)
-        S->>DB: save(new hash, same familyId)
-        S-->>C: new access token + rotated cookie
+    else token owner is known
+        S->>U: findByIdForUpdate(userId)
+        S->>DB: findByTokenHashForUpdate(hash)
+        DB-->>S: locked current token state or empty
+        alt token is revoked (reuse)
+            S->>DB: revokeFamily(userId, familyId, now)
+            S-->>C: INVALID_REFRESH_TOKEN
+        else token is expired
+            S-->>C: INVALID_REFRESH_TOKEN
+        else account is not ACTIVE
+            S->>DB: revokeFamily(userId, familyId, now)
+            S-->>C: FORBIDDEN
+        else token and account are active
+            S->>I: issue()
+            I-->>S: new raw token
+            S->>H: hash(new raw token)
+            S->>DB: revoke(current token)
+            S->>DB: save(new hash, same familyId and expiresAt)
+            S-->>C: new access token + rotated cookie
+        end
     end
 ```
 
 Поиск, проверка состояния, отзыв старого token и сохранение нового выполняются в
-одной application-транзакции. `FOR UPDATE` не изменяет строку само по себе: оно
+одной application-транзакции. Предварительное чтение нужно узнать `userId`,
+после чего блокировки всегда берутся в порядке `User -> RefreshToken`.
+`FOR UPDATE` не изменяет строку само по себе: оно
 удерживает row-level lock, чтобы два параллельных запроса не использовали один
 активный token одновременно. Старые отозванные записи сохраняются до истечения
 retention-периода, иначе повторное предъявление нельзя связать с `familyId`.

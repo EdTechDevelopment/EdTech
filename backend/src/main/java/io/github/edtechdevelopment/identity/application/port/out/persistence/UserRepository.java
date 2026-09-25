@@ -14,6 +14,8 @@ public interface UserRepository {
 
     Optional<User> findByEmail(Email email);
 
+    Optional<User> findByCurrentOrPendingEmail(Email email);
+
     boolean existsByEmail(Email email);
 
     void save(User user);

@@ -53,11 +53,14 @@ class JooqUserRepositoryAdapterTest {
     @Test
     void delegatesCurrentEmailAndReservationChecksAsStrings() {
         when(repository.findByCurrentEmail(EMAIL.value())).thenReturn(Optional.empty());
+        when(repository.findByAnyEmail(EMAIL.value())).thenReturn(Optional.empty());
         when(repository.existsByEmail(EMAIL.value())).thenReturn(true);
 
         assertEquals(Optional.empty(), adapter.findByEmail(EMAIL));
+        assertEquals(Optional.empty(), adapter.findByCurrentOrPendingEmail(EMAIL));
         assertTrue(adapter.existsByEmail(EMAIL));
         verify(repository).findByCurrentEmail("anna@example.com");
+        verify(repository).findByAnyEmail("anna@example.com");
         verify(repository).existsByEmail("anna@example.com");
     }
 

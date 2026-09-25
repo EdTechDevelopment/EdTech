@@ -4,7 +4,7 @@
 
 ## Публичный API Identity
 
-### `identity.api.IdentityQuery`
+### `identity.api.query.IdentityQuery`
 
 Публичный синхронный API чтения Identity для других модулей. Не возвращает domain-модель.
 
@@ -15,6 +15,10 @@ public interface IdentityQuery {
 ```
 
 Реализация: `identity.application.service.account.IdentityQueryService`.
+
+На текущем этапе реализован только `findUserById(UUID)`. Batch-чтение и поиск по
+подтверждённому email остаются частью целевой архитектуры и добавляются по
+реальным use case модуля Tutoring.
 
 ## Входные порты Application
 
@@ -30,13 +34,16 @@ public interface RegisterUserUseCase {
 
 ### `identity.application.port.in.account.GetCurrentUserUseCase`
 
+Статус: `PLANNED`. Интерфейс и его реализация пока отсутствуют в коде и будут
+добавлены вместе с составным `GET /me` после появления Tutoring.
+
 ```java
 public interface GetCurrentUserUseCase {
     CurrentUserResult getCurrentUser(GetCurrentUserQuery query);
 }
 ```
 
-Реализация: `identity.application.service.account.GetCurrentUserService`.
+Планируемая реализация: `identity.application.service.account.GetCurrentUserService`.
 
 ### `identity.application.port.in.account.UpdateCurrentUserUseCase`
 
@@ -100,6 +107,10 @@ public interface LogoutUseCase {
 }
 ```
 
+Сценарий идемпотентен: отсутствующий или неизвестный token является успешным
+no-op. Для известного token сервис соблюдает lock order `User → RefreshToken` и
+отзывает всю его family, не затрагивая другие login-family пользователя.
+
 Реализация: `identity.application.service.authentication.LogoutService`.
 
 ## Выходные порты Persistence
@@ -113,14 +124,16 @@ public interface UserRepository {
     Optional<User> findById(UUID userId);
     Optional<User> findByIdForUpdate(UUID userId);
     Optional<User> findByEmail(Email email);
+    Optional<User> findByCurrentOrPendingEmail(Email email);
     boolean existsByEmail(Email email);
     void save(User user);
 }
 ```
 
 `findByEmail` используется для аутентификации и ищет пользователя только по email
-с `kind = CURRENT`. `existsByEmail` проверяет оба вида (`CURRENT` и `PENDING`),
-потому что pending email уже глобально зарезервирован.
+с `kind = CURRENT`. `findByCurrentOrPendingEmail` используется verification flow
+и ищет оба kinds, не меняя семантику login. `existsByEmail` также проверяет оба
+вида (`CURRENT` и `PENDING`), потому что pending email уже глобально зарезервирован.
 
 `findByIdForUpdate` используется use case-ами, которые изменяют существующего
 пользователя. Реализация выполняет `SELECT ... FOR UPDATE` основной строки до
@@ -133,6 +146,11 @@ public interface UserRepository {
 
 ```java
 public interface EmailVerificationRepository {
+    Optional<EmailVerification> findActiveByTokenHash(
+        VerificationTokenHash tokenHash,
+        Instant now
+    );
+
     Optional<EmailVerification> findActiveByTokenHashForUpdate(
         VerificationTokenHash tokenHash,
         Instant now
@@ -148,10 +166,12 @@ public interface EmailVerificationRepository {
 }
 ```
 
-`findActiveByTokenHashForUpdate` загружает только активную verification и удерживает
-row-level lock до завершения транзакции, чтобы два конкурентных confirm не могли
-использовать один token. Locking read, save и массовая инвалидизация требуют уже
-открытую транзакцию application service через `Propagation.MANDATORY`.
+`findActiveByTokenHash` выполняет предварительное неблокирующее чтение, чтобы
+confirm узнал `userId`. После блокировки User метод
+`findActiveByTokenHashForUpdate` повторно загружает только активную verification
+и удерживает row-level lock до завершения транзакции. Locking read, save и
+массовая инвалидизация требуют уже открытую транзакцию application service через
+`Propagation.MANDATORY`.
 
 Реализация: `identity.infrastructure.persistence.adapter.JooqEmailVerificationRepositoryAdapter`.
 
@@ -161,11 +181,15 @@ Refresh token является application-моделью состояния с�
 
 ```java
 public interface RefreshTokenRepository {
+    Optional<RefreshTokenState> findByTokenHash(
+        String tokenHash
+    );
+
     Optional<RefreshTokenState> findByTokenHashForUpdate(
         String tokenHash
     );
 
-    RefreshTokenState save(RefreshTokenState token);
+    void save(RefreshTokenState token);
     void revoke(UUID tokenId, Instant revokedAt);
     void revokeFamily(
         UUID userId,
@@ -175,10 +199,11 @@ public interface RefreshTokenRepository {
 }
 ```
 
-`findByTokenHashForUpdate` возвращает запись в любом состоянии и блокирует её
-до завершения application-транзакции. Проверки `expiresAt` и `revokedAt` выполняет
-`RefreshTokenService`: это позволяет отличить неизвестный token от повторного
-предъявления уже отозванного и при reuse отозвать его token family.
+`findByTokenHash` выполняет предварительное неблокирующее чтение только для
+определения владельца. Затем `RefreshTokenService` блокирует User и повторно
+читает запись через `findByTokenHashForUpdate`, которая удерживает row lock до
+конца application-транзакции. Проверки `expiresAt` и `revokedAt` выполняет сервис:
+это позволяет отличить неизвестный token от reuse и отозвать его token family.
 
 Семья отзывается в границах конкретного пользователя. Пара `userId` и `familyId`
 соответствует составному индексу `(user_id, family_id)` и не допускает глобальную
@@ -223,20 +248,24 @@ public interface VerificationTokenHasher {
 
 ```java
 public interface AccessTokenIssuer {
-    IssuedAccessToken issue(User user);
+    IssuedAccessToken issue(User user, Instant issuedAt);
 }
 ```
 
-Реализация: `identity.infrastructure.security.token.SpringJwtAccessTokenIssuer`.
+`issuedAt` задаётся application service через `TimeProvider`; порт не обращается
+к системным часам самостоятельно. Реализация:
+`identity.infrastructure.security.token.SpringJwtAccessTokenIssuer`.
 
 ### `identity.application.port.out.security.RefreshTokenIssuer`
 
 ```java
 public interface RefreshTokenIssuer {
-    IssuedRefreshToken issue();
+    IssuedRefreshToken issue(Instant expiresAt);
 }
 ```
 
+`expiresAt` вычисляет application service из фиксированной границы жизни token
+family. Поэтому ротация не может незаметно продлить family ещё на 30 дней.
 Реализация: `identity.infrastructure.security.token.SecureRefreshTokenIssuer`.
 
 ### `identity.application.port.out.security.RefreshTokenHasher`
@@ -375,7 +404,7 @@ identity.infrastructure.security.authentication.IdentityJwtAuthenticationConvert
 |---|---|---:|
 | `IdentityQuery` | `IdentityQueryService` | 1 |
 | `RegisterUserUseCase` | `RegisterUserService` | 1 |
-| `GetCurrentUserUseCase` | `GetCurrentUserService` | 1 |
+| `GetCurrentUserUseCase` | `GetCurrentUserService` | 0 — отложен до полного `GET /me` |
 | `UpdateCurrentUserUseCase` | `UpdateCurrentUserService` | 1 |
 | `ConfirmEmailUseCase` | `ConfirmEmailService` | 1 |
 | `ResendEmailVerificationUseCase` | `ResendEmailVerificationService` | 1 |

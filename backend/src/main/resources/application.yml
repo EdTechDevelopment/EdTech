@@ -32,9 +32,22 @@ identity:
   security:
     password:
       bcrypt-strength: 10
+    jwt:
+      private-key: ${IDENTITY_JWT_PRIVATE_KEY:file:./.local/keys/identity-private.pem}
+      public-key: ${IDENTITY_JWT_PUBLIC_KEY:file:./.local/keys/identity-public.pem}
+    refresh-cookie:
+      secure: ${IDENTITY_REFRESH_COOKIE_SECURE:false}
+    cors:
+      allowed-origins:
+        - http://frontend.example:3000
   token:
     verification-ttl: 5m
     verification-entropy-bytes: 32
+    access-ttl: 15m
+    refresh-family-ttl: 30d
+    refresh-entropy-bytes: 32
+    issuer: edtech-backend
+    audience: edtech-api
 
 notifications:
   delivery:

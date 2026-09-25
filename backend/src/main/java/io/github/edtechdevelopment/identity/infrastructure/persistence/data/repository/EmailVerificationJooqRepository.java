@@ -2,6 +2,7 @@ package io.github.edtechdevelopment.identity.infrastructure.persistence.data.rep
 
 import io.github.edtechdevelopment.identity.infrastructure.persistence.data.generated.tables.records.IdentityEmailVerificationsRecord;
 import org.jooq.DSLContext;
+import org.jooq.SelectConditionStep;
 import org.springframework.stereotype.Repository;
 import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
@@ -22,6 +23,20 @@ public class EmailVerificationJooqRepository {
         this.dslContext = Objects.requireNonNull(dslContext, "DSL context must not be null");
     }
 
+    @Transactional(propagation = Propagation.MANDATORY, readOnly = true)
+    public Optional<IdentityEmailVerificationsRecord> findActiveByTokenHash(
+            String tokenHash,
+            OffsetDateTime now
+    ) {
+        Objects.requireNonNull(tokenHash, "Verification token hash must not be null");
+        Objects.requireNonNull(now, "Verification check time must not be null");
+
+        IdentityEmailVerificationsRecord record = activeVerificationQuery(tokenHash, now)
+                .fetchOne();
+
+        return Optional.ofNullable(record);
+    }
+
     @Transactional(propagation = Propagation.MANDATORY)
     public Optional<IdentityEmailVerificationsRecord> findActiveByTokenHashForUpdate(
             String tokenHash,
@@ -30,13 +45,7 @@ public class EmailVerificationJooqRepository {
         Objects.requireNonNull(tokenHash, "Verification token hash must not be null");
         Objects.requireNonNull(now, "Verification check time must not be null");
 
-        IdentityEmailVerificationsRecord record = dslContext
-                .selectFrom(IDENTITY_EMAIL_VERIFICATIONS)
-                .where(IDENTITY_EMAIL_VERIFICATIONS.TOKEN_HASH.eq(tokenHash))
-                .and(IDENTITY_EMAIL_VERIFICATIONS.CONSUMED_AT.isNull())
-                .and(IDENTITY_EMAIL_VERIFICATIONS.INVALIDATED_AT.isNull())
-                .and(IDENTITY_EMAIL_VERIFICATIONS.CREATED_AT.le(now))
-                .and(IDENTITY_EMAIL_VERIFICATIONS.EXPIRES_AT.gt(now))
+        IdentityEmailVerificationsRecord record = activeVerificationQuery(tokenHash, now)
                 .forUpdate()
                 .fetchOne();
 
@@ -85,5 +94,18 @@ public class EmailVerificationJooqRepository {
                 .and(IDENTITY_EMAIL_VERIFICATIONS.CREATED_AT.le(invalidatedAt))
                 .and(IDENTITY_EMAIL_VERIFICATIONS.EXPIRES_AT.gt(invalidatedAt))
                 .execute();
+    }
+
+    private SelectConditionStep<IdentityEmailVerificationsRecord> activeVerificationQuery(
+            String tokenHash,
+            OffsetDateTime now
+    ) {
+        return dslContext
+                .selectFrom(IDENTITY_EMAIL_VERIFICATIONS)
+                .where(IDENTITY_EMAIL_VERIFICATIONS.TOKEN_HASH.eq(tokenHash))
+                .and(IDENTITY_EMAIL_VERIFICATIONS.CONSUMED_AT.isNull())
+                .and(IDENTITY_EMAIL_VERIFICATIONS.INVALIDATED_AT.isNull())
+                .and(IDENTITY_EMAIL_VERIFICATIONS.CREATED_AT.le(now))
+                .and(IDENTITY_EMAIL_VERIFICATIONS.EXPIRES_AT.gt(now));
     }
 }

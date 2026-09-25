@@ -304,7 +304,10 @@ backend
 ## Безопасность
 
 - Access JWT подписывается RS256 внешним private key.
-- Проверка JWT использует public key, `iss`, `aud`, `exp` и не обращается в базу на каждом запросе.
+- Проверка JWT в текущем single-instance MVP использует public key, фиксированный
+  `RS256` и обязательный непросроченный `exp`, не обращаясь в базу на каждом
+  запросе. Claims `iss` и `aud` подписываются, но их отдельная проверка отложена
+  до появления нескольких issuer/resource server либо отдельного решения.
 - Claims: `sub`, `roles`, `iss`, `aud`, `iat`, `exp`.
 - Короткий lifetime access token ограничивает действие устаревших claims.
 - Refresh token является криптографически случайным opaque URL-safe значением.
@@ -346,7 +349,10 @@ SMTP host, port, username, password, TLS/auth flags и настоящий `from`
 
 ## Логирование и наблюдаемость
 
-- Каждый запрос получает `requestId`/trace ID, возвращаемый также в `ApiError`.
+- В текущем MVP `ApiError.requestId` создаётся при формировании ошибки и позволяет
+  сопоставить публичный ответ с записью unexpected error. Полноценный request-wide
+  `requestId`/trace ID, единый для всего запроса и всех его логов, ещё не
+  реализован и относится к следующему этапу observability.
 - Логируются название use case, технический результат, длительность и безопасные идентификаторы.
 - Не логируются пароли, JWT, cookie, raw tokens, password hashes и полные SMTP payload.
 - Actuator наружу публикует только явно разрешённые endpoints.

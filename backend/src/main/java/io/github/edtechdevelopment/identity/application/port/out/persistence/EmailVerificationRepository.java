@@ -10,6 +10,11 @@ import java.util.UUID;
 
 public interface EmailVerificationRepository {
 
+    Optional<EmailVerification> findActiveByTokenHash(
+            VerificationTokenHash tokenHash,
+            Instant now
+    );
+
     Optional<EmailVerification> findActiveByTokenHashForUpdate(
             VerificationTokenHash tokenHash,
             Instant now

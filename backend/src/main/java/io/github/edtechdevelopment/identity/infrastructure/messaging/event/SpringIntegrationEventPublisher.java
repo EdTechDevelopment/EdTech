@@ -1,5 +1,6 @@
 package io.github.edtechdevelopment.identity.infrastructure.messaging.event;
 
+import io.github.edtechdevelopment.identity.api.event.AccountEmailVerifiedEvent;
 import io.github.edtechdevelopment.identity.api.event.UserAccountUpdatedEvent;
 import io.github.edtechdevelopment.identity.api.event.UserActivatedEvent;
 import io.github.edtechdevelopment.identity.api.event.UserRegisteredEvent;
@@ -16,6 +17,11 @@ public final class SpringIntegrationEventPublisher implements IntegrationEventPu
 
     public SpringIntegrationEventPublisher(ApplicationEventPublisher eventPublisher) {
         this.eventPublisher = Objects.requireNonNull(eventPublisher, "Application event publisher must not be null");
+    }
+
+    @Override
+    public void publish(AccountEmailVerifiedEvent event) {
+        eventPublisher.publishEvent(Objects.requireNonNull(event, "Account email verified event must not be null"));
     }
 
     @Override

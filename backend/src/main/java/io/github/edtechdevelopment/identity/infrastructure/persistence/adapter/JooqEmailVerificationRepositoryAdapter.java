@@ -37,6 +37,19 @@ public class JooqEmailVerificationRepositoryAdapter implements EmailVerification
     }
 
     @Override
+    public Optional<EmailVerification> findActiveByTokenHash(
+            VerificationTokenHash tokenHash,
+            Instant now
+    ) {
+        Objects.requireNonNull(tokenHash, "Verification token hash must not be null");
+        Objects.requireNonNull(now, "Verification check time must not be null");
+
+        return repository
+                .findActiveByTokenHash(tokenHash.value(), toOffsetDateTime(now))
+                .map(mapper::toDomain);
+    }
+
+    @Override
     public Optional<EmailVerification> findActiveByTokenHashForUpdate(
             VerificationTokenHash tokenHash,
             Instant now

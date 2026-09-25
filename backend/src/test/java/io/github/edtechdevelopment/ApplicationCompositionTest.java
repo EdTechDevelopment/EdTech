@@ -1,10 +1,20 @@
 package io.github.edtechdevelopment;
 
 import io.github.edtechdevelopment.identity.application.mapper.IdentityApiMapper;
+import io.github.edtechdevelopment.identity.api.query.IdentityQuery;
 import io.github.edtechdevelopment.identity.application.port.in.account.RegisterUserUseCase;
+import io.github.edtechdevelopment.identity.application.port.in.account.UpdateCurrentUserUseCase;
+import io.github.edtechdevelopment.identity.application.port.in.authentication.LogoutUseCase;
+import io.github.edtechdevelopment.identity.application.port.in.verification.ResendEmailVerificationUseCase;
 import io.github.edtechdevelopment.identity.application.port.out.messaging.VerificationEmailSender;
+import io.github.edtechdevelopment.identity.application.port.out.security.AccessTokenIssuer;
 import io.github.edtechdevelopment.identity.application.service.account.RegisterUserService;
+import io.github.edtechdevelopment.identity.application.service.account.IdentityQueryService;
+import io.github.edtechdevelopment.identity.application.service.account.UpdateCurrentUserService;
+import io.github.edtechdevelopment.identity.application.service.authentication.LogoutService;
+import io.github.edtechdevelopment.identity.application.service.verification.ResendEmailVerificationService;
 import io.github.edtechdevelopment.identity.infrastructure.messaging.email.NotificationVerificationEmailAdapter;
+import io.github.edtechdevelopment.identity.infrastructure.security.token.SpringJwtAccessTokenIssuer;
 import io.github.edtechdevelopment.notifications.api.NotificationGateway;
 import io.github.edtechdevelopment.notifications.api.command.SendVerificationEmailCommand;
 import io.github.edtechdevelopment.notifications.api.model.VerificationEmailPurpose;
@@ -15,6 +25,7 @@ import org.junit.jupiter.api.Test;
 import org.springframework.aop.support.AopUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.security.oauth2.jwt.JwtDecoder;
 import org.springframework.transaction.IllegalTransactionStateException;
 
 import java.net.URI;
@@ -22,6 +33,7 @@ import java.time.Instant;
 
 import static org.junit.jupiter.api.Assertions.assertAll;
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
@@ -29,29 +41,47 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 class ApplicationCompositionTest {
 
     private final RegisterUserUseCase registerUserUseCase;
+    private final IdentityQuery identityQuery;
+    private final UpdateCurrentUserUseCase updateCurrentUserUseCase;
+    private final LogoutUseCase logoutUseCase;
+    private final ResendEmailVerificationUseCase resendEmailVerificationUseCase;
     private final NotificationGateway notificationGateway;
     private final VerificationEmailSender verificationEmailSender;
     private final io.github.edtechdevelopment.notifications.application.port.out.email.VerificationEmailSender
             notificationDeliveryEmailSender;
     private final ProcessVerificationEmailDeliveriesService processingService;
     private final IdentityApiMapper identityApiMapper;
+    private final AccessTokenIssuer accessTokenIssuer;
+    private final JwtDecoder jwtDecoder;
 
     @Autowired
     ApplicationCompositionTest(
             RegisterUserUseCase registerUserUseCase,
+            IdentityQuery identityQuery,
+            UpdateCurrentUserUseCase updateCurrentUserUseCase,
+            LogoutUseCase logoutUseCase,
+            ResendEmailVerificationUseCase resendEmailVerificationUseCase,
             NotificationGateway notificationGateway,
             VerificationEmailSender verificationEmailSender,
             io.github.edtechdevelopment.notifications.application.port.out.email.VerificationEmailSender
                     notificationDeliveryEmailSender,
             ProcessVerificationEmailDeliveriesService processingService,
-            IdentityApiMapper identityApiMapper
+            IdentityApiMapper identityApiMapper,
+            AccessTokenIssuer accessTokenIssuer,
+            JwtDecoder jwtDecoder
     ) {
         this.registerUserUseCase = registerUserUseCase;
+        this.identityQuery = identityQuery;
+        this.updateCurrentUserUseCase = updateCurrentUserUseCase;
+        this.logoutUseCase = logoutUseCase;
+        this.resendEmailVerificationUseCase = resendEmailVerificationUseCase;
         this.notificationGateway = notificationGateway;
         this.verificationEmailSender = verificationEmailSender;
         this.notificationDeliveryEmailSender = notificationDeliveryEmailSender;
         this.processingService = processingService;
         this.identityApiMapper = identityApiMapper;
+        this.accessTokenIssuer = accessTokenIssuer;
+        this.jwtDecoder = jwtDecoder;
     }
 
     @Test
@@ -59,6 +89,20 @@ class ApplicationCompositionTest {
         assertAll(
                 () -> assertTrue(AopUtils.isAopProxy(registerUserUseCase)),
                 () -> assertEquals(RegisterUserService.class, AopUtils.getTargetClass(registerUserUseCase)),
+                () -> assertTrue(AopUtils.isAopProxy(identityQuery)),
+                () -> assertEquals(IdentityQueryService.class, AopUtils.getTargetClass(identityQuery)),
+                () -> assertTrue(AopUtils.isAopProxy(updateCurrentUserUseCase)),
+                () -> assertEquals(
+                        UpdateCurrentUserService.class,
+                        AopUtils.getTargetClass(updateCurrentUserUseCase)
+                ),
+                () -> assertTrue(AopUtils.isAopProxy(logoutUseCase)),
+                () -> assertEquals(LogoutService.class, AopUtils.getTargetClass(logoutUseCase)),
+                () -> assertTrue(AopUtils.isAopProxy(resendEmailVerificationUseCase)),
+                () -> assertEquals(
+                        ResendEmailVerificationService.class,
+                        AopUtils.getTargetClass(resendEmailVerificationUseCase)
+                ),
                 () -> assertTrue(AopUtils.isAopProxy(notificationGateway)),
                 () -> assertEquals(
                         EnqueueVerificationEmailService.class,
@@ -76,7 +120,9 @@ class ApplicationCompositionTest {
                         ProcessVerificationEmailDeliveriesService.class,
                         processingService.getClass()
                 ),
-                () -> assertEquals(IdentityApiMapper.class, identityApiMapper.getClass())
+                () -> assertEquals(IdentityApiMapper.class, identityApiMapper.getClass()),
+                () -> assertEquals(SpringJwtAccessTokenIssuer.class, accessTokenIssuer.getClass()),
+                () -> assertNotNull(jwtDecoder)
         );
     }
 
