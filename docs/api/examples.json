@@ -4,19 +4,24 @@
     "password": "example-password",
     "firstName": "Анна",
     "lastName": "Петрова",
-    "birthDate": "2010-05-14",
+    "birthDate": "1995-05-12",
     "roles": [
-      "STUDENT"
+      "TEACHER"
     ],
-    "studentProfile": {
-      "displayName": "Анна",
-      "contactEmail": "anna@example.com",
-      "contactDetails": [],
+    "teacherProfile": {
+      "displayName": "Анна Петрова",
+      "contactEmail": "anna.teacher@example.com",
+      "contactDetails": [
+        "@anna_tutor"
+      ],
       "subjectCodes": [
         "MATH"
       ],
-      "photoUrl": null,
-      "birthDateVisibility": "LINKED_USERS"
+      "description": "Помогаю готовиться к экзаменам",
+      "education": null,
+      "experienceYears": 5,
+      "city": "Москва",
+      "photoUrl": null
     }
   },
   "VerificationPendingResponse": {
@@ -44,7 +49,7 @@
     "pendingEmail": null,
     "firstName": "Анна",
     "lastName": "Петрова",
-    "birthDate": "2010-05-14",
+    "birthDate": "1995-05-12",
     "roles": [
       "STUDENT"
     ],
@@ -57,30 +62,14 @@
     "firstName": "Анна-Мария",
     "email": "anna.new@example.com"
   },
-  "SubjectListResponse": {
-    "items": [
-      {
-        "code": "MATH",
-        "name": "Математика"
-      }
-    ]
-  },
+  "GetSubjectsResponse": [
+    {
+      "subjectCode": "MATH",
+      "name": "Математика"
+    }
+  ],
   "CreateStudentInvitationRequest": {
-    "email": "anna@example.com"
-  },
-  "StudentInvitationResponse": {
-    "id": "inv_001",
-    "teacher": {
-      "id": "u_001",
-      "displayName": "Алексей — физика",
-      "contactEmail": "alex.teacher@example.com"
-    },
-    "studentEmail": "anna@example.com",
-    "studentUserId": "u_002",
-    "status": "PENDING",
-    "createdAt": "2026-09-06T12:00:00Z",
-    "expiresAt": "2026-10-06T12:00:00Z",
-    "respondedAt": null
+    "studentEmail": "ilya@example.com"
   },
   "CreateLessonRequest": {
     "studentUserIds": [
@@ -165,61 +154,90 @@
     "requestId": "req_001"
   },
   "TeacherProfileInput": {
-    "displayName": "Анна — математика",
-    "contactEmail": "teacher.anna@example.com",
+    "displayName": "Анна Петрова",
+    "contactEmail": "anna.teacher@example.com",
     "contactDetails": [
-      "Telegram: @anna_teacher"
+      "@anna_tutor"
     ],
     "subjectCodes": [
       "MATH"
     ],
-    "description": "Готовлю к экзаменам",
+    "description": "Помогаю готовиться к экзаменам",
     "education": null,
     "experienceYears": 5,
     "city": "Москва",
-    "photoUrl": null,
-    "birthDateVisibility": "PRIVATE"
+    "photoUrl": null
   },
   "StudentProfileInput": {
-    "displayName": "Анна",
-    "contactEmail": "anna@example.com",
-    "contactDetails": [],
-    "subjectCodes": [
-      "MATH"
+    "displayName": "Илья",
+    "contactEmail": "ilya@example.com",
+    "contactDetails": [
+      "@ilya_study"
     ],
-    "photoUrl": null,
-    "birthDateVisibility": "LINKED_USERS"
+    "subjectCodes": [],
+    "photoUrl": null
   },
   "TeacherProfileUpdateRequest": {
-    "displayName": "Анна — математика",
+    "displayName": "Анна Петрова",
     "contactDetails": [
-      "Telegram: @anna_teacher"
+      "@anna_tutor"
     ],
     "subjectCodes": [
       "MATH"
     ],
-    "description": "Готовлю к экзаменам",
+    "description": "Помогаю готовиться к экзаменам",
     "education": null,
     "experienceYears": 5,
     "city": "Москва",
-    "photoUrl": null,
-    "birthDateVisibility": "PRIVATE"
+    "photoUrl": null
   },
   "StudentProfileUpdateRequest": {
-    "displayName": "Анна",
-    "contactDetails": [],
+    "displayName": "Илья",
+    "contactDetails": [
+      "@ilya_study"
+    ],
+    "subjectCodes": [],
+    "photoUrl": null
+  },
+  "ProfileEmailChangeRequest": {
+    "newEmail": "new.teacher@example.com"
+  },
+  "ProfileEmailConfirmationRequest": {
+    "target": "PENDING"
+  },
+  "ProfileEmailTokenRequest": {
+    "token": "opaque-verification-token"
+  },
+  "CreatedInvitationResponse": {
+    "invitationId": "6d06625c-6974-44ef-9e1b-14c31c573d78",
+    "expiresAt": "2026-11-01T12:00:00Z"
+  },
+  "PublicTeacherProfileResponse": {
+    "userId": "22b0872b-ecfb-4227-befb-154725b14d5f",
+    "birthDate": "1995-05-12",
+    "displayName": "Анна Петрова",
+    "contactEmail": "anna.teacher@example.com",
+    "contactDetails": [
+      "@anna_tutor"
+    ],
     "subjectCodes": [
       "MATH"
     ],
     "photoUrl": null,
-    "birthDateVisibility": "LINKED_USERS"
+    "description": "Помогаю готовиться к экзаменам",
+    "education": null,
+    "experienceYears": 5,
+    "city": "Москва"
   },
-  "ProfileEmailChangeRequest": {
-    "email": "anna.profile@example.com"
-  },
-  "ProfileEmailVerificationPendingResponse": {
-    "profileRole": "STUDENT",
-    "email": "anna.profile@example.com",
-    "verificationExpiresAt": "2026-09-14T13:00:00Z"
+  "PublicStudentProfileResponse": {
+    "userId": "0b062d88-adb9-487e-b982-1b10553e2ab5",
+    "birthDate": "2008-03-07",
+    "displayName": "Илья",
+    "contactEmail": null,
+    "contactDetails": [
+      "@ilya_study"
+    ],
+    "subjectCodes": [],
+    "photoUrl": null
   }
 }

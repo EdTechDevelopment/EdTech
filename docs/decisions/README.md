@@ -19,23 +19,6 @@ Identity. Он объединяет обязательные правила back
 | `OPEN` | Решение не принято; нельзя угадывать его молча. |
 | `SUPERSEDED` | Старый вариант заменён более новым решением. |
 
-## Приоритет источников истины
-
-При расхождении документов применяется следующий порядок:
-
-1. `docs/api/scheduling.openapi.json` — URL, HTTP status, JSON, публичные enum и
-   ошибки.
-2. `docs/api/api-contracts.md` и `docs/api/frontend-contracts.md` — смысл
-   публичного API и правила frontend-интеграции.
-3. Общие backend-правила, зафиксированные в этом реестре.
-4. Текстовая архитектура Identity в `docs/architecture/identity/IDENTITY_ARCHITECTURE.md`.
-5. `docs/architecture/identity/architecture.vpp`, сгенерированные HTML, изображения и
-   прочий UML-экспорт.
-
-Если публичный контракт меняется, сначала обновляются OpenAPI, примеры и
-генерируемые TypeScript DTO, затем backend и архитектурная документация. Два
-параллельных варианта одного endpoint, DTO или enum не создаются.
-
 ## Зафиксированный технический фундамент
 
 | Решение | Статус | Правило |
@@ -558,12 +541,13 @@ Mailpit является локальным SMTP-catcher и не отправл�
   `AddUserRoleService`, одновременно создавая соответствующий профиль;
 - завершить составной `GET /api/v1/me`, `MeResponse`, `MeQueryFacade` и
   `GetCurrentUserUseCase` без временных `null`-профилей;
-- расширить `IdentityQuery` пакетным/email-чтением только при появлении реальных
-  Tutoring use cases;
+- расширить `IdentityQuery` пакетным/email-чтением, пакетной проверкой ACTIVE
+  аккаунтов для публичного поиска профилей и доверенным чтением birthDate при
+  добавлении роли;
 - синхронизировать целевые registration/profile/birthDate схемы OpenAPI и
   frontend DTO с этой архитектурой.
 
-До production также остаются открытые `OPEN-005`, `OPEN-009`, `OPEN-011`,
+До production также остаются открытые `OPEN-005`, `OPEN-009`,
 `OPEN-012`, `OPEN-017`, `OPEN-019` и `OPEN-020`.
 
 ### Контрольная проверка 2026-09-24
@@ -613,6 +597,17 @@ Mailpit является локальным SMTP-catcher и не отправл�
 
 ## Открытые вопросы
 
+Согласовано для Tutoring: регистрация с обязательными профилями и `birthDate`
+отвечает `202 VerificationPendingResponse`; вторая роль создаётся вместе с
+профилем; публичные активные профили и их поиск доступны без связи и login,
+включая дату рождения, описание, выбранные предметы и `contactDetails`.
+Профильный email виден публично только после подтверждения. Выбранные предметы
+читаются из профиля, справочник служит для выбора и проверки кодов. Регистрация,
+добавление роли, отвязка и ответы на приглашение защищены стабильным
+`Idempotency-Key: UUID`. Старые локальные пользователи с ролью без профиля не
+получают автоматически вымышленные профили; перед общим запуском требуется
+явная миграция данных или пересоздание локальных тестовых записей.
+
 Ни один пункт со статусом `OPEN` нельзя закрывать неявным выбором в коде.
 
 | ID | Статус | Вопрос и влияние |
@@ -627,7 +622,7 @@ Mailpit является локальным SMTP-catcher и не отправл�
 | `OPEN-008` | `RESOLVED` | SHA-256 hashes хранятся в каноническом lowercase hex-формате из 64 символов. |
 | `OPEN-009` | `OPEN` | Жизненный цикл hard delete пользователя, сроки хранения и требования аудита/персональных данных не определены. До решения бизнес-деактивация использует `DEACTIVATED`, а `ON DELETE CASCADE` относится только к физическому DELETE. |
 | `OPEN-010` | `RESOLVED` | Для MVP `SUSPENDED/DEACTIVATED` запрещают новые login/refresh, но уже выданный stateless access JWT действует до `exp` (не более 15 минут). SQL-проверка account status на каждом endpoint и access-token blacklist не вводятся. Решение пересматривается при появлении критичных операций с требованием мгновенного отзыва. |
-| `OPEN-011` | `OPEN` | Формат durable outbox для межмодульных integration events ещё не выбран. Нельзя имитировать требуемую надёжность обычным in-memory event. Notification delivery использует отдельную принадлежащую Notifications durable job queue, а не integration-event outbox. |
+| `OPEN-011` | `PLANNED` | Identity сохраняет `AccountEmailVerifiedEvent` в PostgreSQL outbox в той же транзакции, что подтверждение email. Обработчик доставляет событие Tutoring как минимум один раз; Tutoring дедуплицирует по `eventId` и повторно проверяет текущий подтверждённый account email. `occurredAt` — фактическое время подтверждения. Формат таблицы, retry и мониторинг уточняются при реализации. Notification delivery остаётся отдельной очередью писем. |
 | `OPEN-012` | `OPEN` | Production deployment platform, secret storage, tracing backend и metrics storage ещё не выбраны. |
 | `OPEN-013` | `RESOLVED` | Для локальной разработки используется `axllent/mailpit:v1.31.1`: SMTP `localhost:1025`, Web UI `localhost:8025`. Mailpit запрещён в production; production использует внешний SMTP-провайдер и секреты окружения. |
 | `OPEN-014` | `RESOLVED` | Confirm атомарно находит активную verification через `SELECT ... FOR UPDATE`, изменяет агрегат и сохраняет `consumed_at` в той же внешней транзакции. `Propagation.MANDATORY` не позволяет освободить row lock раньше завершения use case. |
@@ -645,7 +640,8 @@ Mailpit является локальным SMTP-catcher и не отправл�
 - Сгенерированный HTML, изображения и `architecture.vpp` могут содержать старые
   `TUTOR`, `ADMIN`, `PENDING_VERIFICATION`, endpoint paths и прежние refresh-port
   signatures.
-- Канонические Markdown-каталоги исправляются сразу; Visual Paradigm source и
-  generated export должны быть синхронизированы отдельным экспортом.
+- Текстовая спецификация Identity и Tutoring обновляется вместе с публичными
+  контрактами; Visual Paradigm source и generated export являются историческими
+  до отдельного обновления модели и экспорта.
 - Файлы исходных спецификаций, переданные вне репозитория, не изменяются
   автоматически. Принятые отклонения от них фиксируются в этом реестре.

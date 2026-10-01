@@ -25,11 +25,13 @@ tutoring.application
 │   ├── mapper                   SubjectResultMapper
 │   └── exception                InvalidSubjectCodeException, SubjectNotFoundException
 ├── profile
-│   ├── port.in                  UpdateTeacherProfileUseCase, UpdateStudentProfileUseCase
+│   ├── port.in                  UpdateTeacherProfileUseCase, UpdateStudentProfileUseCase,
+│   │                            GetPublicProfileUseCase, SearchPublicProfilesUseCase
 │   ├── port.out                 TeacherProfileRepository, StudentProfileRepository
 │   ├── model.command            UpdateTeacherProfileCommand, UpdateStudentProfileCommand
-│   ├── model.query              LinkedProfileBatchQuery
-│   ├── service                  ProfileQueryService, LinkedProfileProjectionService,
+│   ├── model.query              LinkedProfileBatchQuery, PublicProfileSearchQuery
+│   ├── service                  ProfileQueryService, PublicProfileSearchService,
+│   │                            LinkedProfileProjectionService,
 │   │                            TeacherProfileUpdateService, StudentProfileUpdateService,
 │   │                            RegistrationProfileService
 │   ├── mapper                   ProfileViewMapper
@@ -130,6 +132,8 @@ tutoring.application
 | Интерфейс | Метод и результат |
 |---|---|
 | `GetSubjectsUseCase` | `List<SubjectResult> getSubjects()` |
+| `GetPublicProfileUseCase` | `Optional<PublicTeacherProfileView/PublicStudentProfileView> get(type,userId)`; только ACTIVE аккаунт |
+| `SearchPublicProfilesUseCase` | `PublicProfilePageResult search(type,subjectCode,minAge,maxAge,cursor,limit)` |
 | `UpdateTeacherProfileUseCase` | `void execute(UpdateTeacherProfileCommand)` |
 | `UpdateStudentProfileUseCase` | `void execute(UpdateStudentProfileCommand)` |
 | `ChangeProfileEmailUseCase` | `ProfileEmailChangeResult execute(ChangeProfileEmailCommand)` |
@@ -161,9 +165,11 @@ tutoring.application
 
 `findTeacherSummaries(Set<UUID>)` и `findStudentSummaries(Set<UUID>)` делают один batch-запрос и возвращают `Map<UUID, Summary>` только для найденных профилей. Пустой набор даёт пустую карту без БД; это уточнение позднего сценария PROF-03/04 имеет приоритет над общим правилом этапа 2 о пустом batch. Summary содержит только `userId` и `displayName`.
 
-`LinkedProfileProjectionService` пакетно собирает `LinkedStudentProfileView`/`LinkedTeacherProfileView` только для ID, которые `relationship` уже получил из подтверждённых связей. Linked-view содержит дату рождения из профиля и только подтверждённый current `contactEmail`; pending и неподтверждённый email не передаются. Отсутствующий профиль при существующей связи — ошибка целостности, не неполная карточка. Для одиночного `findLinked*Profile` сервис relationship сначала проверяет связь и лишь затем запрашивает профиль; без связи возвращает `Optional.empty()`.
+Публичное чтение отдельного профиля и поиск не требуют principal или `TeacherStudent`. `GetPublicProfileUseCase` отдаёт ACTIVE профиль или `Optional.empty()`; `SearchPublicProfilesUseCase` фильтрует выбранные предметы по таблице соответствующего профиля и возраст по локальной `birthDate`. Поиск сортирует по `createdAt DESC,userId DESC`, проверяет статусы пользователей пакетным Identity API, добирает до `limit + 1` активных записей и подписывает курсор с фильтрами и датой расчёта возраста UTC. Pending/неподтверждённый email не попадает в результат. Ошибка Identity не превращается в пустую страницу.
 
-`ProfileViewMapper` имеет разные операции для self, summary и linked. `RelationshipResultMapper` принимает только linked-view, не self-view. Mapper не обращается к репозиториям, Identity или Notifications и не принимает решение о наличии права на просмотр.
+`LinkedProfileProjectionService` пакетно собирает `LinkedStudentProfileView`/`LinkedTeacherProfileView` только для ID, которые `relationship` уже получил из подтверждённых связей. Их поля совпадают с публичными полями профиля: дата рождения, обычные сведения, `contactDetails` и только подтверждённый current `contactEmail`; pending и неподтверждённый email не передаются. Публичное чтение профиля выполняется отдельным use case без связи и проверяет активность пользователя Identity. Отсутствующий профиль при существующей связи — ошибка целостности, не неполная карточка. Для одиночного `findLinked*Profile` сервис relationship сначала проверяет связь; без связи возвращает `Optional.empty()` только для linked-операции.
+
+`ProfileViewMapper` имеет разные операции для self, public, summary и linked. `RelationshipResultMapper` принимает только linked-view, не self-view. Mapper не обращается к репозиториям, Identity или Notifications и не принимает решение о наличии права на просмотр.
 
 ### 4.2 Обычные изменения
 
@@ -332,7 +338,7 @@ Domain-исключения остаются внутренними. Application
 
 ## 13. Критерии завершения и синхронизация документов
 
-- Профили обеих ролей независимы; дата рождения хранится в каждом и раскрывается другому пользователю только при `TeacherStudent`.
+- Профили обеих ролей независимы; дата рождения хранится в каждом и раскрывается в публичном активном профиле без `TeacherStudent`.
 - `StudentProfile` может иметь пустые предметы, `TeacherProfile` — нет; специализация не ограничивает предмет урока.
 - Self/summary/linked-view не смешиваются; batch-запросы обходятся без `N+1`.
 - Account email не изменяется при смене профильного; pending и неподтверждённый current email не раскрываются другим пользователям.

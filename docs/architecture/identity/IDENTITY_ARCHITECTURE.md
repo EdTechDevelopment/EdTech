@@ -13,7 +13,7 @@
 - у профилей Tutoring есть собственные имя и email;
 - Identity публикует отдельное событие подтверждения account email.
 
-Уточнение от 2026-09-25: `Identity.User.birthDate` остаётся первоисточником, но при создании `TeacherProfile` и `StudentProfile` доверенный workflow передаёт дату в Tutoring, где хранится обязательная копия. Linked-карточки читают дату из профиля после проверки связи. Прежние упоминания `IdentityPersonalDataQuery` для `STUDENT_CARD` и настройки видимости даты в этом документе являются историческими и не должны реализовываться как отдельный путь чтения; актуальное правило описано в `docs/architecture/tutoring/TUTORING_ARCHITECTURE.md`.
+Актуальное решение: `Identity.User.birthDate` остаётся первоисточником; при создании `TeacherProfile` и `StudentProfile` доверенный workflow передаёт дату в Tutoring. Дата публична в активном учебном профиле без связи. Отдельного `IdentityPersonalDataQuery` для карточек нет; публичный поиск использует пакетную проверку активности аккаунтов через Identity.
 
 Package paths приведены относительно корневого Java package проекта.
 
@@ -138,7 +138,6 @@ identity
 ├── api
 │   ├── query
 │   │   ├── IdentityQuery
-│   │   ├── IdentityPersonalDataQuery
 │   │   └── PersonalDataPurpose
 │   ├── command
 │   │   ├── registration
@@ -254,7 +253,6 @@ identity
 │   │   │   ├── GetCurrentUserService
 │   │   │   ├── UpdateCurrentUserService
 │   │   │   ├── IdentityQueryService
-│   │   │   └── IdentityPersonalDataQueryService
 │   │   ├── verification
 │   │   │   ├── ConfirmEmailService
 │   │   │   └── ResendEmailVerificationService
@@ -358,35 +356,19 @@ public interface IdentityQuery {
     Optional<UserSummary> findUserById(UUID userId);
     Map<UUID, UserSummary> findUsersByIds(Set<UUID> userIds);
     Optional<UserSummary> findUserByVerifiedEmail(String normalizedEmail);
+    Set<UUID> findActiveUserIds(Set<UUID> userIds);
+    Optional<LocalDate> findBirthDateForProfileCreation(UUID userId);
 }
 ```
 
-`findUsersByIds` предотвращает N+1 при составных списках. `findUserByVerifiedEmail` используется для приглашений и возвращает только аккаунт с подтверждённым текущим email.
+`findUsersByIds` предотвращает N+1 при составных списках. `findUserByVerifiedEmail` используется для приглашений и возвращает только аккаунт с подтверждённым текущим email. `findActiveUserIds` пакетно отбирает ACTIVE аккаунты для публичного поиска профилей; `findBirthDateForProfileCreation` вызывается только доверенным workflow при добавлении роли, а не для просмотра карточек.
 
 Текущий MVP-фундамент реализует только `findUserById(UUID)` и возвращает
 `UserSummary`. Batch-метод и поиск по подтверждённому email добавляются вместе с
 конкретными сценариями Tutoring, чтобы не проектировать неиспользуемые запросы
 заранее.
 
-Дата рождения не входит в общий `UserSummary`. Доступ к ней имеет только доверенная query facade после проверки бизнес-основания:
-
-```java
-package identity.api.query;
-
-public interface IdentityPersonalDataQuery {
-    Optional<LocalDate> findBirthDate(
-        UUID userId,
-        UUID requesterId,
-        PersonalDataPurpose purpose
-    );
-}
-
-public enum PersonalDataPurpose {
-    STUDENT_CARD
-}
-```
-
-ArchUnit разрешает использовать `IdentityPersonalDataQuery` только пакетам `workflows..` и утверждённым query facades. Facade проверяет связь пользователя и настройку видимости через модуль-владелец. Identity проверяет полноту контекста запроса, возвращает данные только для разрешённого `purpose` и может записать факт доступа в аудит.
+Дата рождения не входит в общий `UserSummary`. Tutoring получает её при создании профиля и затем читает свою локальную копию для публичных карточек. Отдельный персональный query с `requesterId`/`STUDENT_CARD` не создаётся.
 
 ```java
 public record UserSummary(
@@ -495,7 +477,7 @@ public enum AccountEmailVerificationPurpose {
 }
 ```
 
-`AccountEmailVerifiedEvent` публикуется после каждого успешного подтверждения account email. Он не содержит raw token. Tutoring обрабатывает его идемпотентно для привязки приглашений и подтверждения совпадающих profile emails.
+`AccountEmailVerifiedEvent` создаётся после каждого успешного подтверждения account email. Его `occurredAt` означает фактический момент подтверждения адреса; отдельное поле `verifiedAt` не добавляется. Событие не содержит raw token. Для Tutoring его нужно сохранять в Identity outbox вместе с подтверждением и доставлять с повторами. Tutoring дедуплицирует `eventId` и повторно проверяет актуальный подтверждённый account email перед привязкой приглашений и подтверждением совпадающих profile emails.
 
 `UserActivatedEvent` сообщает об изменении жизненного цикла аккаунта. `AccountEmailVerifiedEvent` сообщает о подтверждении владения конкретным адресом. Эти события не являются дубликатами.
 
@@ -810,7 +792,6 @@ public interface TimeProvider {
 | `GetCurrentUserService` | `GetCurrentUserUseCase` | Загружает User и формирует result |
 | `UpdateCurrentUserService` | `UpdateCurrentUserUseCase` | Изменяет account data; при смене email создаёт verification |
 | `IdentityQueryService` | `IdentityQuery` | Публичное одиночное, пакетное и email-чтение |
-| `IdentityPersonalDataQueryService` | `IdentityPersonalDataQuery` | Узкое чтение birthDate для разрешённых facades |
 | `ConfirmEmailService` | `ConfirmEmailUseCase` | Соблюдает lock order `User → EmailVerification`, подтверждает account email, consume verification, создаёт refresh family, сохраняет hash refresh token, выпускает tokens и публикует events |
 | `ResendEmailVerificationService` | `ResendEmailVerificationUseCase` | Под lock User выбирает `REGISTRATION` для CURRENT email pending-аккаунта или `EMAIL_CHANGE` для PENDING email active-аккаунта; инвалидирует старую verification purpose, создаёт новую и ставит письмо в очередь; остальные случаи — нейтральный no-op |
 | `LoginService` | `LoginUseCase` | Проверяет пароль/status и выпускает пару tokens |
@@ -1026,7 +1007,7 @@ skew `0`, без SQL на каждый запрос. Для single-instance MVP 
 
 `NotificationVerificationEmailAdapter` реализует `VerificationEmailSender` и вызывает только `notifications.api.NotificationGateway`. Notifications сохраняет delivery request в общей транзакции, а SMTP выполняет после commit.
 
-`SpringIntegrationEventPublisher` публикует public events через `ApplicationEventPublisher`. Подписчики используют after-commit handling.
+Текущий `SpringIntegrationEventPublisher` публикует public events через `ApplicationEventPublisher`; это состояние Identity MVP. Для надёжной доставки `AccountEmailVerifiedEvent` в Tutoring целевое решение — PostgreSQL outbox в транзакции подтверждения, worker с повторной доставкой после commit и receipt Tutoring по `eventId`. Очередь Notifications обслуживает письма и не заменяет outbox событий.
 
 `SystemTimeProvider` использует внедрённый `Clock`; tests передают fixed clock.
 
@@ -1257,7 +1238,6 @@ Private keys, passwords, JWT и raw tokens не логируются.
 | `IdentityRegistrationCommands` | `RegisterUserService` |
 | `IdentityRoleCommands` | `AddUserRoleService` |
 | `IdentityQuery` | `IdentityQueryService` |
-| `IdentityPersonalDataQuery` | `IdentityPersonalDataQueryService` |
 | `GetCurrentUserUseCase` | `GetCurrentUserService` |
 | `UpdateCurrentUserUseCase` | `UpdateCurrentUserService` |
 | `ConfirmEmailUseCase` | `ConfirmEmailService` |
@@ -1290,7 +1270,7 @@ service.account не зависит от service.verification/authentication
 service.verification не зависит от service.account/authentication
 service.authentication не зависит от service.account/verification
 только workflows вызывает identity.api.command
-только разрешённые facades вызывают IdentityPersonalDataQuery
+только доверенный workflow получает birthDate из Identity для создания профиля
 другие модули используют только identity.api
 identity использует только notifications.api
 jOOQ generated types не покидают persistence

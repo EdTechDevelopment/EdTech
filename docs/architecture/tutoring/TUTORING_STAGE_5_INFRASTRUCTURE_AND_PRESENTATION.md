@@ -52,9 +52,11 @@ tutoring.presentation
 
 ### 2.2 Профили
 
-`tutoring_teacher_profiles` и `tutoring_student_profiles` — независимые таблицы с `user_id UUID PRIMARY KEY` без FK на Identity. Общие поля: `birth_date DATE NOT NULL`, `display_name TEXT NOT NULL`, `contact_email VARCHAR(254) NOT NULL`, `pending_contact_email VARCHAR(254) NULL`, `contact_email_verified_at TIMESTAMPTZ NULL`, `contact_details JSONB NOT NULL` как массив строк, `photo_url TEXT NULL`. TeacherProfile дополнительно содержит nullable `description TEXT`, `education TEXT`, `experience_years INTEGER CHECK (experience_years >= 0)`, `city TEXT`. Ноль лет опыта отличается от `NULL`; город необязателен.
+`tutoring_teacher_profiles` и `tutoring_student_profiles` — независимые таблицы с `user_id UUID PRIMARY KEY` без FK на Identity. Общие поля: неизменяемый `created_at TIMESTAMPTZ NOT NULL`, `birth_date DATE NOT NULL`, `display_name TEXT NOT NULL`, `contact_email VARCHAR(254) NOT NULL`, `pending_contact_email VARCHAR(254) NULL`, `contact_email_verified_at TIMESTAMPTZ NULL`, `contact_details JSONB NOT NULL` как массив строк, `photo_url TEXT NULL`. TeacherProfile дополнительно содержит nullable `description TEXT`, `education TEXT`, `experience_years INTEGER CHECK (experience_years >= 0)`, `city TEXT`. Ноль лет опыта отличается от `NULL`; город необязателен.
 
 БД проверяет непустое имя, нормализованный email, отличие pending от current и JSON-массив. Domain дополнительно проверяет email, состав contactDetails, URI и остальные инварианты. У профильного email нет уникальности: контактный адрес может совпадать у разных профилей. `birthDate` копируется из Identity при создании, обычный профильный update её не меняет. Client-side `expectedVersion` в v1 не обещан; write-сценарии блокируют строку профиля.
+
+Для публичного поиска обе профильные таблицы индексируются по `(created_at DESC, user_id DESC)` и `birth_date`; таблицы выбранных предметов — по `(subject_code,user_id)`. Предметы конкретного человека читаются только из его профильной таблицы связей с предметами, а не из общего каталога. Статус ACTIVE остаётся в Identity и проверяется пакетно при выдаче страницы.
 
 ### 2.3 Запросы подтверждения профильной почты
 
@@ -84,7 +86,7 @@ FK на собственный TeacherProfile без cascade; FK на Identity �
 
 `SubjectRepository`: `findAll`, `exists`, пакетный `findExistingCodes`. Пустой batch не делает SQL; пустой `findAll` сам repository не превращает в ошибку. Сортировку ответа выполняет Application.
 
-Отдельные Teacher/Student adapters: `insert`, `update`, `findByUserId`, `findByUserIdForUpdate`, `existsByUserId`, пакетные summary и linked-проекции. Upsert не используется: повторное создание и обновление отсутствующего профиля различаются. Профиль и предметы сохраняются атомарно; при update выбор предметов синхронизируется по разнице под блокировкой родительской строки. Обычное чтение профиля с предметами использует один согласованный снимок запроса, а write-чтение сначала блокирует строку профиля, затем читает детей. Batch summary возвращает только `userId` и `displayName` без N+1. Linked-проекция включает `birthDate`, а current email — только если есть `contact_email_verified_at`; pending не выдаётся. Право доступа проверяет Application через связь. Если связь есть, а профиля нет, это ошибка целостности, не `Optional.empty()`.
+Отдельные Teacher/Student adapters: `insert`, `update`, `findByUserId`, `findByUserIdForUpdate`, `existsByUserId`, пакетные summary, public и linked-проекции. Upsert не используется: повторное создание и обновление отсутствующего профиля различаются. Профиль и предметы сохраняются атомарно; при update выбор предметов синхронизируется по разнице под блокировкой родительской строки. Обычное чтение профиля с предметами использует один согласованный снимок запроса, а write-чтение сначала блокирует строку профиля, затем читает детей. Batch summary возвращает только `userId` и `displayName` без N+1. Public/linked-проекции включают `birthDate`, `contactDetails` и обычные поля; current email включается только при `contact_email_verified_at`, pending не выдаётся. Публичное чтение проверяет активность пользователя через Identity, linked-операция дополнительно проверяет связь. Если связь есть, а профиля нет, это ошибка целостности.
 
 ### 3.2 Verification
 
@@ -130,6 +132,7 @@ Listener `AccountEmailVerifiedEvent` переводит событие в Applic
 
 - Генератор профильного токена использует не менее 32 случайных байт и URL-safe Base64 без padding; hasher — SHA-256 как 64 hex-символа. Это собственные классы Tutoring, не импорт `identity.infrastructure`. Raw token не логируется.
 - `InvitationCursorCodec` и `RelationshipCursorCodec` кодируют версию, владельца, направление, фильтр и keyset-позицию в подписанную HMAC URL-safe строку. Invitation cursor также хранит `asOf`; Relationship cursor — нет. Подпись и структура проверяются до SQL. Курсор подписан, но не зашифрован, поэтому секретов внутри нет. Ключ хранится в секретах конфигурации; TTL курсора в v1 не вводится.
+- `PublicProfileCursorCodec` кодирует вид профиля, нормализованные фильтры, дату расчёта возраста UTC и позицию `createdAt/userId`; публичный курсор не содержит сведений об отношениях или неподтверждённой почте. Поиск сначала применяет фильтры профиля, затем пакетно исключает неактивные аккаунты Identity и добирает страницу до `limit + 1` либо конца набора.
 - Application использует общий внедрённый `Clock` проекта, время передаётся Domain явно и сохраняется с точностью до микросекунд. Отдельный TutoringTimeProvider без необходимости не создаётся; тесты используют фиксированный Clock.
 - `ExpiredProfileVerificationJob` в Infrastructure ежедневно вызывает VER-06. По умолчанию конфигурируются UTC и пачка 100; каждая пачка имеет собственную транзакцию, `SKIP LOCKED` допускает несколько экземпляров. Задержка задачи не делает токены действительными после expiresAt. Фоновой INV-06 в v1 нет.
 
@@ -142,6 +145,8 @@ Listener `AccountEmailVerifiedEvent` переводит событие в Applic
 | Метод и путь | Вход и успешный ответ |
 |---|---|
 | `GET /subjects` | Без входных данных/авторизации; `200` массив `{subjectCode,name}`. Пустой справочник — внутренняя ошибка. |
+| `GET /profiles/teachers`, `GET /profiles/students` | Публичный поиск активных профилей; фильтры `subjectCode`, `minAge`, `maxAge`, `cursor`, `limit`; `200` `{items,nextCursor}`. Выбранные предметы читаются из профилей. |
+| `GET /profiles/teachers/{userId}`, `GET /profiles/students/{userId}` | Публичный активный профиль с `birthDate`, описанием и подтверждёнными контактами; `200` или `404`. |
 | `PUT /profiles/teacher` | Полная замена обычных teacher-полей; `204`. `subjectCodes` непустой. |
 | `PUT /profiles/student` | Полная замена обычных student-полей; `204`. `subjectCodes` может быть пустым. |
 | `PUT /profiles/{type}/contact-email` | `{newEmail}`; `200` с состоянием: подтверждено, ожидание Identity или письмо поставлено в очередь. |
@@ -154,7 +159,9 @@ Listener `AccountEmailVerifiedEvent` переводит событие в Applic
 
 HTTP DTO живут в соответствующем предметном пакете Presentation, не являются `tutoring.api` model. Teacher update: `displayName`, `contactDetails`, `subjectCodes`, nullable `description`, `education`, `experienceYears`, `city`, `photoUrl`. Student update: `displayName`, `contactDetails`, `subjectCodes`, nullable `photoUrl`. PUT заменяет перечисленные поля целиком; отсутствие необязательного поля и `null` означают очистку. Коллекции не могут быть `null`. `birthDate`, current/pending email и verifiedAt обычный PUT не меняет. Произвольные длины остальных строк не вводятся без отдельного решения; размер HTTP-тела ограничивается на транспортной границе.
 
-Справочник и подтверждение токена открыты без обязательного login. Остальные маршруты аутентифицированы, actorUserId всегда берётся из доверенного principal, не из HTTP-тела. Создание приглашения требует активного аккаунта с TEACHER-ролью на Identity/auth-границе и TeacherProfile в Tutoring. Входящие приглашения и отказ доступны привязанному пользователю до роли/профиля ученика; принятие требует StudentProfile. Списки связей возвращают только linked-view после проверки подтверждённой пары. Отправленный список не раскрывает recipient userId или факт его регистрации. Полный self-view доступен только через MeQueryFacade.
+Справочник, публичный просмотр/поиск активных профилей и подтверждение токена открыты без обязательного login. Остальные маршруты аутентифицированы, actorUserId всегда берётся из доверенного principal, не из HTTP-тела. Создание приглашения требует активного аккаунта с TEACHER-ролью на Identity/auth-границе и TeacherProfile в Tutoring. Входящие приглашения и отказ доступны привязанному пользователю до роли/профиля ученика; принятие требует StudentProfile. Списки связей возвращают linked-view после проверки подтверждённой пары, хотя те же публичные данные профиля можно прочитать без связи. Отправленный список не раскрывает recipient userId или факт его регистрации. Полный self-view доступен только через MeQueryFacade.
+
+При реализации общий Spring Security/CORS config должен открыть публичные `GET` профилей/предметов и `POST` подтверждения профильной почты, разрешить метод `PUT` и заголовок `Idempotency-Key` для browser-клиента. Текущая конфигурация Identity MVP этих правил ещё не содержит; это изменение кода выполняется вместе с HTTP-ручками.
 
 Форма ошибки совместима по структуре с `ApiError`: `{code,message,fieldErrors,requestId}`, но Tutoring не импортирует `identity.presentation`. HTTP mapping: `400` — валидация, повреждённый cursor, отсутствующий/некорректный Idempotency-Key, неизвестный предмет, любой недействительный verification token; `401` — нет обязательной аутентификации; `403` — запрещённое действие, включая создание приглашения без TEACHER-роли; `404` — собственный отсутствующий профиль либо единый ответ для отсутствующего/чужого приглашения; `409` — конфликт приглашения/состояния, отсутствие StudentProfile при принятии или несовпавший replay; `429` — квота письма с безопасным Retry-After; `500/503` — целостность либо техническая недоступность зависимого модуля/БД. Полные email, raw token и fingerprint не попадают в ответ или логи.
 
@@ -168,7 +175,7 @@ HTTP DTO живут в соответствующем предметном па�
 | Доставка и квота | Enqueue и бизнес-изменение атомарны; не более пяти новых писем за 24 часа; SMTP после commit не меняет бизнес-результат. |
 | Приглашение | Неизвестный адрес допустим, последующее подтверждение Identity привязывает его без принятия; самоприглашение и второй действующий PENDING запрещены. |
 | Ответ и связь | Отказ до student-onboarding разрешён; принятие требует StudentProfile и атомарно создаёт одну пару; now == expiresAt запрещает ответ. |
-| Privacy | Без связи чужие birthDate и контакты не раскрываются; linked email только подтверждённый current, pending никогда. |
+| Privacy | Активный публичный профиль виден без связи, включая birthDate, contactDetails и подтверждённый current email; pending и неподтверждённый email никогда не раскрываются. |
 | Курсоры | Нет дублей при одинаковом createdAt; status-фильтр применяется до limit; attachedAt > asOf не появляется на следующих входящих страницах. |
 | Отвязка | Scheduling guard и обработка уроков предшествуют физическому удалению пары; ошибка откатывает всё; создание нового урока пользуется совместимым guard. |
 | Повторы и гонки | Exact replay operationId/eventId, конфликт изменённого payload, конкурентный accept/create, VER-06 на нескольких экземплярах. |

@@ -81,8 +81,8 @@ Tutoring.StudentProfile.userId
 Identity.User.birthDate
     ↓ копируется доверенным workflow при создании профиля
 Tutoring.TeacherProfile.birthDate / StudentProfile.birthDate
-    ↓ выдаётся связанному пользователю после проверки TeacherStudent
-Workflows.StudentCardQueryFacade
+    ↓ выдаётся в публичном профиле активного пользователя без связи
+Tutoring.PublicProfileQuery / Workflows.StudentCardQueryFacade
 
 Tutoring.TeacherStudent
     ↑ проверяется через публичный API Tutoring
@@ -200,7 +200,7 @@ Identity знает роли, но не знает о профилях. Tutoring
 
 ### Составные HTTP-ответы
 
-DTO может объединять данные нескольких модулей, но это не меняет владение данными. `GET /api/v1/me` возвращает аккаунт Identity и профили Tutoring через `MeQueryFacade`. Identity не переносит к себе профили, а Tutoring не копирует account name, account email или birth date.
+DTO может объединять данные нескольких модулей, но это не меняет владение данными. `GET /api/v1/me` возвращает аккаунт Identity и профили Tutoring через `MeQueryFacade`. Identity не переносит к себе профили; Tutoring не копирует account name и account email, но при создании каждого учебного профиля сохраняет локальную копию `Identity.User.birthDate`. Дата и обычные данные активного учебного профиля публичны без связи; подтверждение профильного email остаётся обязательным перед его публичным показом.
 
 Профильные `displayName` и `contactEmail` являются самостоятельными данными Tutoring. Они могут начинаться со значений аккаунта, но после сохранения имеют независимый жизненный цикл.
 

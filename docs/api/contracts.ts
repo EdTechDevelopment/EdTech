@@ -1,8 +1,7 @@
-// Generated from scheduling.openapi.json, contract v1.1.0. Do not edit manually.
-// Date/time, date and decimal money values are JSON strings. IDs and cursors are opaque.
+// Synchronized with scheduling.openapi.json, contract v1.2.0.
+// Date/time/date values are JSON strings. IDs and cursors are opaque.
 
 export type UserRole = "TEACHER" | "STUDENT";
-
 export type UserStatus = "PENDING_EMAIL_VERIFICATION" | "ACTIVE" | "SUSPENDED" | "DEACTIVATED";
 
 export type UserResponse = {
@@ -19,29 +18,10 @@ export type UserResponse = {
   updatedAt: string;
 };
 
-export type UserSummary = {
-  id: string;
-  firstName: string;
-  lastName: string;
-};
-
-export type TeacherSummary = {
-  id: string;
-  displayName: string;
-};
-
-export type TeacherContactSummary = {
-  id: string;
-  displayName: string;
-  contactEmail: string | null;
-};
-
-export type StudentSummary = {
-  id: string;
-  displayName: string;
-};
-
-export type BirthDateVisibility = "PRIVATE" | "LINKED_USERS";
+export type UserSummary = { id: string; firstName: string; lastName: string };
+export type TeacherSummary = { id: string; displayName: string };
+export type TeacherContactSummary = { id: string; displayName: string; contactEmail: string | null };
+export type StudentSummary = { id: string; displayName: string };
 
 export type TeacherProfileInput = {
   displayName: string;
@@ -53,7 +33,6 @@ export type TeacherProfileInput = {
   experienceYears?: number | null;
   city?: string | null;
   photoUrl?: string | null;
-  birthDateVisibility: BirthDateVisibility;
 };
 
 export type StudentProfileInput = {
@@ -62,7 +41,6 @@ export type StudentProfileInput = {
   contactDetails: Array<string>;
   subjectCodes: Array<string>;
   photoUrl?: string | null;
-  birthDateVisibility: BirthDateVisibility;
 };
 
 type RegistrationAccount = {
@@ -72,68 +50,32 @@ type RegistrationAccount = {
   lastName: string;
   birthDate: string;
 };
-
 export type TeacherRegistrationRequest = RegistrationAccount & {
   roles: ["TEACHER"];
   teacherProfile: TeacherProfileInput;
   studentProfile?: never;
 };
-
 export type StudentRegistrationRequest = RegistrationAccount & {
   roles: ["STUDENT"];
   teacherProfile?: never;
   studentProfile: StudentProfileInput;
 };
-
 export type TeacherStudentRegistrationRequest = RegistrationAccount & {
   roles: ["TEACHER", "STUDENT"] | ["STUDENT", "TEACHER"];
   teacherProfile: TeacherProfileInput;
   studentProfile: StudentProfileInput;
 };
+export type RegisterRequest = TeacherRegistrationRequest | StudentRegistrationRequest | TeacherStudentRegistrationRequest;
 
-export type RegisterRequest =
-  | TeacherRegistrationRequest
-  | StudentRegistrationRequest
-  | TeacherStudentRegistrationRequest;
+export type VerificationPendingResponse = { email: string; verificationExpiresAt: string };
+export type ConfirmEmailRequest = { token: string };
+export type ResendEmailVerificationRequest = { email: string };
+export type LoginRequest = { email: string; password: string };
+export type TokenResponse = { accessToken: string; tokenType: "Bearer"; expiresInSeconds: number };
+export type UpdateMeRequest = { firstName?: string; lastName?: string; email?: string };
 
-export type VerificationPendingResponse = {
-  email: string;
-  verificationExpiresAt: string;
-};
-
-export type ConfirmEmailRequest = {
-  token: string;
-};
-
-export type ResendEmailVerificationRequest = {
-  email: string;
-};
-
-export type LoginRequest = {
-  email: string;
-  password: string;
-};
-
-export type TokenResponse = {
-  accessToken: string;
-  tokenType: "Bearer";
-  expiresInSeconds: number;
-};
-
-export type UpdateMeRequest = {
-  firstName?: string;
-  lastName?: string;
-  email?: string;
-};
-
-export type SubjectResponse = {
-  code: string;
-  name: string;
-};
-
-export type SubjectListResponse = {
-  items: Array<SubjectResponse>;
-};
+export type SubjectResponse = { subjectCode: string; name: string };
+export type GetSubjectsResponse = Array<SubjectResponse>;
 
 export type TeacherProfileUpdateRequest = {
   displayName: string;
@@ -144,103 +86,84 @@ export type TeacherProfileUpdateRequest = {
   experienceYears?: number | null;
   city?: string | null;
   photoUrl?: string | null;
-  birthDateVisibility: BirthDateVisibility;
 };
-
-export type TeacherProfileResponse = {
-  user: UserResponse;
-  displayName: string;
-  contactEmail: string;
-  pendingContactEmail: string | null;
-  contactEmailVerifiedAt: string | null;
-  contactDetails: Array<string>;
-  subjectCodes: Array<string>;
-  description: string | null;
-  education: string | null;
-  experienceYears: number | null;
-  city: string | null;
-  photoUrl: string | null;
-  birthDateVisibility: BirthDateVisibility;
-};
-
 export type StudentProfileUpdateRequest = {
   displayName: string;
   contactDetails: Array<string>;
   subjectCodes: Array<string>;
   photoUrl?: string | null;
-  birthDateVisibility: BirthDateVisibility;
 };
 
-export type StudentProfileResponse = {
-  user: UserResponse;
+export type PublicStudentProfileResponse = {
+  userId: string;
+  birthDate: string;
   displayName: string;
-  contactEmail: string;
-  pendingContactEmail: string | null;
-  contactEmailVerifiedAt: string | null;
+  contactEmail: string | null;
   contactDetails: Array<string>;
   subjectCodes: Array<string>;
   photoUrl: string | null;
-  birthDateVisibility: BirthDateVisibility;
 };
-
-export type ProfileEmailChangeRequest = {
-  email: string;
+export type PublicTeacherProfileResponse = PublicStudentProfileResponse & {
+  description: string | null;
+  education: string | null;
+  experienceYears: number | null;
+  city: string | null;
 };
+export type PublicTeacherProfilePage = { items: Array<PublicTeacherProfileResponse>; nextCursor: string | null };
+export type PublicStudentProfilePage = { items: Array<PublicStudentProfileResponse>; nextCursor: string | null };
 
-export type ProfileEmailVerificationPendingResponse = {
-  profileRole: UserRole;
-  email: string;
-  verificationExpiresAt: string;
+export type TeacherProfileResponse = PublicTeacherProfileResponse & {
+  contactEmail: string;
+  pendingContactEmail: string | null;
+  contactEmailVerifiedAt: string | null;
 };
-
+export type StudentProfileResponse = PublicStudentProfileResponse & {
+  contactEmail: string;
+  pendingContactEmail: string | null;
+  contactEmailVerifiedAt: string | null;
+};
 export type MeResponse = {
   user: UserResponse;
   teacherProfile: TeacherProfileResponse | null;
   studentProfile: StudentProfileResponse | null;
 };
 
-export type InvitationStatus = "PENDING" | "ACCEPTED" | "REJECTED" | "EXPIRED";
-
-export type CreateStudentInvitationRequest = {
-  email: string;
+export type ProfileEmailChangeRequest = { newEmail: string };
+export type ProfileEmailConfirmationRequest = { target: "CURRENT" | "PENDING" };
+export type ProfileEmailTokenRequest = { token: string };
+export type ProfileEmailRequestResult = {
+  state: "CONFIRMED" | "AWAITING_ACCOUNT_VERIFICATION" | "EMAIL_QUEUED";
 };
 
-export type StudentInvitationResponse = {
-  id: string;
-  teacher: TeacherContactSummary;
+export type InvitationStatus = "PENDING" | "ACCEPTED" | "REJECTED" | "EXPIRED";
+export type CreateStudentInvitationRequest = { studentEmail: string };
+export type CreatedInvitationResponse = { invitationId: string; expiresAt: string };
+export type SentInvitation = {
+  invitationId: string;
   studentEmail: string;
-  studentUserId: string | null;
   status: InvitationStatus;
   createdAt: string;
   expiresAt: string;
   respondedAt: string | null;
 };
-
-export type StudentInvitationPage = {
-  items: Array<StudentInvitationResponse>;
-  nextCursor: string | null;
+export type IncomingInvitation = {
+  invitationId: string;
+  teacher: TeacherSummary;
+  status: InvitationStatus;
+  createdAt: string;
+  expiresAt: string;
+  respondedAt: string | null;
 };
+export type SentInvitationPage = { items: Array<SentInvitation>; nextCursor: string | null };
+export type IncomingInvitationPage = { items: Array<IncomingInvitation>; nextCursor: string | null };
+export type InvitationDecisionResult = { invitationId: string; status: "ACCEPTED" | "REJECTED" };
 
-export type StudentListItem = {
-  id: string;
-  displayName: string;
-  photoUrl: string | null;
-  subjectCodes: Array<string>;
-};
+export type LinkedStudentItem = { linkedAt: string; profile: PublicStudentProfileResponse };
+export type LinkedTeacherItem = { linkedAt: string; profile: PublicTeacherProfileResponse };
+export type LinkedStudentsPage = { items: Array<LinkedStudentItem>; nextCursor: string | null };
+export type LinkedTeachersPage = { items: Array<LinkedTeacherItem>; nextCursor: string | null };
 
-export type StudentPage = {
-  items: Array<StudentListItem>;
-  nextCursor: string | null;
-};
-
-export type StudentCardProfile = {
-  displayName: string;
-  contactEmail: string | null;
-  age: number | null;
-  subjectCodes: Array<string>;
-  photoUrl: string | null;
-};
-
+export type StudentCardProfile = PublicStudentProfileResponse;
 export type StudentStatistics = {
   totalLessons: number;
   completedLessons: number;
@@ -248,26 +171,7 @@ export type StudentStatistics = {
   missedLessons: number;
   lastLessonAt: string | null;
 };
-
-export type StudentCardResponse = {
-  id: string;
-  profile: StudentCardProfile;
-  statistics: StudentStatistics;
-};
-
-export type TeacherContactResponse = {
-  id: string;
-  displayName: string;
-  contactEmail: string | null;
-  subjectCodes: Array<string>;
-  description: string | null;
-  photoUrl: string | null;
-};
-
-export type TeacherContactPage = {
-  items: Array<TeacherContactResponse>;
-  nextCursor: string | null;
-};
+export type StudentCardResponse = { id: string; profile: StudentCardProfile; statistics: StudentStatistics };
 
 export type LessonFormat = "INDIVIDUAL" | "GROUP";
 

@@ -2,8 +2,8 @@
   "openapi": "3.0.3",
   "info": {
     "title": "EdTech tutoring API",
-    "version": "1.0.0",
-    "description": "Контракт регистрации, JWT-аутентификации, профилей, приглашений и расписания. Access JWT передаётся как Bearer token, refresh token — только в HttpOnly cookie."
+    "version": "1.2.0",
+    "description": "Целевой контракт регистрации, JWT-аутентификации, профилей, приглашений и расписания. Access JWT передаётся как Bearer token, refresh token — только в HttpOnly cookie. Tutoring и составные Workflows ещё предстоит реализовать поверх существующего Identity/Notifications MVP; Scheduling реализуется отдельным этапом. Публичные данные активного учебного профиля доступны без связи."
   },
   "servers": [
     {
@@ -16,6 +16,12 @@
     }
   ],
   "tags": [
+    {
+      "name": "Tutoring"
+    },
+    {
+      "name": "Workflows"
+    },
     {
       "name": "Auth"
     },
@@ -41,7 +47,7 @@
         ],
         "summary": "Зарегистрировать пользователя",
         "security": [],
-        "description": "Обязательны email, пароль, имя, фамилия и минимум одна роль. Создаёт аккаунт PENDING_EMAIL_VERIFICATION без access и refresh token.",
+        "description": "Workflows атомарно создаёт Identity User с birthDate и профиль для каждой роли. Ответ 202 без токенов до подтверждения account email.",
         "requestBody": {
           "required": true,
           "content": {
@@ -103,7 +109,19 @@
               }
             }
           }
-        }
+        },
+        "parameters": [
+          {
+            "name": "Idempotency-Key",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "description": "Стабильный UUID для безопасного повтора того же запроса."
+          }
+        ]
       }
     },
     "/auth/email-verification/confirm": {
@@ -606,718 +624,6 @@
         }
       }
     },
-    "/subjects": {
-      "get": {
-        "operationId": "listSubjects",
-        "tags": [
-          "Catalog"
-        ],
-        "summary": "Получить справочник предметов",
-        "responses": {
-          "200": {
-            "description": "Активные предметы.",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/SubjectListResponse"
-                }
-              }
-            }
-          },
-          "401": {
-            "description": "Не аутентифицирован.",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ApiError"
-                }
-              }
-            }
-          },
-          "500": {
-            "description": "Внутренняя ошибка.",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ApiError"
-                }
-              }
-            }
-          }
-        }
-      }
-    },
-    "/teachers/me": {
-      "get": {
-        "operationId": "getMyTeacherProfile",
-        "tags": [
-          "Profiles"
-        ],
-        "summary": "Получить свой профиль репетитора",
-        "responses": {
-          "200": {
-            "description": "Профиль репетитора.",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/TeacherProfileResponse"
-                }
-              }
-            }
-          },
-          "401": {
-            "description": "Не аутентифицирован.",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ApiError"
-                }
-              }
-            }
-          },
-          "403": {
-            "description": "Действие запрещено.",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ApiError"
-                }
-              }
-            }
-          },
-          "404": {
-            "description": "Ресурс не найден или скрыт.",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ApiError"
-                }
-              }
-            }
-          },
-          "500": {
-            "description": "Внутренняя ошибка.",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ApiError"
-                }
-              }
-            }
-          }
-        }
-      },
-      "put": {
-        "operationId": "upsertMyTeacherProfile",
-        "tags": [
-          "Profiles"
-        ],
-        "summary": "Создать или заменить свой профиль репетитора",
-        "requestBody": {
-          "required": true,
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/TeacherProfileUpsertRequest"
-              }
-            }
-          }
-        },
-        "responses": {
-          "200": {
-            "description": "Профиль обновлён.",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/TeacherProfileResponse"
-                }
-              }
-            }
-          },
-          "201": {
-            "description": "Профиль создан.",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/TeacherProfileResponse"
-                }
-              }
-            }
-          },
-          "400": {
-            "description": "Ошибка формата или валидации.",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ApiError"
-                }
-              }
-            }
-          },
-          "401": {
-            "description": "Не аутентифицирован.",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ApiError"
-                }
-              }
-            }
-          },
-          "403": {
-            "description": "Действие запрещено.",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ApiError"
-                }
-              }
-            }
-          },
-          "500": {
-            "description": "Внутренняя ошибка.",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ApiError"
-                }
-              }
-            }
-          }
-        }
-      }
-    },
-    "/students/me": {
-      "get": {
-        "operationId": "getMyStudentProfile",
-        "tags": [
-          "Profiles"
-        ],
-        "summary": "Получить свой профиль ученика",
-        "responses": {
-          "200": {
-            "description": "Профиль ученика.",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/StudentProfileResponse"
-                }
-              }
-            }
-          },
-          "401": {
-            "description": "Не аутентифицирован.",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ApiError"
-                }
-              }
-            }
-          },
-          "403": {
-            "description": "Действие запрещено.",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ApiError"
-                }
-              }
-            }
-          },
-          "404": {
-            "description": "Ресурс не найден или скрыт.",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ApiError"
-                }
-              }
-            }
-          },
-          "500": {
-            "description": "Внутренняя ошибка.",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ApiError"
-                }
-              }
-            }
-          }
-        }
-      },
-      "put": {
-        "operationId": "upsertMyStudentProfile",
-        "tags": [
-          "Profiles"
-        ],
-        "summary": "Создать или заменить свой профиль ученика",
-        "requestBody": {
-          "required": true,
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/StudentProfileUpsertRequest"
-              }
-            }
-          }
-        },
-        "responses": {
-          "200": {
-            "description": "Профиль обновлён.",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/StudentProfileResponse"
-                }
-              }
-            }
-          },
-          "201": {
-            "description": "Профиль создан.",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/StudentProfileResponse"
-                }
-              }
-            }
-          },
-          "400": {
-            "description": "Ошибка формата или валидации.",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ApiError"
-                }
-              }
-            }
-          },
-          "401": {
-            "description": "Не аутентифицирован.",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ApiError"
-                }
-              }
-            }
-          },
-          "403": {
-            "description": "Действие запрещено.",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ApiError"
-                }
-              }
-            }
-          },
-          "500": {
-            "description": "Внутренняя ошибка.",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ApiError"
-                }
-              }
-            }
-          }
-        }
-      }
-    },
-    "/teachers/me/student-invitations": {
-      "post": {
-        "operationId": "inviteStudent",
-        "tags": [
-          "Invitations"
-        ],
-        "summary": "Пригласить ученика по email",
-        "requestBody": {
-          "required": true,
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/CreateStudentInvitationRequest"
-              }
-            }
-          }
-        },
-        "responses": {
-          "201": {
-            "description": "Приглашение создано на 30 суток.",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/StudentInvitationResponse"
-                }
-              }
-            }
-          },
-          "400": {
-            "description": "Ошибка формата или валидации.",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ApiError"
-                }
-              }
-            }
-          },
-          "401": {
-            "description": "Не аутентифицирован.",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ApiError"
-                }
-              }
-            }
-          },
-          "403": {
-            "description": "Действие запрещено.",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ApiError"
-                }
-              }
-            }
-          },
-          "409": {
-            "description": "Конфликт состояния.",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ApiError"
-                }
-              }
-            }
-          },
-          "429": {
-            "description": "Слишком много запросов.",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ApiError"
-                }
-              }
-            }
-          },
-          "500": {
-            "description": "Внутренняя ошибка.",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ApiError"
-                }
-              }
-            }
-          }
-        }
-      }
-    },
-    "/students/me/invitations": {
-      "get": {
-        "operationId": "listMyStudentInvitations",
-        "tags": [
-          "Invitations"
-        ],
-        "summary": "Получить входящие приглашения",
-        "parameters": [
-          {
-            "name": "status",
-            "in": "query",
-            "required": false,
-            "schema": {
-              "$ref": "#/components/schemas/InvitationStatus"
-            }
-          },
-          {
-            "$ref": "#/components/parameters/Cursor"
-          },
-          {
-            "$ref": "#/components/parameters/Limit"
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "Приглашения, createdAt DESC и id DESC.",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/StudentInvitationPage"
-                }
-              }
-            }
-          },
-          "400": {
-            "description": "Ошибка формата или валидации.",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ApiError"
-                }
-              }
-            }
-          },
-          "401": {
-            "description": "Не аутентифицирован.",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ApiError"
-                }
-              }
-            }
-          },
-          "403": {
-            "description": "Действие запрещено.",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ApiError"
-                }
-              }
-            }
-          },
-          "500": {
-            "description": "Внутренняя ошибка.",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ApiError"
-                }
-              }
-            }
-          }
-        }
-      }
-    },
-    "/students/me/invitations/{invitationId}/accept": {
-      "post": {
-        "operationId": "acceptStudentInvitation",
-        "tags": [
-          "Invitations"
-        ],
-        "summary": "Принять приглашение",
-        "parameters": [
-          {
-            "name": "invitationId",
-            "in": "path",
-            "required": true,
-            "schema": {
-              "type": "string",
-              "minLength": 1,
-              "maxLength": 100,
-              "description": "Непрозрачный идентификатор StudentInvitation."
-            }
-          }
-        ],
-        "responses": {
-          "204": {
-            "description": "Связь создана."
-          },
-          "401": {
-            "description": "Не аутентифицирован.",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ApiError"
-                }
-              }
-            }
-          },
-          "403": {
-            "description": "Действие запрещено.",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ApiError"
-                }
-              }
-            }
-          },
-          "404": {
-            "description": "Ресурс не найден или скрыт.",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ApiError"
-                }
-              }
-            }
-          },
-          "409": {
-            "description": "Конфликт состояния.",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ApiError"
-                }
-              }
-            }
-          },
-          "500": {
-            "description": "Внутренняя ошибка.",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ApiError"
-                }
-              }
-            }
-          }
-        }
-      }
-    },
-    "/students/me/invitations/{invitationId}/reject": {
-      "post": {
-        "operationId": "rejectStudentInvitation",
-        "tags": [
-          "Invitations"
-        ],
-        "summary": "Отклонить приглашение",
-        "parameters": [
-          {
-            "name": "invitationId",
-            "in": "path",
-            "required": true,
-            "schema": {
-              "type": "string",
-              "minLength": 1,
-              "maxLength": 100,
-              "description": "Непрозрачный идентификатор StudentInvitation."
-            }
-          }
-        ],
-        "responses": {
-          "204": {
-            "description": "Приглашение отклонено."
-          },
-          "401": {
-            "description": "Не аутентифицирован.",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ApiError"
-                }
-              }
-            }
-          },
-          "403": {
-            "description": "Действие запрещено.",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ApiError"
-                }
-              }
-            }
-          },
-          "404": {
-            "description": "Ресурс не найден или скрыт.",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ApiError"
-                }
-              }
-            }
-          },
-          "409": {
-            "description": "Конфликт состояния.",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ApiError"
-                }
-              }
-            }
-          },
-          "500": {
-            "description": "Внутренняя ошибка.",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ApiError"
-                }
-              }
-            }
-          }
-        }
-      }
-    },
-    "/teachers/me/students": {
-      "get": {
-        "operationId": "listMyStudents",
-        "tags": [
-          "Invitations"
-        ],
-        "summary": "Получить своих учеников",
-        "parameters": [
-          {
-            "$ref": "#/components/parameters/Cursor"
-          },
-          {
-            "$ref": "#/components/parameters/Limit"
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "Ученики, lastName ASC, firstName ASC, id ASC.",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/StudentPage"
-                }
-              }
-            }
-          },
-          "400": {
-            "description": "Ошибка формата или валидации.",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ApiError"
-                }
-              }
-            }
-          },
-          "401": {
-            "description": "Не аутентифицирован.",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ApiError"
-                }
-              }
-            }
-          },
-          "403": {
-            "description": "Действие запрещено.",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ApiError"
-                }
-              }
-            }
-          },
-          "500": {
-            "description": "Внутренняя ошибка.",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ApiError"
-                }
-              }
-            }
-          }
-        }
-      }
-    },
     "/teachers/me/students/{studentUserId}": {
       "get": {
         "operationId": "getMyStudent",
@@ -1389,7 +695,8 @@
               }
             }
           }
-        }
+        },
+        "description": "Составная карточка: профильные сведения публичны, статистика уроков доступна только связанному преподавателю."
       },
       "delete": {
         "operationId": "unlinkMyStudent",
@@ -1404,13 +711,21 @@
             "required": true,
             "schema": {
               "type": "string",
-              "minLength": 1,
-              "maxLength": 100,
-              "description": "Непрозрачный идентификатор User."
+              "format": "uuid"
             }
+          },
+          {
+            "name": "Idempotency-Key",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "description": "Стабильный UUID для безопасного повтора того же запроса."
           }
         ],
-        "description": "Атомарно отменяет будущие индивидуальные уроки с причиной STUDENT_UNLINKED, удаляет ученика из будущих групповых уроков и меняет группу из одного участника на INDIVIDUAL.",
+        "description": "UnlinkStudentWorkflow обрабатывает будущие уроки через Scheduling, затем удаляет связь Tutoring в общей транзакции.",
         "responses": {
           "204": {
             "description": "Ученик отвязан."
@@ -1447,75 +762,6 @@
           },
           "409": {
             "description": "Конфликт состояния.",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ApiError"
-                }
-              }
-            }
-          },
-          "500": {
-            "description": "Внутренняя ошибка.",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ApiError"
-                }
-              }
-            }
-          }
-        }
-      }
-    },
-    "/students/me/teachers": {
-      "get": {
-        "operationId": "listMyTeachers",
-        "tags": [
-          "Invitations"
-        ],
-        "summary": "Получить своих репетиторов",
-        "parameters": [
-          {
-            "$ref": "#/components/parameters/Cursor"
-          },
-          {
-            "$ref": "#/components/parameters/Limit"
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "Репетиторы и их email.",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/TeacherContactPage"
-                }
-              }
-            }
-          },
-          "400": {
-            "description": "Ошибка формата или валидации.",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ApiError"
-                }
-              }
-            }
-          },
-          "401": {
-            "description": "Не аутентифицирован.",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ApiError"
-                }
-              }
-            }
-          },
-          "403": {
-            "description": "Действие запрещено.",
             "content": {
               "application/json": {
                 "schema": {
@@ -2290,6 +1536,1721 @@
           }
         }
       }
+    },
+    "/tutoring/subjects": {
+      "get": {
+        "operationId": "getSubjects",
+        "tags": [
+          "Tutoring"
+        ],
+        "summary": "Справочник предметов",
+        "security": [],
+        "responses": {
+          "200": {
+            "description": "Справочник предметов",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/SubjectResponse"
+                  }
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Ошибка 500.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Ошибка 503.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/tutoring/profiles/teachers": {
+      "get": {
+        "operationId": "searchTeacherProfiles",
+        "tags": [
+          "Tutoring"
+        ],
+        "summary": "Публичный поиск профилей teachers",
+        "security": [],
+        "parameters": [
+          {
+            "name": "subjectCode",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "minAge",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "minimum": 0,
+              "maximum": 150
+            }
+          },
+          {
+            "name": "maxAge",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "minimum": 0,
+              "maximum": 150
+            }
+          },
+          {
+            "$ref": "#/components/parameters/Cursor"
+          },
+          {
+            "$ref": "#/components/parameters/Limit"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Публичный поиск профилей teachers",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PublicTeacherProfilePage"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Ошибка 400.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Ошибка 500.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Ошибка 503.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/tutoring/profiles/teachers/{userId}": {
+      "get": {
+        "operationId": "getPublicTeacherProfile",
+        "tags": [
+          "Tutoring"
+        ],
+        "summary": "Публичный профиль teachers",
+        "security": [],
+        "parameters": [
+          {
+            "name": "userId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Публичный профиль teachers",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PublicTeacherProfileResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Ошибка 400.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Ошибка 404.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Ошибка 500.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Ошибка 503.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/tutoring/profiles/teacher": {
+      "put": {
+        "operationId": "updateTeacherProfile",
+        "tags": [
+          "Tutoring"
+        ],
+        "summary": "Обновить свой teacher профиль",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/TeacherProfileUpdateRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "204": {
+            "description": "Обновить свой teacher профиль"
+          },
+          "400": {
+            "description": "Ошибка 400.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Ошибка 401.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Ошибка 403.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Ошибка 404.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Ошибка 409.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Ошибка 500.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/tutoring/profiles/students": {
+      "get": {
+        "operationId": "searchStudentProfiles",
+        "tags": [
+          "Tutoring"
+        ],
+        "summary": "Публичный поиск профилей students",
+        "security": [],
+        "parameters": [
+          {
+            "name": "subjectCode",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "minAge",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "minimum": 0,
+              "maximum": 150
+            }
+          },
+          {
+            "name": "maxAge",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "minimum": 0,
+              "maximum": 150
+            }
+          },
+          {
+            "$ref": "#/components/parameters/Cursor"
+          },
+          {
+            "$ref": "#/components/parameters/Limit"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Публичный поиск профилей students",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PublicStudentProfilePage"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Ошибка 400.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Ошибка 500.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Ошибка 503.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/tutoring/profiles/students/{userId}": {
+      "get": {
+        "operationId": "getPublicStudentProfile",
+        "tags": [
+          "Tutoring"
+        ],
+        "summary": "Публичный профиль students",
+        "security": [],
+        "parameters": [
+          {
+            "name": "userId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Публичный профиль students",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PublicStudentProfileResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Ошибка 400.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Ошибка 404.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Ошибка 500.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Ошибка 503.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/tutoring/profiles/student": {
+      "put": {
+        "operationId": "updateStudentProfile",
+        "tags": [
+          "Tutoring"
+        ],
+        "summary": "Обновить свой student профиль",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/StudentProfileUpdateRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "204": {
+            "description": "Обновить свой student профиль"
+          },
+          "400": {
+            "description": "Ошибка 400.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Ошибка 401.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Ошибка 403.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Ошибка 404.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Ошибка 409.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Ошибка 500.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/tutoring/profiles/{type}/contact-email": {
+      "put": {
+        "operationId": "changeProfileContactEmail",
+        "tags": [
+          "Tutoring"
+        ],
+        "summary": "Изменить профильный email",
+        "parameters": [
+          {
+            "name": "type",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "enum": [
+                "teacher",
+                "student"
+              ]
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ProfileEmailChangeRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Изменить профильный email",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProfileEmailRequestResult"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Ошибка 400.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Ошибка 401.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Ошибка 403.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Ошибка 404.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Ошибка 429.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Ошибка 500.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Ошибка 503.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/tutoring/profiles/{type}/contact-email/confirmation-requests": {
+      "post": {
+        "operationId": "requestProfileEmailConfirmation",
+        "tags": [
+          "Tutoring"
+        ],
+        "summary": "Повторить подтверждение профильной почты",
+        "parameters": [
+          {
+            "name": "type",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "enum": [
+                "teacher",
+                "student"
+              ]
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ProfileEmailConfirmationRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Повторить подтверждение профильной почты",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProfileEmailRequestResult"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Ошибка 400.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Ошибка 401.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Ошибка 403.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Ошибка 404.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Ошибка 429.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Ошибка 500.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Ошибка 503.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/tutoring/profile-email-confirmations": {
+      "post": {
+        "operationId": "confirmProfileEmail",
+        "tags": [
+          "Tutoring"
+        ],
+        "summary": "Подтвердить профильную почту",
+        "security": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ProfileEmailTokenRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "204": {
+            "description": "Подтвердить профильную почту"
+          },
+          "400": {
+            "description": "Ошибка 400.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Ошибка 500.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Ошибка 503.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/tutoring/invitations": {
+      "post": {
+        "operationId": "createInvitation",
+        "tags": [
+          "Tutoring"
+        ],
+        "summary": "Пригласить ученика",
+        "parameters": [
+          {
+            "name": "Idempotency-Key",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "description": "Стабильный UUID для безопасного повтора того же запроса."
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateStudentInvitationRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Пригласить ученика",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CreatedInvitationResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Ошибка 400.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Ошибка 401.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Ошибка 403.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Ошибка 409.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Ошибка 429.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Ошибка 500.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Ошибка 503.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/tutoring/invitations/sent": {
+      "get": {
+        "operationId": "listSentInvitations",
+        "tags": [
+          "Tutoring"
+        ],
+        "summary": "Приглашения: sent",
+        "parameters": [
+          {
+            "name": "status",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "$ref": "#/components/schemas/InvitationStatus"
+            }
+          },
+          {
+            "$ref": "#/components/parameters/Cursor"
+          },
+          {
+            "$ref": "#/components/parameters/Limit"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Приглашения: sent",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SentInvitationPage"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Ошибка 400.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Ошибка 401.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Ошибка 403.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Ошибка 404.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Ошибка 409.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Ошибка 500.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/tutoring/invitations/incoming": {
+      "get": {
+        "operationId": "listIncomingInvitations",
+        "tags": [
+          "Tutoring"
+        ],
+        "summary": "Приглашения: incoming",
+        "parameters": [
+          {
+            "name": "status",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "$ref": "#/components/schemas/InvitationStatus"
+            }
+          },
+          {
+            "$ref": "#/components/parameters/Cursor"
+          },
+          {
+            "$ref": "#/components/parameters/Limit"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Приглашения: incoming",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/IncomingInvitationPage"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Ошибка 400.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Ошибка 401.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Ошибка 403.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Ошибка 404.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Ошибка 409.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Ошибка 500.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/tutoring/invitations/{invitationId}/accept": {
+      "post": {
+        "operationId": "acceptInvitation",
+        "tags": [
+          "Tutoring"
+        ],
+        "summary": "accept приглашение",
+        "parameters": [
+          {
+            "name": "invitationId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "Idempotency-Key",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "description": "Стабильный UUID для безопасного повтора того же запроса."
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "accept приглашение",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/InvitationDecisionResult"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Ошибка 400.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Ошибка 401.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Ошибка 403.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Ошибка 404.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Ошибка 409.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Ошибка 500.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/tutoring/invitations/{invitationId}/reject": {
+      "post": {
+        "operationId": "rejectInvitation",
+        "tags": [
+          "Tutoring"
+        ],
+        "summary": "reject приглашение",
+        "parameters": [
+          {
+            "name": "invitationId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "Idempotency-Key",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "description": "Стабильный UUID для безопасного повтора того же запроса."
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "reject приглашение",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/InvitationDecisionResult"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Ошибка 400.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Ошибка 401.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Ошибка 403.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Ошибка 404.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Ошибка 409.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Ошибка 500.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/tutoring/relationships/students": {
+      "get": {
+        "operationId": "listLinkedStudents",
+        "tags": [
+          "Tutoring"
+        ],
+        "summary": "Мои связанные students",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/Cursor"
+          },
+          {
+            "$ref": "#/components/parameters/Limit"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Мои связанные students",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/LinkedStudentsPage"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Ошибка 400.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Ошибка 401.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Ошибка 403.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Ошибка 404.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Ошибка 409.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Ошибка 500.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/tutoring/relationships/teachers": {
+      "get": {
+        "operationId": "listLinkedTeachers",
+        "tags": [
+          "Tutoring"
+        ],
+        "summary": "Мои связанные teachers",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/Cursor"
+          },
+          {
+            "$ref": "#/components/parameters/Limit"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Мои связанные teachers",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/LinkedTeachersPage"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Ошибка 400.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Ошибка 401.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Ошибка 403.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Ошибка 404.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Ошибка 409.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Ошибка 500.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/me/roles/teacher": {
+      "post": {
+        "operationId": "addTeacherRole",
+        "tags": [
+          "Workflows"
+        ],
+        "summary": "Добавить роль teacher вместе с профилем",
+        "parameters": [
+          {
+            "name": "Idempotency-Key",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "description": "Стабильный UUID для безопасного повтора того же запроса."
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/TeacherProfileInput"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Добавить роль teacher вместе с профилем",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MeResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Ошибка 400.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Ошибка 401.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Ошибка 403.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Ошибка 404.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Ошибка 409.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Ошибка 500.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/me/roles/student": {
+      "post": {
+        "operationId": "addStudentRole",
+        "tags": [
+          "Workflows"
+        ],
+        "summary": "Добавить роль student вместе с профилем",
+        "parameters": [
+          {
+            "name": "Idempotency-Key",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "description": "Стабильный UUID для безопасного повтора того же запроса."
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/StudentProfileInput"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Добавить роль student вместе с профилем",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MeResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Ошибка 400.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Ошибка 401.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Ошибка 403.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Ошибка 404.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Ошибка 409.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Ошибка 500.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          }
+        }
+      }
     }
   },
   "components": {
@@ -2441,6 +3402,10 @@
             "type": "string",
             "format": "date-time",
             "description": "Момент последнего изменения аккаунта; сервер возвращает UTC с Z."
+          },
+          "birthDate": {
+            "type": "string",
+            "format": "date"
           }
         },
         "required": [
@@ -2449,6 +3414,7 @@
           "pendingEmail",
           "firstName",
           "lastName",
+          "birthDate",
           "roles",
           "status",
           "emailVerifiedAt",
@@ -2467,7 +3433,8 @@
           "status": "ACTIVE",
           "emailVerifiedAt": "2026-09-06T12:00:00Z",
           "createdAt": "2026-09-06T11:55:00Z",
-          "updatedAt": "2026-09-06T12:00:00Z"
+          "updatedAt": "2026-09-06T12:00:00Z",
+          "birthDate": "2005-04-12"
         }
       },
       "UserSummary": {
@@ -2505,27 +3472,15 @@
         "properties": {
           "id": {
             "type": "string",
-            "minLength": 1,
-            "maxLength": 100,
-            "description": "Непрозрачный идентификатор User."
+            "format": "uuid"
           },
-          "firstName": {
-            "type": "string",
-            "minLength": 1,
-            "maxLength": 100,
-            "description": "Непустое после trim."
-          },
-          "lastName": {
-            "type": "string",
-            "minLength": 1,
-            "maxLength": 100,
-            "description": "Непустое после trim."
+          "displayName": {
+            "type": "string"
           }
         },
         "required": [
           "id",
-          "firstName",
-          "lastName"
+          "displayName"
         ]
       },
       "TeacherContactSummary": {
@@ -2534,33 +3489,21 @@
         "properties": {
           "id": {
             "type": "string",
-            "minLength": 1,
-            "maxLength": 100,
-            "description": "Непрозрачный идентификатор User."
+            "format": "uuid"
           },
-          "email": {
+          "displayName": {
+            "type": "string"
+          },
+          "contactEmail": {
             "type": "string",
             "format": "email",
-            "maxLength": 254
-          },
-          "firstName": {
-            "type": "string",
-            "minLength": 1,
-            "maxLength": 100,
-            "description": "Непустое после trim."
-          },
-          "lastName": {
-            "type": "string",
-            "minLength": 1,
-            "maxLength": 100,
-            "description": "Непустое после trim."
+            "nullable": true
           }
         },
         "required": [
           "id",
-          "email",
-          "firstName",
-          "lastName"
+          "displayName",
+          "contactEmail"
         ]
       },
       "StudentSummary": {
@@ -2569,85 +3512,29 @@
         "properties": {
           "id": {
             "type": "string",
-            "minLength": 1,
-            "maxLength": 100,
-            "description": "Непрозрачный идентификатор User."
+            "format": "uuid"
           },
-          "firstName": {
-            "type": "string",
-            "minLength": 1,
-            "maxLength": 100,
-            "description": "Непустое после trim."
-          },
-          "lastName": {
-            "type": "string",
-            "minLength": 1,
-            "maxLength": 100,
-            "description": "Непустое после trim."
+          "displayName": {
+            "type": "string"
           }
         },
         "required": [
           "id",
-          "firstName",
-          "lastName"
+          "displayName"
         ]
       },
       "RegisterRequest": {
-        "type": "object",
-        "additionalProperties": false,
-        "properties": {
-          "email": {
-            "type": "string",
-            "format": "email",
-            "maxLength": 254
+        "oneOf": [
+          {
+            "$ref": "#/components/schemas/TeacherRegistrationRequest"
           },
-          "password": {
-            "type": "string",
-            "format": "password",
-            "minLength": 8,
-            "maxLength": 72,
-            "pattern": "^[!-~]+$",
-            "description": "Only printable ASCII characters from ! to ~; spaces are not allowed.",
-            "writeOnly": true
+          {
+            "$ref": "#/components/schemas/StudentRegistrationRequest"
           },
-          "firstName": {
-            "type": "string",
-            "minLength": 1,
-            "maxLength": 100,
-            "description": "Непустое после trim."
-          },
-          "lastName": {
-            "type": "string",
-            "minLength": 1,
-            "maxLength": 100,
-            "description": "Непустое после trim."
-          },
-          "roles": {
-            "type": "array",
-            "items": {
-              "$ref": "#/components/schemas/UserRole"
-            },
-            "minItems": 1,
-            "maxItems": 2,
-            "uniqueItems": true
+          {
+            "$ref": "#/components/schemas/TeacherStudentRegistrationRequest"
           }
-        },
-        "required": [
-          "email",
-          "password",
-          "firstName",
-          "lastName",
-          "roles"
-        ],
-        "example": {
-          "email": "anna@example.com",
-          "password": "example-password",
-          "firstName": "Анна",
-          "lastName": "Петрова",
-          "roles": [
-            "STUDENT"
-          ]
-        }
+        ]
       },
       "VerificationPendingResponse": {
         "type": "object",
@@ -2803,231 +3690,153 @@
         "type": "object",
         "additionalProperties": false,
         "properties": {
-          "code": {
-            "type": "string",
-            "minLength": 1,
-            "maxLength": 50,
-            "pattern": "^[A-Z][A-Z0-9_]*$"
+          "subjectCode": {
+            "type": "string"
           },
           "name": {
-            "type": "string",
-            "minLength": 1,
-            "maxLength": 100
+            "type": "string"
           }
         },
         "required": [
-          "code",
+          "subjectCode",
           "name"
         ]
-      },
-      "SubjectListResponse": {
-        "type": "object",
-        "additionalProperties": false,
-        "properties": {
-          "items": {
-            "type": "array",
-            "items": {
-              "$ref": "#/components/schemas/SubjectResponse"
-            }
-          }
-        },
-        "required": [
-          "items"
-        ],
-        "example": {
-          "items": [
-            {
-              "code": "MATH",
-              "name": "Математика"
-            }
-          ]
-        }
-      },
-      "TeacherProfileUpsertRequest": {
-        "type": "object",
-        "additionalProperties": false,
-        "properties": {
-          "subjectCodes": {
-            "type": "array",
-            "items": {
-              "type": "string",
-              "minLength": 1,
-              "maxLength": 50,
-              "pattern": "^[A-Z][A-Z0-9_]*$"
-            },
-            "minItems": 1,
-            "uniqueItems": true
-          },
-          "description": {
-            "type": "string",
-            "maxLength": 500,
-            "nullable": true
-          },
-          "education": {
-            "type": "string",
-            "maxLength": 500,
-            "nullable": true
-          },
-          "experienceYears": {
-            "type": "integer",
-            "minimum": 0,
-            "maximum": 100,
-            "nullable": true
-          },
-          "city": {
-            "type": "string",
-            "maxLength": 100,
-            "nullable": true
-          },
-          "photoUrl": {
-            "type": "string",
-            "format": "uri",
-            "maxLength": 2048,
-            "nullable": true
-          }
-        },
-        "required": [
-          "subjectCodes"
-        ],
-        "example": {
-          "subjectCodes": [
-            "MATH"
-          ],
-          "description": "Готовлю к экзаменам",
-          "education": null,
-          "experienceYears": 5,
-          "city": "Москва",
-          "photoUrl": null
-        }
       },
       "TeacherProfileResponse": {
         "type": "object",
         "additionalProperties": false,
         "properties": {
-          "user": {
-            "$ref": "#/components/schemas/UserResponse"
+          "userId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "birthDate": {
+            "type": "string",
+            "format": "date"
+          },
+          "displayName": {
+            "type": "string"
+          },
+          "contactEmail": {
+            "type": "string",
+            "format": "email"
+          },
+          "contactDetails": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
           },
           "subjectCodes": {
             "type": "array",
             "items": {
-              "type": "string",
-              "minLength": 1,
-              "maxLength": 50,
-              "pattern": "^[A-Z][A-Z0-9_]*$"
-            },
-            "minItems": 1,
-            "uniqueItems": true
+              "type": "string"
+            }
+          },
+          "photoUrl": {
+            "type": "string",
+            "nullable": true
           },
           "description": {
             "type": "string",
-            "maxLength": 500,
             "nullable": true
           },
           "education": {
             "type": "string",
-            "maxLength": 500,
             "nullable": true
           },
           "experienceYears": {
             "type": "integer",
             "minimum": 0,
-            "maximum": 100,
             "nullable": true
           },
           "city": {
             "type": "string",
-            "maxLength": 100,
             "nullable": true
           },
-          "photoUrl": {
+          "pendingContactEmail": {
             "type": "string",
-            "format": "uri",
-            "maxLength": 2048,
+            "format": "email",
+            "nullable": true
+          },
+          "contactEmailVerifiedAt": {
+            "type": "string",
+            "format": "date-time",
             "nullable": true
           }
         },
         "required": [
-          "user",
+          "userId",
+          "birthDate",
+          "displayName",
+          "contactEmail",
+          "contactDetails",
           "subjectCodes",
+          "photoUrl",
           "description",
           "education",
           "experienceYears",
           "city",
-          "photoUrl"
+          "pendingContactEmail",
+          "contactEmailVerifiedAt"
         ]
-      },
-      "StudentProfileUpsertRequest": {
-        "type": "object",
-        "additionalProperties": false,
-        "properties": {
-          "birthDate": {
-            "type": "string",
-            "format": "date"
-          },
-          "subjectCodes": {
-            "type": "array",
-            "items": {
-              "type": "string",
-              "minLength": 1,
-              "maxLength": 50,
-              "pattern": "^[A-Z][A-Z0-9_]*$"
-            },
-            "minItems": 1,
-            "uniqueItems": true
-          },
-          "photoUrl": {
-            "type": "string",
-            "format": "uri",
-            "maxLength": 2048,
-            "nullable": true
-          }
-        },
-        "required": [
-          "birthDate",
-          "subjectCodes"
-        ],
-        "example": {
-          "birthDate": "2010-05-14",
-          "subjectCodes": [
-            "MATH"
-          ],
-          "photoUrl": null
-        }
       },
       "StudentProfileResponse": {
         "type": "object",
         "additionalProperties": false,
         "properties": {
-          "user": {
-            "$ref": "#/components/schemas/UserResponse"
+          "userId": {
+            "type": "string",
+            "format": "uuid"
           },
           "birthDate": {
             "type": "string",
             "format": "date"
           },
+          "displayName": {
+            "type": "string"
+          },
+          "contactEmail": {
+            "type": "string",
+            "format": "email"
+          },
+          "contactDetails": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
           "subjectCodes": {
             "type": "array",
             "items": {
-              "type": "string",
-              "minLength": 1,
-              "maxLength": 50,
-              "pattern": "^[A-Z][A-Z0-9_]*$"
-            },
-            "minItems": 1,
-            "uniqueItems": true
+              "type": "string"
+            }
           },
           "photoUrl": {
             "type": "string",
-            "format": "uri",
-            "maxLength": 2048,
+            "nullable": true
+          },
+          "pendingContactEmail": {
+            "type": "string",
+            "format": "email",
+            "nullable": true
+          },
+          "contactEmailVerifiedAt": {
+            "type": "string",
+            "format": "date-time",
             "nullable": true
           }
         },
         "required": [
-          "user",
+          "userId",
           "birthDate",
+          "displayName",
+          "contactEmail",
+          "contactDetails",
           "subjectCodes",
-          "photoUrl"
+          "photoUrl",
+          "pendingContactEmail",
+          "contactEmailVerifiedAt"
         ]
       },
       "MeResponse": {
@@ -3073,209 +3882,58 @@
         "type": "object",
         "additionalProperties": false,
         "properties": {
-          "email": {
-            "type": "string",
-            "format": "email",
-            "maxLength": 254
-          }
-        },
-        "required": [
-          "email"
-        ],
-        "example": {
-          "email": "anna@example.com"
-        }
-      },
-      "StudentInvitationResponse": {
-        "type": "object",
-        "additionalProperties": false,
-        "properties": {
-          "id": {
-            "type": "string",
-            "minLength": 1,
-            "maxLength": 100,
-            "description": "Непрозрачный идентификатор StudentInvitation."
-          },
-          "teacher": {
-            "$ref": "#/components/schemas/TeacherContactSummary"
-          },
           "studentEmail": {
             "type": "string",
-            "format": "email",
-            "maxLength": 254
-          },
-          "studentUserId": {
-            "type": "string",
-            "minLength": 1,
-            "maxLength": 100,
-            "description": "Непрозрачный идентификатор User.",
-            "nullable": true
-          },
-          "status": {
-            "$ref": "#/components/schemas/InvitationStatus"
-          },
-          "createdAt": {
-            "type": "string",
-            "format": "date-time",
-            "description": "RFC 3339 с обязательным Z или UTC-offset; сервер возвращает UTC с Z."
-          },
-          "expiresAt": {
-            "type": "string",
-            "format": "date-time",
-            "description": "RFC 3339 с обязательным Z или UTC-offset; сервер возвращает UTC с Z."
-          },
-          "respondedAt": {
-            "type": "string",
-            "format": "date-time",
-            "description": "RFC 3339 с обязательным Z или UTC-offset; сервер возвращает UTC с Z.",
-            "nullable": true
+            "format": "email"
           }
         },
         "required": [
-          "id",
-          "teacher",
-          "studentEmail",
-          "studentUserId",
-          "status",
-          "createdAt",
-          "expiresAt",
-          "respondedAt"
-        ],
-        "example": {
-          "id": "inv_001",
-          "teacher": {
-            "id": "u_001",
-            "email": "alex@example.com",
-            "firstName": "Алексей",
-            "lastName": "Иванов"
-          },
-          "studentEmail": "anna@example.com",
-          "studentUserId": "u_002",
-          "status": "PENDING",
-          "createdAt": "2026-09-06T12:00:00Z",
-          "expiresAt": "2026-10-06T12:00:00Z",
-          "respondedAt": null
-        }
-      },
-      "StudentInvitationPage": {
-        "type": "object",
-        "additionalProperties": false,
-        "properties": {
-          "items": {
-            "type": "array",
-            "items": {
-              "$ref": "#/components/schemas/StudentInvitationResponse"
-            }
-          },
-          "nextCursor": {
-            "type": "string",
-            "nullable": true
-          }
-        },
-        "required": [
-          "items",
-          "nextCursor"
-        ]
-      },
-      "StudentListItem": {
-        "type": "object",
-        "additionalProperties": false,
-        "properties": {
-          "id": {
-            "type": "string",
-            "minLength": 1,
-            "maxLength": 100,
-            "description": "Непрозрачный идентификатор User."
-          },
-          "firstName": {
-            "type": "string",
-            "minLength": 1,
-            "maxLength": 100,
-            "description": "Непустое после trim."
-          },
-          "lastName": {
-            "type": "string",
-            "minLength": 1,
-            "maxLength": 100,
-            "description": "Непустое после trim."
-          },
-          "profileCompleted": {
-            "type": "boolean"
-          },
-          "photoUrl": {
-            "type": "string",
-            "format": "uri",
-            "maxLength": 2048,
-            "nullable": true
-          },
-          "subjectCodes": {
-            "type": "array",
-            "items": {
-              "type": "string",
-              "minLength": 1,
-              "maxLength": 50,
-              "pattern": "^[A-Z][A-Z0-9_]*$"
-            },
-            "uniqueItems": true
-          }
-        },
-        "required": [
-          "id",
-          "firstName",
-          "lastName",
-          "profileCompleted",
-          "photoUrl",
-          "subjectCodes"
-        ]
-      },
-      "StudentPage": {
-        "type": "object",
-        "additionalProperties": false,
-        "properties": {
-          "items": {
-            "type": "array",
-            "items": {
-              "$ref": "#/components/schemas/StudentListItem"
-            }
-          },
-          "nextCursor": {
-            "type": "string",
-            "nullable": true
-          }
-        },
-        "required": [
-          "items",
-          "nextCursor"
+          "studentEmail"
         ]
       },
       "StudentCardProfile": {
         "type": "object",
         "additionalProperties": false,
         "properties": {
+          "userId": {
+            "type": "string",
+            "format": "uuid"
+          },
           "birthDate": {
             "type": "string",
             "format": "date"
           },
+          "displayName": {
+            "type": "string"
+          },
+          "contactEmail": {
+            "type": "string",
+            "format": "email",
+            "nullable": true
+          },
+          "contactDetails": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
           "subjectCodes": {
             "type": "array",
             "items": {
-              "type": "string",
-              "minLength": 1,
-              "maxLength": 50,
-              "pattern": "^[A-Z][A-Z0-9_]*$"
-            },
-            "minItems": 1,
-            "uniqueItems": true
+              "type": "string"
+            }
           },
           "photoUrl": {
             "type": "string",
-            "format": "uri",
-            "maxLength": 2048,
             "nullable": true
           }
         },
         "required": [
+          "userId",
           "birthDate",
+          "displayName",
+          "contactEmail",
+          "contactDetails",
           "subjectCodes",
           "photoUrl"
         ]
@@ -3321,34 +3979,10 @@
         "properties": {
           "id": {
             "type": "string",
-            "minLength": 1,
-            "maxLength": 100,
-            "description": "Непрозрачный идентификатор User."
-          },
-          "email": {
-            "type": "string",
-            "format": "email",
-            "maxLength": 254
-          },
-          "firstName": {
-            "type": "string",
-            "minLength": 1,
-            "maxLength": 100,
-            "description": "Непустое после trim."
-          },
-          "lastName": {
-            "type": "string",
-            "minLength": 1,
-            "maxLength": 100,
-            "description": "Непустое после trim."
+            "format": "uuid"
           },
           "profile": {
-            "allOf": [
-              {
-                "$ref": "#/components/schemas/StudentCardProfile"
-              }
-            ],
-            "nullable": true
+            "$ref": "#/components/schemas/StudentCardProfile"
           },
           "statistics": {
             "$ref": "#/components/schemas/StudentStatistics"
@@ -3356,94 +3990,8 @@
         },
         "required": [
           "id",
-          "email",
-          "firstName",
-          "lastName",
           "profile",
           "statistics"
-        ]
-      },
-      "TeacherContactResponse": {
-        "type": "object",
-        "additionalProperties": false,
-        "properties": {
-          "id": {
-            "type": "string",
-            "minLength": 1,
-            "maxLength": 100,
-            "description": "Непрозрачный идентификатор User."
-          },
-          "email": {
-            "type": "string",
-            "format": "email",
-            "maxLength": 254
-          },
-          "firstName": {
-            "type": "string",
-            "minLength": 1,
-            "maxLength": 100,
-            "description": "Непустое после trim."
-          },
-          "lastName": {
-            "type": "string",
-            "minLength": 1,
-            "maxLength": 100,
-            "description": "Непустое после trim."
-          },
-          "profileCompleted": {
-            "type": "boolean"
-          },
-          "subjectCodes": {
-            "type": "array",
-            "items": {
-              "type": "string",
-              "minLength": 1,
-              "maxLength": 50,
-              "pattern": "^[A-Z][A-Z0-9_]*$"
-            },
-            "uniqueItems": true
-          },
-          "description": {
-            "type": "string",
-            "maxLength": 500,
-            "nullable": true
-          },
-          "photoUrl": {
-            "type": "string",
-            "format": "uri",
-            "maxLength": 2048,
-            "nullable": true
-          }
-        },
-        "required": [
-          "id",
-          "email",
-          "firstName",
-          "lastName",
-          "profileCompleted",
-          "subjectCodes",
-          "description",
-          "photoUrl"
-        ]
-      },
-      "TeacherContactPage": {
-        "type": "object",
-        "additionalProperties": false,
-        "properties": {
-          "items": {
-            "type": "array",
-            "items": {
-              "$ref": "#/components/schemas/TeacherContactResponse"
-            }
-          },
-          "nextCursor": {
-            "type": "string",
-            "nullable": true
-          }
-        },
-        "required": [
-          "items",
-          "nextCursor"
         ]
       },
       "LessonFormat": {
@@ -5304,6 +5852,811 @@
           "fieldErrors": [],
           "requestId": "req_001"
         }
+      },
+      "TeacherProfileInput": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "displayName": {
+            "type": "string"
+          },
+          "contactEmail": {
+            "type": "string",
+            "format": "email"
+          },
+          "contactDetails": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "subjectCodes": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "minItems": 1
+          },
+          "description": {
+            "type": "string",
+            "nullable": true
+          },
+          "education": {
+            "type": "string",
+            "nullable": true
+          },
+          "experienceYears": {
+            "type": "integer",
+            "minimum": 0,
+            "nullable": true
+          },
+          "city": {
+            "type": "string",
+            "nullable": true
+          },
+          "photoUrl": {
+            "type": "string",
+            "nullable": true
+          }
+        },
+        "required": [
+          "displayName",
+          "contactEmail",
+          "contactDetails",
+          "subjectCodes"
+        ]
+      },
+      "StudentProfileInput": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "displayName": {
+            "type": "string"
+          },
+          "contactEmail": {
+            "type": "string",
+            "format": "email"
+          },
+          "contactDetails": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "subjectCodes": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "photoUrl": {
+            "type": "string",
+            "nullable": true
+          }
+        },
+        "required": [
+          "displayName",
+          "contactEmail",
+          "contactDetails",
+          "subjectCodes"
+        ]
+      },
+      "TeacherRegistrationRequest": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "email": {
+            "type": "string",
+            "format": "email",
+            "maxLength": 254
+          },
+          "password": {
+            "type": "string",
+            "format": "password",
+            "minLength": 8,
+            "maxLength": 72,
+            "pattern": "^[!-~]+$",
+            "description": "Only printable ASCII characters from ! to ~; spaces are not allowed.",
+            "writeOnly": true
+          },
+          "firstName": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 100,
+            "description": "Непустое после trim."
+          },
+          "lastName": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 100,
+            "description": "Непустое после trim."
+          },
+          "birthDate": {
+            "type": "string",
+            "format": "date"
+          },
+          "roles": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/UserRole"
+            },
+            "enum": [
+              [
+                "TEACHER"
+              ]
+            ],
+            "minItems": 1,
+            "maxItems": 1,
+            "uniqueItems": true
+          },
+          "teacherProfile": {
+            "$ref": "#/components/schemas/TeacherProfileInput"
+          }
+        },
+        "required": [
+          "email",
+          "password",
+          "firstName",
+          "lastName",
+          "birthDate",
+          "roles",
+          "teacherProfile"
+        ],
+        "description": "Роли: TEACHER. Точный набор roles должен совпадать с присутствующими профилями; лишние профили запрещены."
+      },
+      "StudentRegistrationRequest": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "email": {
+            "type": "string",
+            "format": "email",
+            "maxLength": 254
+          },
+          "password": {
+            "type": "string",
+            "format": "password",
+            "minLength": 8,
+            "maxLength": 72,
+            "pattern": "^[!-~]+$",
+            "description": "Only printable ASCII characters from ! to ~; spaces are not allowed.",
+            "writeOnly": true
+          },
+          "firstName": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 100,
+            "description": "Непустое после trim."
+          },
+          "lastName": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 100,
+            "description": "Непустое после trim."
+          },
+          "birthDate": {
+            "type": "string",
+            "format": "date"
+          },
+          "roles": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/UserRole"
+            },
+            "enum": [
+              [
+                "STUDENT"
+              ]
+            ],
+            "minItems": 1,
+            "maxItems": 1,
+            "uniqueItems": true
+          },
+          "studentProfile": {
+            "$ref": "#/components/schemas/StudentProfileInput"
+          }
+        },
+        "required": [
+          "email",
+          "password",
+          "firstName",
+          "lastName",
+          "birthDate",
+          "roles",
+          "studentProfile"
+        ],
+        "description": "Роли: STUDENT. Точный набор roles должен совпадать с присутствующими профилями; лишние профили запрещены."
+      },
+      "TeacherStudentRegistrationRequest": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "email": {
+            "type": "string",
+            "format": "email",
+            "maxLength": 254
+          },
+          "password": {
+            "type": "string",
+            "format": "password",
+            "minLength": 8,
+            "maxLength": 72,
+            "pattern": "^[!-~]+$",
+            "description": "Only printable ASCII characters from ! to ~; spaces are not allowed.",
+            "writeOnly": true
+          },
+          "firstName": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 100,
+            "description": "Непустое после trim."
+          },
+          "lastName": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 100,
+            "description": "Непустое после trim."
+          },
+          "birthDate": {
+            "type": "string",
+            "format": "date"
+          },
+          "roles": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/UserRole"
+            },
+            "enum": [
+              [
+                "TEACHER",
+                "STUDENT"
+              ],
+              [
+                "STUDENT",
+                "TEACHER"
+              ]
+            ],
+            "minItems": 2,
+            "maxItems": 2,
+            "uniqueItems": true
+          },
+          "teacherProfile": {
+            "$ref": "#/components/schemas/TeacherProfileInput"
+          },
+          "studentProfile": {
+            "$ref": "#/components/schemas/StudentProfileInput"
+          }
+        },
+        "required": [
+          "email",
+          "password",
+          "firstName",
+          "lastName",
+          "birthDate",
+          "roles",
+          "teacherProfile",
+          "studentProfile"
+        ],
+        "description": "Роли: TEACHER, STUDENT. Точный набор roles должен совпадать с присутствующими профилями; лишние профили запрещены."
+      },
+      "PublicTeacherProfileResponse": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "userId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "birthDate": {
+            "type": "string",
+            "format": "date"
+          },
+          "displayName": {
+            "type": "string"
+          },
+          "contactEmail": {
+            "type": "string",
+            "format": "email",
+            "nullable": true
+          },
+          "contactDetails": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "subjectCodes": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "photoUrl": {
+            "type": "string",
+            "nullable": true
+          },
+          "description": {
+            "type": "string",
+            "nullable": true
+          },
+          "education": {
+            "type": "string",
+            "nullable": true
+          },
+          "experienceYears": {
+            "type": "integer",
+            "minimum": 0,
+            "nullable": true
+          },
+          "city": {
+            "type": "string",
+            "nullable": true
+          }
+        },
+        "required": [
+          "userId",
+          "birthDate",
+          "displayName",
+          "contactEmail",
+          "contactDetails",
+          "subjectCodes",
+          "photoUrl",
+          "description",
+          "education",
+          "experienceYears",
+          "city"
+        ]
+      },
+      "PublicStudentProfileResponse": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "userId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "birthDate": {
+            "type": "string",
+            "format": "date"
+          },
+          "displayName": {
+            "type": "string"
+          },
+          "contactEmail": {
+            "type": "string",
+            "format": "email",
+            "nullable": true
+          },
+          "contactDetails": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "subjectCodes": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "photoUrl": {
+            "type": "string",
+            "nullable": true
+          }
+        },
+        "required": [
+          "userId",
+          "birthDate",
+          "displayName",
+          "contactEmail",
+          "contactDetails",
+          "subjectCodes",
+          "photoUrl"
+        ]
+      },
+      "TeacherProfileUpdateRequest": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "displayName": {
+            "type": "string"
+          },
+          "contactDetails": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "subjectCodes": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "minItems": 1
+          },
+          "description": {
+            "type": "string",
+            "nullable": true
+          },
+          "education": {
+            "type": "string",
+            "nullable": true
+          },
+          "experienceYears": {
+            "type": "integer",
+            "minimum": 0,
+            "nullable": true
+          },
+          "city": {
+            "type": "string",
+            "nullable": true
+          },
+          "photoUrl": {
+            "type": "string",
+            "nullable": true
+          }
+        },
+        "required": [
+          "displayName",
+          "contactDetails",
+          "subjectCodes"
+        ]
+      },
+      "StudentProfileUpdateRequest": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "displayName": {
+            "type": "string"
+          },
+          "contactDetails": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "subjectCodes": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "photoUrl": {
+            "type": "string",
+            "nullable": true
+          }
+        },
+        "required": [
+          "displayName",
+          "contactDetails",
+          "subjectCodes"
+        ]
+      },
+      "PublicTeacherProfilePage": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "items": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/PublicTeacherProfileResponse"
+            }
+          },
+          "nextCursor": {
+            "type": "string",
+            "nullable": true
+          }
+        },
+        "required": [
+          "items",
+          "nextCursor"
+        ]
+      },
+      "PublicStudentProfilePage": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "items": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/PublicStudentProfileResponse"
+            }
+          },
+          "nextCursor": {
+            "type": "string",
+            "nullable": true
+          }
+        },
+        "required": [
+          "items",
+          "nextCursor"
+        ]
+      },
+      "ProfileEmailChangeRequest": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "newEmail": {
+            "type": "string",
+            "format": "email"
+          }
+        },
+        "required": [
+          "newEmail"
+        ]
+      },
+      "ProfileEmailConfirmationRequest": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "target": {
+            "type": "string",
+            "enum": [
+              "CURRENT",
+              "PENDING"
+            ]
+          }
+        },
+        "required": [
+          "target"
+        ]
+      },
+      "ProfileEmailTokenRequest": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "token": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "token"
+        ]
+      },
+      "ProfileEmailRequestResult": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "state": {
+            "type": "string",
+            "enum": [
+              "CONFIRMED",
+              "AWAITING_ACCOUNT_VERIFICATION",
+              "EMAIL_QUEUED"
+            ]
+          }
+        },
+        "required": [
+          "state"
+        ]
+      },
+      "CreatedInvitationResponse": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "invitationId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "expiresAt": {
+            "type": "string",
+            "format": "date-time"
+          }
+        },
+        "required": [
+          "invitationId",
+          "expiresAt"
+        ]
+      },
+      "SentInvitation": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "invitationId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "studentEmail": {
+            "type": "string",
+            "format": "email"
+          },
+          "status": {
+            "$ref": "#/components/schemas/InvitationStatus"
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "expiresAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "respondedAt": {
+            "type": "string",
+            "format": "date-time",
+            "nullable": true
+          }
+        },
+        "required": [
+          "invitationId",
+          "studentEmail",
+          "status",
+          "createdAt",
+          "expiresAt",
+          "respondedAt"
+        ]
+      },
+      "IncomingInvitation": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "invitationId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "teacher": {
+            "$ref": "#/components/schemas/TeacherSummary"
+          },
+          "status": {
+            "$ref": "#/components/schemas/InvitationStatus"
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "expiresAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "respondedAt": {
+            "type": "string",
+            "format": "date-time",
+            "nullable": true
+          }
+        },
+        "required": [
+          "invitationId",
+          "teacher",
+          "status",
+          "createdAt",
+          "expiresAt",
+          "respondedAt"
+        ]
+      },
+      "SentInvitationPage": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "items": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/SentInvitation"
+            }
+          },
+          "nextCursor": {
+            "type": "string",
+            "nullable": true
+          }
+        },
+        "required": [
+          "items",
+          "nextCursor"
+        ]
+      },
+      "IncomingInvitationPage": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "items": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/IncomingInvitation"
+            }
+          },
+          "nextCursor": {
+            "type": "string",
+            "nullable": true
+          }
+        },
+        "required": [
+          "items",
+          "nextCursor"
+        ]
+      },
+      "InvitationDecisionResult": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "invitationId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "ACCEPTED",
+              "REJECTED"
+            ]
+          }
+        },
+        "required": [
+          "invitationId",
+          "status"
+        ]
+      },
+      "LinkedStudentItem": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "linkedAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "profile": {
+            "$ref": "#/components/schemas/PublicStudentProfileResponse"
+          }
+        },
+        "required": [
+          "linkedAt",
+          "profile"
+        ]
+      },
+      "LinkedStudentsPage": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "items": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/LinkedStudentItem"
+            }
+          },
+          "nextCursor": {
+            "type": "string",
+            "nullable": true
+          }
+        },
+        "required": [
+          "items",
+          "nextCursor"
+        ]
+      },
+      "LinkedTeacherItem": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "linkedAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "profile": {
+            "$ref": "#/components/schemas/PublicTeacherProfileResponse"
+          }
+        },
+        "required": [
+          "linkedAt",
+          "profile"
+        ]
+      },
+      "LinkedTeachersPage": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "items": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/LinkedTeacherItem"
+            }
+          },
+          "nextCursor": {
+            "type": "string",
+            "nullable": true
+          }
+        },
+        "required": [
+          "items",
+          "nextCursor"
+        ]
       }
     }
   }

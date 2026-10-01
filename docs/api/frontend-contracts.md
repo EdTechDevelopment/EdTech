@@ -1,4 +1,4 @@
-# Frontend-контракты v1.1.0
+# Frontend-контракты v1.2.0
 
 > Статус: это целевой составной контракт frontend для Identity + Tutoring.
 > Текущий Identity MVP реализует account-only `POST /auth/register` без
@@ -26,6 +26,7 @@
 6. Изменение profile email выполняется отдельным verification flow и не изменяет account email.
 7. Приглашение всегда принимает ученик; регистрация только связывает его с подтверждённым account email.
 8. Календарь запрашивает диапазон `[from,to)`, сохраняет `nextCursor` и не разбирает курсор.
+9. Поиск активных профилей доступен без входа; предметы и возраст берутся из публичных профильных данных.
 
 `GET /me` и составной `MeResponse` пока не реализованы: endpoint будет завершён
 одновременно с read API профилей Tutoring. Identity уже имеет межмодульный
@@ -37,15 +38,12 @@ HTTP-ручкой для frontend.
 `POST /auth/register` обслуживает `RegistrationWorkflow`. Он атомарно создаёт Identity User, роли и соответствующие профили Tutoring.
 
 ```ts
-type BirthDateVisibility = "PRIVATE" | "LINKED_USERS";
-
 type StudentProfileInput = {
   displayName: string;
   contactEmail: string;
   contactDetails: Array<string>;
   subjectCodes: Array<string>;
   photoUrl?: string | null;
-  birthDateVisibility: BirthDateVisibility;
 };
 
 type StudentRegistrationRequest = {
@@ -70,6 +68,7 @@ type StudentRegistrationRequest = {
 `contactEmail` может совпадать с account `email` или содержать другой адрес. Совпадающий адрес отмечается подтверждённым после `AccountEmailVerifiedEvent`; другой адрес требует отдельного подтверждения.
 
 Успешная регистрация отвечает `202 VerificationPendingResponse` и не выдаёт токены до подтверждения account email.
+Запрос содержит обязательный `Idempotency-Key: UUID`: при сетевом повторе используется тот же ключ. Профили и аккаунт создаются вместе либо не создаются вовсе.
 
 ## Повторная отправка подтверждения
 
@@ -129,13 +128,13 @@ type UserResponse = {
 
 `MeResponse` всегда содержит `user`. `teacherProfile` равен `null`, только если у пользователя нет роли `TEACHER`; `studentProfile` равен `null`, только если нет роли `STUDENT`. Роль с отсутствующим профилем считается серверной ошибкой согласованности.
 
-Профиль хранит собственные `displayName`, `contactEmail`, `pendingContactEmail`, `contactEmailVerifiedAt`, `contactDetails`, предметы и настройку `birthDateVisibility`. Вложенный `user` является составным представлением данных Identity и не меняет владельца профильных данных.
+Профиль хранит собственные `displayName`, `contactEmail`, `pendingContactEmail`, `contactEmailVerifiedAt`, `contactDetails` и выбранные предметы. `birthDate` копируется из Identity при создании профиля. В `MeResponse` данные аккаунта находятся в `user`, а профили — в соседних `teacherProfile`/`studentProfile`; внутри профилей повторного `user` нет.
 
 Существующий профиль обновляется через:
 
 ```text
-PUT /teachers/me
-PUT /students/me
+PUT /api/v1/tutoring/profiles/teacher
+PUT /api/v1/tutoring/profiles/student
 ```
 
 Эти endpoint не создают профиль и не изменяют `contactEmail`.
@@ -148,32 +147,34 @@ POST /me/roles/student
 ```
 
 После ответа `201 MeResponse` frontend вызывает `POST /auth/refresh`, чтобы получить JWT с новым набором ролей.
+Оба запроса на добавление роли требуют стабильный `Idempotency-Key: UUID`.
 
 ## Подтверждение profile email
 
 Запрос изменения адреса:
 
 ```text
-POST /teachers/me/contact-email-verification
-POST /students/me/contact-email-verification
+PUT /api/v1/tutoring/profiles/{type}/contact-email
 ```
 
-Тело содержит `{ "email": "new.profile@example.com" }`. Текущий подтверждённый `contactEmail` продолжает действовать, а новый адрес появляется в `pendingContactEmail`.
+Тело содержит `{ "newEmail": "new.profile@example.com" }`. Текущий подтверждённый `contactEmail` продолжает действовать, а новый адрес появляется в `pendingContactEmail`. Повторная проверка current/pending выполняется через `POST /api/v1/tutoring/profiles/{type}/contact-email/confirmation-requests` с `{ "target": "CURRENT" | "PENDING" }`.
 
 Ссылка из письма передаёт токен в:
 
 ```text
-POST /profile-email-verification/confirm
+POST /api/v1/tutoring/profile-email-confirmations
 ```
 
 После успешного ответа `204` новый адрес становится `contactEmail`, `pendingContactEmail` очищается, а `contactEmailVerifiedAt` обновляется.
 
-## Имена, контакты и возраст в составных ответах
+## Публичные профили, контакты и возраст
 
-- Учебные списки и уроки используют профильный `displayName`, а не `Identity.firstName + lastName`.
-- Другому связанному пользователю возвращается только подтверждённый `contactEmail` или явно разрешённый fallback account email.
-- Точная `birthDate` другим пользователям не возвращается.
-- Карточка ученика содержит nullable `age`, вычисленный query facade из Identity birth date только при `LINKED_USERS`.
+- `GET /api/v1/tutoring/profiles/teachers` и `/students` дают публичный поиск активных профилей с фильтрами `subjectCode`, `minAge`, `maxAge`, `cursor`, `limit`; ответ `{items,nextCursor}`. Выбранные предметы берутся из профиля.
+- `GET /api/v1/tutoring/profiles/teachers/{userId}` и `/students/{userId}` дают публичную карточку активного профиля без login и без связи.
+- Карточка содержит точную `birthDate`, `displayName`, `contactDetails`, выбранные предметы, фото и обычные поля профиля. Возраст вычисляется из даты рождения; отдельного сохранённого `age` нет.
+- `contactEmail` виден всем только после подтверждения. Неподтверждённый и pending адрес видит только владелец. Account email не подставляется вместо профильного.
+- Учебные списки и уроки используют профильный `displayName`, а не `Identity.firstName + lastName`. Список связей и статистика уроков требуют отдельного права доступа; публичность профиля их не открывает.
+- `GET /api/v1/tutoring/subjects` возвращает массив `{subjectCode,name}` без login. Справочник помогает выбрать допустимый код; предметы конкретного человека читаются из его профиля.
 
 ## Видимость урока
 
@@ -186,4 +187,4 @@ POST /profile-email-verification/confirm
 | Цена | Да | Нет |
 | `cancelledByUserId` | Да | Нет |
 
-Использовать типы из `contracts.ts`; фактическим источником ограничений остаётся `scheduling.openapi.json` версии `1.1.0`.
+Использовать типы из `contracts.ts` и сверять их с `scheduling.openapi.json` версии `1.2.0`.

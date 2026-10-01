@@ -1,6 +1,6 @@
-# API-контракты v1.0.0
+# API-контракты v1.2.0
 
-Источник требований — утверждённое ТЗ. Машиночитаемый источник: `scheduling.openapi.json`.
+Текстовое описание целевого API Identity, Tutoring, Workflows и Scheduling. Машиночитаемая форма тех же контрактов: `scheduling.openapi.json`.
 
 Текущий backend реализует Identity как частичный MVP-фундамент. Реализованы
 `POST /auth/register`, verification/resend, login/refresh/logout и `PATCH /me`.
@@ -22,142 +22,68 @@
 
 ## Endpoint'ы
 
+Base URL: `/api/v1`. Ниже целевой составной API; существующий код Identity MVP ещё не реализует RegistrationWorkflow, Tutoring и Scheduling.
+
 | Метод | URL | Назначение |
 |---|---|---|
-| `POST` | `/api/v1/auth/register` | Зарегистрировать пользователя |
-| `POST` | `/api/v1/auth/email-verification/confirm` | Подтвердить email |
-| `POST` | `/api/v1/auth/email-verification/resend` | Повторно отправить подтверждение |
-| `POST` | `/api/v1/auth/login` | Войти |
-| `POST` | `/api/v1/auth/refresh` | Обновить access token |
-| `POST` | `/api/v1/auth/logout` | Завершить текущую аутентификацию |
-| `GET` | `/api/v1/me` | Получить текущего пользователя и профили |
-| `PATCH` | `/api/v1/me` | Изменить общие данные текущего пользователя |
-| `GET` | `/api/v1/subjects` | Получить справочник предметов |
-| `GET` | `/api/v1/teachers/me` | Получить свой профиль репетитора |
-| `PUT` | `/api/v1/teachers/me` | Создать или заменить свой профиль репетитора |
-| `GET` | `/api/v1/students/me` | Получить свой профиль ученика |
-| `PUT` | `/api/v1/students/me` | Создать или заменить свой профиль ученика |
-| `POST` | `/api/v1/teachers/me/student-invitations` | Пригласить ученика по email |
-| `GET` | `/api/v1/students/me/invitations` | Получить входящие приглашения |
-| `POST` | `/api/v1/students/me/invitations/{invitationId}/accept` | Принять приглашение |
-| `POST` | `/api/v1/students/me/invitations/{invitationId}/reject` | Отклонить приглашение |
-| `GET` | `/api/v1/teachers/me/students` | Получить своих учеников |
-| `GET` | `/api/v1/teachers/me/students/{studentUserId}` | Получить карточку и статистику ученика |
-| `DELETE` | `/api/v1/teachers/me/students/{studentUserId}` | Отвязать ученика и обработать будущие уроки |
-| `GET` | `/api/v1/students/me/teachers` | Получить своих репетиторов |
-| `GET` | `/api/v1/teachers/me/lessons` | Получить расписание репетитора |
-| `POST` | `/api/v1/teachers/me/lessons` | Создать урок |
-| `GET` | `/api/v1/teachers/me/lessons/{lessonId}` | Получить свой урок как репетитор |
-| `PATCH` | `/api/v1/teachers/me/lessons/{lessonId}` | Изменить будущий запланированный урок |
-| `POST` | `/api/v1/teachers/me/lessons/{lessonId}/cancel` | Отменить будущий урок |
-| `POST` | `/api/v1/teachers/me/lessons/{lessonId}/status` | Отметить урок проведённым или пропущенным |
-| `GET` | `/api/v1/students/me/lessons` | Получить расписание ученика |
-| `GET` | `/api/v1/students/me/lessons/{lessonId}` | Получить свой урок как ученик |
+| `POST` | `/auth/register` | Атомарно создать аккаунт и выбранные профили; `Idempotency-Key` |
+| `POST` | `/auth/email-verification/confirm`, `/auth/email-verification/resend` | Подтверждение account email |
+| `POST` | `/auth/login`, `/auth/refresh`, `/auth/logout` | Аутентификация |
+| `GET`, `PATCH` | `/me` | Свой аккаунт и профили / изменение аккаунта |
+| `POST` | `/me/roles/teacher`, `/me/roles/student` | Добавить роль с профилем; `Idempotency-Key` |
+| `GET` | `/tutoring/subjects` | Публичный справочник кодов предметов |
+| `GET` | `/tutoring/profiles/teachers`, `/tutoring/profiles/students` | Публичный поиск активных профилей |
+| `GET` | `/tutoring/profiles/teachers/{userId}`, `/tutoring/profiles/students/{userId}` | Публичная карточка активного профиля |
+| `PUT` | `/tutoring/profiles/teacher`, `/tutoring/profiles/student` | Полностью обновить свой существующий профиль |
+| `PUT` | `/tutoring/profiles/{type}/contact-email` | Запросить смену профильной почты |
+| `POST` | `/tutoring/profiles/{type}/contact-email/confirmation-requests` | Повторить подтверждение current/pending |
+| `POST` | `/tutoring/profile-email-confirmations` | Подтвердить профильный email токеном |
+| `POST` | `/tutoring/invitations` | Пригласить по email; `Idempotency-Key` |
+| `GET` | `/tutoring/invitations/sent`, `/tutoring/invitations/incoming` | Свои отправленные/входящие приглашения |
+| `POST` | `/tutoring/invitations/{invitationId}/accept`, `/reject` | Ответить на приглашение; `Idempotency-Key` |
+| `GET` | `/tutoring/relationships/students`, `/teachers` | Список подтверждённых связей |
+| `GET`, `DELETE` | `/teachers/me/students/{studentUserId}` | Составная карточка со статистикой / отвязка через Workflows; для DELETE нужен ключ |
+| `GET`, `POST`, `PATCH` | `/teachers/me/lessons...`, `/students/me/lessons...` | Будущий API Scheduling, описанный ниже |
 
 ## Важные инварианты
 
-- Пользователь может иметь обе роли и по одному профилю каждой роли.
-- При регистрации обязательны email, пароль, имя, фамилия и минимум одна роль.
-- Регистрация и login принимают пароль длиной 8–72 символа: только печатный
-  ASCII-диапазон от `!` до `~`, без пробелов.
-- Исходный пароль присутствует только в запросах регистрации и входа. API никогда не возвращает пароль или `passwordHash`.
-- Регистрация не выдаёт access или refresh token до подтверждения email.
-- Подтверждение email и login возвращают `TokenResponse` и устанавливают refresh cookie.
-- `POST /auth/refresh` возвращает новый access JWT; refresh token может ротироваться.
-- Logout идемпотентно отзывает всю family предъявленного refresh token и удаляет cookie. Другие login-family пользователя не затрагиваются. Уже выданный access JWT действует до окончания короткого срока жизни.
-- `pendingEmail` содержит новый адрес, ожидающий подтверждения, либо `null`; это не логический флаг.
-- По целевой архитектуре `birthDate` принадлежит Identity User, но в текущем
-  MVP-фундаменте ещё не реализован. Старые профильные схемы, где `birthDate`
-  находится в `StudentProfile`, должны быть синхронизированы при реализации
-  Tutoring/RegistrationWorkflow и не являются основанием дублировать это поле.
-- `TeacherProfile` и `StudentProfile` связаны с аккаунтом по `userId` в доменной модели Tutoring. Вложенный `user` в DTO ответа — композиция данных для frontend, а не владение аккаунтом со стороны профиля.
-- Приглашение остаётся `PENDING` до явного принятия учеником.
-- Индивидуальный урок содержит одного ученика, групповой — минимум двух.
-- Создание принимает `startAt` и ровно одно из `endAt`/`durationMinutes`.
-- Уроки преподавателя и любого участника не пересекаются; соседние интервалы разрешены.
-- Ученик не получает `price` и `cancelledByUserId`.
-- Отвязка атомарно отменяет индивидуальные будущие уроки и изменяет состав групповых.
+- Пользователь может иметь одну или обе роли. Для каждой роли существует ровно один соответствующий профиль; регистрация и добавление роли создают их атомарно.
+- Регистрация содержит `birthDate`, обязательный профиль для каждой роли и отвечает `202 VerificationPendingResponse` без токенов до подтверждения account email.
+- `Identity.User.birthDate` — первоисточник; при создании профиль Tutoring сохраняет копию. В публичной карточке активного профиля дата доступна без связи. Отдельного `BirthDateVisibility` нет.
+- Публичный профиль показывает `displayName`, описание и обычные поля, `contactDetails`, выбранные предметы и только подтверждённый current `contactEmail`; pending и неподтверждённый адрес видит лишь владелец. Account email не подставляется.
+- Справочник предметов используется для выбора и проверки кода. Выбранные предметы конкретного преподавателя/ученика хранятся и читаются только в его профиле. Учителю нужен минимум один, ученику разрешён пустой список.
+- Приглашение остаётся `PENDING` до явного ответа. В отправленном списке не раскрывается ID адресата или факт регистрации.
+- Публичность профиля не раскрывает чужие связи, уроки или статистику. Отвязка обрабатывает будущие уроки Scheduling до удаления связи Tutoring.
+- Изменяющие межмодульные запросы и операции приглашения принимают стабильный `Idempotency-Key: UUID`; совпавший ключ с другим содержимым даёт `409`.
+- Пароль принимается только в регистрации/login, 8–72 символа ASCII `!`…`~` без пробелов. Refresh token остаётся в HttpOnly cookie; access JWT в ответе после подтверждения account email/login.
+- Ответ ошибки: `{code,message,fieldErrors,requestId}`. Время — RFC 3339 UTC, дата рождения — `YYYY-MM-DD`. Страницы — `cursor + limit` (50 по умолчанию, 1…100).
 
 ## Публичные схемы
 
-Знак `?` обозначает опциональное поле. Nullable-поля могут присутствовать со значением `null`.
+| Схема | Основные поля |
+|---|---|
+| `RegisterRequest` | account-поля, `birthDate`, `roles`, соответствующие `teacherProfile`/`studentProfile` |
+| `UserResponse` | account-поля Identity, включая `birthDate`, роли и статус |
+| `MeResponse` | `user`, nullable `teacherProfile`, nullable `studentProfile`; роль без профиля — ошибка целостности |
+| `TeacherProfileInput` / `StudentProfileInput` | `displayName`, `contactEmail`, `contactDetails`, `subjectCodes`, допустимые поля преподавателя/фото; без `birthDateVisibility` |
+| `TeacherProfileUpdateRequest` / `StudentProfileUpdateRequest` | обычные поля, без изменения email и `birthDate` |
+| `PublicTeacherProfileResponse` / `PublicStudentProfileResponse` | `userId`, `birthDate`, `displayName`, `contactDetails`, предметы, подтверждённый nullable `contactEmail`, фото и обычные поля роли |
+| `PublicTeacherProfilePage` / `PublicStudentProfilePage` | `{items,nextCursor}` |
+| `SubjectResponse` | `{subjectCode,name}`; `GET /tutoring/subjects` возвращает массив |
+| `ProfileEmailChangeRequest` / `ProfileEmailConfirmationRequest` | `{newEmail}` / `{target: CURRENT\|PENDING}` |
+| `SentInvitation` / `IncomingInvitation` | Отправленная запись не содержит recipient ID; входящая содержит краткое имя преподавателя |
+| `InvitationDecisionResult` | `{invitationId,status}` после accept/reject |
+| `LinkedStudentItem` / `LinkedTeacherItem` | `linkedAt` и публичные поля профиля; доступен только участникам связи |
 
-| Схема | Вид | Поля или значения |
-|---|---|---|
-| `UserRole` | enum | `TEACHER`, `STUDENT` |
-| `UserStatus` | enum | `PENDING_EMAIL_VERIFICATION`, `ACTIVE`, `SUSPENDED`, `DEACTIVATED` |
-| `UserResponse` | object | `id`, `email`, `pendingEmail`, `firstName`, `lastName`, `roles`, `status`, `emailVerifiedAt`, `createdAt`, `updatedAt` |
-| `UserSummary` | object | `id`, `firstName`, `lastName` |
-| `TeacherSummary` | object | `id`, `firstName`, `lastName` |
-| `TeacherContactSummary` | object | `id`, `email`, `firstName`, `lastName` |
-| `StudentSummary` | object | `id`, `firstName`, `lastName` |
-| `RegisterRequest` | object | `email`, `password`, `firstName`, `lastName`, `roles` |
-| `VerificationPendingResponse` | object | `email`, `verificationExpiresAt` |
-| `ConfirmEmailRequest` | object | `token` |
-| `ResendEmailVerificationRequest` | object | `email` |
-| `LoginRequest` | object | `email`, `password` |
-| `TokenResponse` | object | `accessToken`, `tokenType`, `expiresInSeconds` |
-| `UpdateMeRequest` | object | `firstName?`, `lastName?`, `email?` |
-| `SubjectResponse` | object | `code`, `name` |
-| `SubjectListResponse` | object | `items` |
-| `TeacherProfileUpsertRequest` | object | `subjectCodes`, `description?`, `education?`, `experienceYears?`, `city?`, `photoUrl?` |
-| `TeacherProfileResponse` | object | `user`, `subjectCodes`, `description`, `education`, `experienceYears`, `city`, `photoUrl` |
-| `StudentProfileUpsertRequest` | object | `birthDate`, `subjectCodes`, `photoUrl?` |
-| `StudentProfileResponse` | object | `user`, `birthDate`, `subjectCodes`, `photoUrl` |
-| `MeResponse` | object | `user`, `teacherProfile`, `studentProfile` |
-| `InvitationStatus` | enum | `PENDING`, `ACCEPTED`, `REJECTED`, `EXPIRED` |
-| `CreateStudentInvitationRequest` | object | `email` |
-| `StudentInvitationResponse` | object | `id`, `teacher`, `studentEmail`, `studentUserId`, `status`, `createdAt`, `expiresAt`, `respondedAt` |
-| `StudentInvitationPage` | object | `items`, `nextCursor` |
-| `StudentListItem` | object | `id`, `firstName`, `lastName`, `profileCompleted`, `photoUrl`, `subjectCodes` |
-| `StudentPage` | object | `items`, `nextCursor` |
-| `StudentCardProfile` | object | `birthDate`, `subjectCodes`, `photoUrl` |
-| `StudentStatistics` | object | `totalLessons`, `completedLessons`, `cancelledLessons`, `missedLessons`, `lastLessonAt` |
-| `StudentCardResponse` | object | `id`, `email`, `firstName`, `lastName`, `profile`, `statistics` |
-| `TeacherContactResponse` | object | `id`, `email`, `firstName`, `lastName`, `profileCompleted`, `subjectCodes`, `description`, `photoUrl` |
-| `TeacherContactPage` | object | `items`, `nextCursor` |
-| `LessonFormat` | enum | `INDIVIDUAL`, `GROUP` |
-| `LocationType` | enum | `ONLINE`, `OFFLINE` |
-| `LessonStatus` | enum | `SCHEDULED`, `COMPLETED`, `CANCELLED`, `MISSED` |
-| `LessonCancelReason` | enum | `ILLNESS`, `FAMILY`, `NOT_READY`, `OTHER`, `STUDENT_UNLINKED` |
-| `LessonParticipantSummary` | alias | `StudentSummary` |
-| `CreateLessonRequest` | oneOf | 8 взаимоисключающих вариантов |
-| `UpdateLessonRequest` | object | `studentUserIds?`, `subjectCode?`, `format?`, `locationType?`, `meetingUrl?`, `offlineAddress?`, `price?`, `startAt?`, `endAt?`, `durationMinutes?` |
-| `TeacherLessonResponse` | oneOf | 4 взаимоисключающих вариантов |
-| `StudentLessonResponse` | oneOf | 4 взаимоисключающих вариантов |
-| `TeacherLessonPage` | object | `items`, `nextCursor` |
-| `StudentLessonPage` | object | `items`, `nextCursor` |
-| `CancelLessonRequest` | object | `reason`, `comment?` |
-| `SetLessonStatusRequest` | object | `status` |
-| `FieldError` | object | `field`, `code`, `message` |
-| `ErrorCode` | enum | `VALIDATION_ERROR`, `UNKNOWN_SUBJECT`, `UNAUTHENTICATED`, `INVALID_CREDENTIALS`, `EMAIL_NOT_VERIFIED`, `INVALID_REFRESH_TOKEN`, `FORBIDDEN`, `NOT_FOUND`, `PROFILE_NOT_FOUND`, `EMAIL_ALREADY_EXISTS`, `INVALID_VERIFICATION_TOKEN`, `INVITATION_ALREADY_PENDING`, `INVITATION_EXPIRED`, `INVALID_INVITATION_STATE`, `ALREADY_LINKED`, `STUDENT_NOT_LINKED`, `LESSON_OVERLAP`, `INVALID_LESSON_STATE`, `RATE_LIMIT_EXCEEDED`, `INTERNAL_ERROR` |
-| `ApiError` | object | `code`, `message`, `fieldErrors`, `requestId` |
+Полные формы JSON и ошибки каждого endpoint находятся в `scheduling.openapi.json`; примеры — в `examples.json`.
 
 ## Контракты аккаунта
 
 ### `RegisterRequest`
 
-Все поля обязательны. `roles` содержит одну или обе роли без повторений.
+Обязательные поля аккаунта: `email`, `password`, `firstName`, `lastName`, `birthDate`, `roles`. Для `TEACHER` обязателен `teacherProfile`, для `STUDENT` — `studentProfile`; при обеих ролях нужны оба. Лишний профиль или отсутствующий профиль для роли дают `ROLE_PROFILE_MISMATCH`. Выбранные предметы находятся в данных соответствующего профиля. Дата рождения передаётся один раз на уровне аккаунта и копируется в профиль доверенным workflow.
 
-```json
-{
-  "email": "anna@example.com",
-  "password": "example-password",
-  "firstName": "Анна",
-  "lastName": "Петрова",
-  "roles": ["STUDENT"]
-}
-```
-
-| Поле | Тип | Ограничения |
-|---|---|---|
-| `email` | string | Корректный email, максимум 254 символа, уникален без учёта регистра |
-| `password` | string | От 8 до 72 символов; только печатные ASCII-символы от `!` до `~`, без пробелов; только для записи. Предел 72 соответствует максимальному числу байт, обрабатываемому BCrypt |
-| `firstName` | string | От 1 до 100 символов после `trim` |
-| `lastName` | string | От 1 до 100 символов после `trim` |
-| `roles` | `UserRole[]` | От 1 до 2 уникальных значений: `TEACHER`, `STUDENT` |
-
-После регистрации сервер хранит bcrypt-хэш пароля, создаёт пользователя со статусом `PENDING_EMAIL_VERIFICATION`, отправляет письмо и отвечает `202 VerificationPendingResponse`. Access и refresh token появляются только после подтверждения email или успешного login.
+Повтор регистрации использует тот же `Idempotency-Key: UUID`. Успех — `202 VerificationPendingResponse`; никакого `201 MeResponse` или токенов на этом шаге нет.
 
 ### `TokenResponse`
 
@@ -180,6 +106,7 @@ Refresh token отсутствует в JSON и доступен frontend тол
   "pendingEmail": null,
   "firstName": "Анна",
   "lastName": "Петрова",
+  "birthDate": "1995-05-12",
   "roles": ["STUDENT"],
   "status": "ACTIVE",
   "emailVerifiedAt": "2026-09-06T12:00:00Z",
@@ -205,7 +132,7 @@ Refresh token отсутствует в JSON и доступен frontend тол
 
 ### Профили
 
-`TeacherProfile` и `StudentProfile` принадлежат модулю Tutoring и связаны с `User` через его идентификатор. Email, имя, фамилия, роли, состояние аккаунта и пароль в профилях не хранятся. `TeacherProfileResponse` и `StudentProfileResponse` включают `user: UserResponse`, чтобы frontend получил готовую составную модель одним запросом.
+`MeResponse.user` содержит данные аккаунта Identity. `teacherProfile` и `studentProfile` содержат self-view Tutoring без вложенного `user`; `null` допустим лишь при отсутствии соответствующей роли. Публичные карточки отличаются от self-view: в них нет pending email и неподтверждённого current email, зато дата рождения, обычные сведения и `contactDetails` доступны любому посетителю для ACTIVE профиля.
 
 ## Операции
 
@@ -213,13 +140,13 @@ Refresh token отсутствует в JSON и доступен frontend тол
 
 Зарегистрировать пользователя.
 
-Обязательны email, пароль, имя, фамилия и минимум одна роль. Создаёт аккаунт PENDING_EMAIL_VERIFICATION без access и refresh token.
+Обязательны email, пароль, имя, фамилия, birthDate, минимум одна роль и заполненный профиль для каждой роли. `RegistrationWorkflow` атомарно создаёт Identity User со статусом PENDING_EMAIL_VERIFICATION и соответствующие профили Tutoring без access/refresh token.
 
 **Авторизация:** Не требуется.
 
 **Параметры:**
 
-- Нет.
+- Заголовок `Idempotency-Key: UUID` обязателен; точный повтор возвращает прежний результат.
 
 **Тело запроса:** `RegisterRequest`
 
@@ -391,276 +318,37 @@ cookie, и удаляет cookie. Отсутствующая, неизвестн
 - `409` — Конфликт состояния.
 - `500` — Внутренняя ошибка.
 
-### `GET /api/v1/subjects`
+### Публичные предметы и профили Tutoring
 
-Получить справочник предметов.
+`GET /api/v1/tutoring/subjects` доступен без login и отвечает `200` массивом `{subjectCode,name}`. Пустой справочник — внутренняя ошибка. Это список допустимых кодов, а не выбранные предметы конкретного человека.
 
-**Авторизация:** Access JWT в заголовке `Authorization: Bearer <token>`.
+`GET /api/v1/tutoring/profiles/teachers` и `/students` доступны без login. Фильтры: `subjectCode`, `minAge`, `maxAge`, `cursor`, `limit`. Возраст вычисляется по `birthDate` на дату запроса UTC; ответ `200 {items,nextCursor}` с ACTIVE профилями, сортировка `createdAt DESC,userId DESC`. Неверный фильтр/курсор — `400`. Фильтр предмета проверяет предметы, выбранные в самом профиле.
 
-**Параметры:**
+`GET /api/v1/tutoring/profiles/teachers/{userId}` и `/students/{userId}` возвращают публичный профиль активного пользователя или `404`. Связь и login не требуются. В ответе есть точная дата рождения, `contactDetails`, выбранные предметы и подтверждённый профильный email либо `null`.
 
-- Нет.
+### Обновление профиля и почты
 
-**Тело запроса:** Тело отсутствует.
+`PUT /api/v1/tutoring/profiles/teacher` и `/student` требуют владельца, полностью заменяют обычные поля и отвечают `204`. Они не создают профиль, не меняют email-state или `birthDate`; отсутствие собственного профиля — `404`. Для Teacher `subjectCodes` непустой, для Student может быть пустым.
 
-**Ответы:**
+`PUT /api/v1/tutoring/profiles/{type}/contact-email` принимает `{newEmail}` и отвечает `200` состоянием смены. `POST /api/v1/tutoring/profiles/{type}/contact-email/confirmation-requests` принимает `{target:"CURRENT"|"PENDING"}` и отвечает `200`. Профильные письма ограничены пятью новыми письмами за скользящие 24 часа на пользователя; превышение — `429` с `Retry-After`.
 
-- `200` — Активные предметы.
-- `401` — Не аутентифицирован.
-- `500` — Внутренняя ошибка.
+`POST /api/v1/tutoring/profile-email-confirmations` без обязательного login принимает `{token}` в теле и отвечает `204`. Недействительный, использованный или истёкший токен даёт одинаковый `400`.
 
-### `GET /api/v1/teachers/me`
+### Приглашения и связи
 
-Получить свой профиль репетитора.
+`POST /api/v1/tutoring/invitations` принимает `{studentEmail}` и `Idempotency-Key: UUID`; успех — `201 {invitationId,expiresAt}`. Известен адресат или нет, ответ этого не сообщает.
 
-**Авторизация:** Access JWT в заголовке `Authorization: Bearer <token>`.
+`GET /api/v1/tutoring/invitations/sent` и `/incoming` возвращают `{items,nextCursor}` с фильтром `status`, `cursor`, `limit`. Sent-элемент содержит email адресата и даты, но не его userId/факт регистрации. Incoming-элемент содержит краткое имя преподавателя. Просмотр входящего и отказ доступны адресату ещё до StudentProfile.
 
-**Параметры:**
+`POST /api/v1/tutoring/invitations/{invitationId}/accept` и `/reject` требуют `Idempotency-Key: UUID` и возвращают `200 {invitationId,status}`. Accept требует StudentProfile и атомарно создаёт связь; reject профиля не требует. Чужое и отсутствующее приглашение имеют одинаковый `404`.
 
-- Нет.
+`GET /api/v1/tutoring/relationships/students` и `/teachers` возвращают страницы собственных связей с `linkedAt` и публичными полями активного профиля. Сам список связей защищён, хотя содержимое отдельного активного профиля публично.
 
-**Тело запроса:** Тело отсутствует.
+### Составные сценарии Workflows
 
-**Ответы:**
+`POST /api/v1/me/roles/teacher` и `/student` принимают профиль и `Idempotency-Key: UUID`, создают роль с профилем атомарно и отвечают `201 MeResponse`. После этого клиент обновляет access JWT через refresh.
 
-- `200` — Профиль репетитора.
-- `401` — Не аутентифицирован.
-- `403` — Действие запрещено.
-- `404` — Ресурс не найден или скрыт.
-- `500` — Внутренняя ошибка.
-
-### `PUT /api/v1/teachers/me`
-
-Создать или заменить свой профиль репетитора.
-
-**Авторизация:** Access JWT в заголовке `Authorization: Bearer <token>`.
-
-**Параметры:**
-
-- Нет.
-
-**Тело запроса:** `TeacherProfileUpsertRequest`
-
-**Ответы:**
-
-- `200` — Профиль обновлён.
-- `201` — Профиль создан.
-- `400` — Ошибка формата или валидации.
-- `401` — Не аутентифицирован.
-- `403` — Действие запрещено.
-- `500` — Внутренняя ошибка.
-
-### `GET /api/v1/students/me`
-
-Получить свой профиль ученика.
-
-**Авторизация:** Access JWT в заголовке `Authorization: Bearer <token>`.
-
-**Параметры:**
-
-- Нет.
-
-**Тело запроса:** Тело отсутствует.
-
-**Ответы:**
-
-- `200` — Профиль ученика.
-- `401` — Не аутентифицирован.
-- `403` — Действие запрещено.
-- `404` — Ресурс не найден или скрыт.
-- `500` — Внутренняя ошибка.
-
-### `PUT /api/v1/students/me`
-
-Создать или заменить свой профиль ученика.
-
-**Авторизация:** Access JWT в заголовке `Authorization: Bearer <token>`.
-
-**Параметры:**
-
-- Нет.
-
-**Тело запроса:** `StudentProfileUpsertRequest`
-
-**Ответы:**
-
-- `200` — Профиль обновлён.
-- `201` — Профиль создан.
-- `400` — Ошибка формата или валидации.
-- `401` — Не аутентифицирован.
-- `403` — Действие запрещено.
-- `500` — Внутренняя ошибка.
-
-### `POST /api/v1/teachers/me/student-invitations`
-
-Пригласить ученика по email.
-
-**Авторизация:** Access JWT в заголовке `Authorization: Bearer <token>`.
-
-**Параметры:**
-
-- Нет.
-
-**Тело запроса:** `CreateStudentInvitationRequest`
-
-**Ответы:**
-
-- `201` — Приглашение создано на 30 суток.
-- `400` — Ошибка формата или валидации.
-- `401` — Не аутентифицирован.
-- `403` — Действие запрещено.
-- `409` — Конфликт состояния.
-- `429` — Слишком много запросов.
-- `500` — Внутренняя ошибка.
-
-### `GET /api/v1/students/me/invitations`
-
-Получить входящие приглашения.
-
-**Авторизация:** Access JWT в заголовке `Authorization: Bearer <token>`.
-
-**Параметры:**
-
-- `status` (query, опциональный)
-- `cursor` (query, опциональный)
-- `limit` (query, опциональный, по умолчанию `50`)
-
-**Тело запроса:** Тело отсутствует.
-
-**Ответы:**
-
-- `200` — Приглашения, createdAt DESC и id DESC.
-- `400` — Ошибка формата или валидации.
-- `401` — Не аутентифицирован.
-- `403` — Действие запрещено.
-- `500` — Внутренняя ошибка.
-
-### `POST /api/v1/students/me/invitations/{invitationId}/accept`
-
-Принять приглашение.
-
-**Авторизация:** Access JWT в заголовке `Authorization: Bearer <token>`.
-
-**Параметры:**
-
-- `invitationId` (path, обязательный)
-
-**Тело запроса:** Тело отсутствует.
-
-**Ответы:**
-
-- `204` — Связь создана.
-- `401` — Не аутентифицирован.
-- `403` — Действие запрещено.
-- `404` — Ресурс не найден или скрыт.
-- `409` — Конфликт состояния.
-- `500` — Внутренняя ошибка.
-
-### `POST /api/v1/students/me/invitations/{invitationId}/reject`
-
-Отклонить приглашение.
-
-**Авторизация:** Access JWT в заголовке `Authorization: Bearer <token>`.
-
-**Параметры:**
-
-- `invitationId` (path, обязательный)
-
-**Тело запроса:** Тело отсутствует.
-
-**Ответы:**
-
-- `204` — Приглашение отклонено.
-- `401` — Не аутентифицирован.
-- `403` — Действие запрещено.
-- `404` — Ресурс не найден или скрыт.
-- `409` — Конфликт состояния.
-- `500` — Внутренняя ошибка.
-
-### `GET /api/v1/teachers/me/students`
-
-Получить своих учеников.
-
-**Авторизация:** Access JWT в заголовке `Authorization: Bearer <token>`.
-
-**Параметры:**
-
-- `cursor` (query, опциональный)
-- `limit` (query, опциональный, по умолчанию `50`)
-
-**Тело запроса:** Тело отсутствует.
-
-**Ответы:**
-
-- `200` — Ученики, lastName ASC, firstName ASC, id ASC.
-- `400` — Ошибка формата или валидации.
-- `401` — Не аутентифицирован.
-- `403` — Действие запрещено.
-- `500` — Внутренняя ошибка.
-
-### `GET /api/v1/teachers/me/students/{studentUserId}`
-
-Получить карточку и статистику ученика.
-
-**Авторизация:** Access JWT в заголовке `Authorization: Bearer <token>`.
-
-**Параметры:**
-
-- `studentUserId` (path, обязательный)
-
-**Тело запроса:** Тело отсутствует.
-
-**Ответы:**
-
-- `200` — Карточка связанного ученика.
-- `401` — Не аутентифицирован.
-- `403` — Действие запрещено.
-- `404` — Ресурс не найден или скрыт.
-- `500` — Внутренняя ошибка.
-
-### `DELETE /api/v1/teachers/me/students/{studentUserId}`
-
-Отвязать ученика и обработать будущие уроки.
-
-Атомарно отменяет будущие индивидуальные уроки с причиной STUDENT_UNLINKED, удаляет ученика из будущих групповых уроков и меняет группу из одного участника на INDIVIDUAL.
-
-**Авторизация:** Access JWT в заголовке `Authorization: Bearer <token>`.
-
-**Параметры:**
-
-- `studentUserId` (path, обязательный)
-
-**Тело запроса:** Тело отсутствует.
-
-**Ответы:**
-
-- `204` — Ученик отвязан.
-- `401` — Не аутентифицирован.
-- `403` — Действие запрещено.
-- `404` — Ресурс не найден или скрыт.
-- `409` — Конфликт состояния.
-- `500` — Внутренняя ошибка.
-
-### `GET /api/v1/students/me/teachers`
-
-Получить своих репетиторов.
-
-**Авторизация:** Access JWT в заголовке `Authorization: Bearer <token>`.
-
-**Параметры:**
-
-- `cursor` (query, опциональный)
-- `limit` (query, опциональный, по умолчанию `50`)
-
-**Тело запроса:** Тело отсутствует.
-
-**Ответы:**
-
-- `200` — Репетиторы и их email.
-- `400` — Ошибка формата или валидации.
-- `401` — Не аутентифицирован.
-- `403` — Действие запрещено.
-- `500` — Внутренняя ошибка.
+`GET /api/v1/teachers/me/students/{studentUserId}` собирает публичные поля профиля и защищённую статистику уроков; статистика доступна только связанному преподавателю и требует Scheduling. `DELETE` по тому же адресу требует `Idempotency-Key: UUID`, сначала обрабатывает будущие уроки в Scheduling, затем удаляет связь Tutoring и отвечает `204`.
 
 ### `GET /api/v1/teachers/me/lessons`
 
@@ -847,6 +535,6 @@ cookie, и удаляет cookie. Отсутствующая, неизвестн
 - `404` — Ресурс не найден или скрыт.
 - `500` — Внутренняя ошибка.
 
-## Примеры и генерируемые типы
+## Примеры и TypeScript-типы
 
 Готовые JSON-примеры находятся в `examples.json`, TypeScript DTO — в `contracts.ts`. Полные поля, ограничения, ответы и ошибки каждого endpoint'а описаны в `scheduling.openapi.json` и отображаются в Swagger UI.
