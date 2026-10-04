@@ -3,7 +3,7 @@
 Статус: утверждённая спецификация этапа 2
 Дата создания: 2026-09-15
 Дата утверждения пользователем: 2026-09-16
-Актуальное решение: каждый учебный профиль хранит `birthDate`; `BirthDateVisibilityView` удалён. Public-view активного профиля возвращает дату и подтверждённые контакты без проверки `TeacherStudent`.
+Актуальное решение: `birthDate` хранит только Identity и показывает владельцу в данных аккаунта. Все полные представления профиля содержат вычисленный возраст, а контактный email профиля является указанным пользователем адресом без подтверждения владения.
 Синхронизация от 2026-09-24: отсутствие профиля при существующей связи является нарушением целостности, а не `Optional.empty()`.
 
 ## 1. Назначение и исходные решения
@@ -16,27 +16,27 @@
 
 - Query API разделён по возможностям: профиль, предмет, отношение.
 - Отсутствие результата в `find*` и `exists` нормально; `require*` сигнализирует типизированным исключением.
-- Read-модели сценарные: self, summary и linked. Полный профиль не передаётся потребителю, которому достаточно имени.
+- Read-модели сценарные: self, public и summary. Полный профиль не передаётся потребителю, которому достаточно имени.
 - Предметы профиля описывают специализацию и **не** ограничивают предмет урока.
-- `Identity.User.birthDate` остаётся источником истины; команды создания передают дату в Tutoring, self- и linked-view профилей могут содержать её согласно фиксированному правилу доступа.
+- `Identity.User.birthDate` хранится только в Identity; Tutoring получает вычисленный возраст пакетным запросом Identity и не сохраняет ни дату, ни возраст.
 - Регистрация и добавление второй роли используют одну PostgreSQL-транзакцию, открываемую Workflows.
-- Исходящих публичных событий Tutoring в первой версии нет; доставку приглашения и подтверждения профильного email Tutoring инициирует через public command Notifications.
+- Исходящих публичных событий Tutoring в первой версии нет; доставку приглашения Tutoring инициирует через public command Notifications. Контактный email профиля не подтверждается.
 
 ## 2. Потребители и границы доступа
 
 | Потребитель | Возможности Tutoring | Не получает |
 |---|---|---|
-| Scheduling | Профиль преподавателя существует; связи; существование предмета; пакетные краткие имена | Полные профили, pending email, repositories |
+| Scheduling | Профиль преподавателя существует; связи; существование предмета; пакетные краткие имена | Полные профили, repositories |
 | `RegistrationWorkflow` | Создание выбранных первоначальных профилей | Domain aggregates Tutoring |
 | `RoleOnboardingWorkflow` | Создание профиля второй роли | Прямое изменение роли внутри Tutoring |
 | `UnlinkStudentWorkflow` | Проверка и удаление связи после обработки уроков | Прямой доступ к таблице `teacher_students` |
 | `MeQueryFacade` | Полные self-views двух профилей | Доменную модель профиля |
-| `StudentCardQueryFacade` | Публичный StudentProfile с `birthDate`; статистика уроков после проверки связи | Статистика без подтверждённой связи |
-| Другие утверждённые query facades | Пакетные summary и linked views согласно конкретному сценарию | Неподтверждённый email другого пользователя |
+| `StudentCardQueryFacade` | Публичный StudentProfile с возрастом; статистика уроков после проверки связи | Статистика без подтверждённой связи |
+| Другие утверждённые query facades | Пакетные summary и данные профилей для подтверждённых связей согласно конкретному сценарию | Внутренние агрегаты и repositories |
 
 Полные `TeacherProfileView` и `StudentProfileView` доступны **только** утверждённому `MeQueryFacade`. Он берёт `userId` из доверенного principal и запрашивает профиль того же пользователя. Публичный Java-метод сам по себе не содержит HTTP-principal; ограничение импорта закрепляется ArchUnit, а равенство `principal.userId == userId` проверяется фасадом. Остальные модули не должны импортировать self-view типы и методы.
 
-Linked-методы выполняют проверку `TeacherStudent` **внутри Tutoring до выдачи данных**. Нет связи — `Optional.empty()` без раскрытия чужого профиля. Если связь существует, но соответствующий профиль отсутствует, это нарушение целостности, а не нормальный пустой результат. Переданное `userId` не является достаточным основанием для доступа к контактам.
+Linked-методы выполняют проверку `TeacherStudent` **внутри Tutoring**, потому что обслуживают запрос о подтверждённой связи. Нет связи — `Optional.empty()` для этого запроса. Если связь существует, но соответствующий профиль отсутствует, это нарушение целостности. Сам публичный профиль активного пользователя, включая возраст и указанный контактный email, доступен без связи; точная дата рождения остаётся только в Identity.
 
 ## 3. Итоговая структура `tutoring.api`
 
@@ -48,7 +48,7 @@ tutoring.api
 │   └── TutoringRelationshipQuery
 ├── command
 │   ├── registration
-│   │   ├── TutoringRegistrationCommands
+│   │   ├── TutoringProfileCreationCommands
 │   │   ├── CreateInitialProfilesCommand
 │   │   ├── CreateTeacherProfileCommand
 │   │   ├── CreateStudentProfileCommand
@@ -67,12 +67,12 @@ tutoring.api
 │       ├── self
 │       │   ├── TeacherProfileView
 │       │   └── StudentProfileView
+│       ├── publicview
+│       │   ├── PublicTeacherProfileView
+│       │   └── PublicStudentProfileView
 │       ├── summary
 │       │   ├── TeacherProfileSummary
 │       │   └── StudentProfileSummary
-│       └── linked
-│           ├── LinkedStudentProfileView
-│           └── LinkedTeacherProfileView
 └── exception
     ├── ProfileNotFoundException
     ├── ProfileAlreadyExistsException
@@ -82,26 +82,25 @@ tutoring.api
     └── IdempotencyConflictException
 ```
 
-Разделение следует жизненному циклу контрактов: доверенные команды и их результаты живут рядом по бизнес-сценарию, а профильные модели разделены по аудитории и степени раскрытия данных. Пакеты `input`, `self`, `summary` и `linked` содержат реальные типы, а не пустые заготовки. `query` не дробится: в нём всего три узких интерфейса.
+Разделение следует жизненному циклу контрактов: доверенные команды и их результаты живут рядом по бизнес-сценарию, а профильные модели разделены по назначению. Пакеты `input`, `self`, `publicview` и `summary` содержат реальные типы. Отдельных `Linked*View` нет: после проверки связи соответствующие методы возвращают `Public*View`. `query` не дробится: в нём всего три узких интерфейса.
 
 Пакет `tutoring.api.event` в v1 **не создаётся**: у Tutoring пока нет утверждённого внешнего подписчика на факт изменения его данных. Входящий `identity.api.event.AccountEmailVerifiedEvent` остаётся типом Identity.
 
-### Готовые Ответственность пакетов
+### Ответственность пакетов
 
 | Package | Description |
 |---|---|
 | `tutoring.api` | Стабильная публичная граница Tutoring для других backend-модулей. Содержит только необходимые межмодульные чтения, доверенные команды, неизменяемые модели и ошибки. Не содержит HTTP DTO, security principal, domain aggregates или persistence-типы. |
 | `tutoring.api.query` | Синхронные read-only контракты для проверки профиля, предметов и подтверждённых связей. Реализуются application-сервисами Tutoring и вызываются другими модулями без доступа к внутренним repositories. Не изменяют состояние и не выдают персональные данные сверх модели конкретного сценария. |
 | `tutoring.api.command` | Группирует доверенные межмодульные команды по бизнес-сценарию. Сам пакет не содержит классов: регистрация/onboarding и удаление связи имеют отдельные контракты. Не является пользовательской HTTP-границей. |
-| `tutoring.api.command.registration` | Контракт Workflows для первоначального создания одного или двух профилей и создания профиля второй роли. Содержит интерфейс, команды и их минимальные результаты; реализации присоединяются к общей транзакции. Не добавляет роли Identity и не принимает пароль. |
+| `tutoring.api.command.profile` | Контракт Workflows для первоначального создания одного или двух профилей и создания профиля второй роли. Содержит интерфейс, команды и их минимальные результаты; реализации присоединяются к общей транзакции. Не добавляет роли Identity и не принимает пароль. |
 | `tutoring.api.command.relationship` | Контракт UnlinkStudentWorkflow на удаление принадлежащей Tutoring подтверждённой связи. Содержит интерфейс, команду и результат одной операции. Не координирует уроки Scheduling и не доступен frontend напрямую. |
 | `tutoring.api.model` | Группирует только публичные неизменяемые модели по предметной области. Сам пакет не содержит классов; он не является складом команд, результатов, HTTP DTO или domain aggregates. |
 | `tutoring.api.model.profile` | Содержит общий публичный `ProfileTypeView`, используемый командами, результатами и ошибками. Не содержит `UserRole` Identity или состояние domain aggregate. |
 | `tutoring.api.model.profile.input` | Данные первоначального создания TeacherProfile и StudentProfile, передаваемые доверенными workflows в Tutoring. Использует общие профильные enum-типы и преобразуется в локальные value objects внутри модуля. Не содержит account data, raw password, `userId` или HTTP request DTO. |
-| `tutoring.api.model.profile.self` | Полные представления существующих профилей для владельца через MeQueryFacade. Содержат current/pending contact email и `birthDate`, но не другие account data. Не импортируются Scheduling и не используются для чужого linked-ответа. |
+| `tutoring.api.model.profile.self` | Полные представления существующих профилей для владельца через MeQueryFacade. Содержат возраст и указанный контактный email, но не дату рождения или другие account data. Не импортируются Scheduling и не используются для чужого linked-ответа. |
 | `tutoring.api.model.profile.summary` | Минимальные пакетные сведения `userId` и `displayName` для отображения преподавателя/ученика в других модулях. Не раскрывает контакты, возраст, предметы или внутреннее состояние профиля. |
-| `tutoring.api.model.profile.publicview` | Публичные представления активных профилей: `birthDate`, обычные сведения, `contactDetails`, предметы и подтверждённый профильный email. Связь не требуется. |
-| `tutoring.api.model.profile.linked` | Представления для списков подтверждённых связей TeacherStudent. Их профильные поля публичны и без связи; pending email отсутствует. |
+| `tutoring.api.model.profile.publicview` | Публичные представления активных профилей: возраст, обычные сведения, `contactDetails`, предметы и указанный контактный email. Связь не требуется. |
 | `tutoring.api.exception` | Типизированные нарушения публичного Java-контракта. Несут машинно читаемый контекст, но не HTTP status и не `ApiError`. Отображение на транспортные ошибки выполняет presentation/composer владельца HTTP endpoint. |
 
 ## 4. Query API
@@ -126,11 +125,11 @@ public interface TutoringProfileQuery {
         Set<UUID> studentUserIds
     );
 
-    Optional<LinkedStudentProfileView> findLinkedStudentProfile(
+    Optional<PublicStudentProfileView> findLinkedStudentProfile(
         UUID teacherUserId,
         UUID studentUserId
     );
-    Optional<LinkedTeacherProfileView> findLinkedTeacherProfile(
+    Optional<PublicTeacherProfileView> findLinkedTeacherProfile(
         UUID studentUserId,
         UUID teacherUserId
     );
@@ -139,17 +138,17 @@ public interface TutoringProfileQuery {
 
 `findTeacherProfile`/`findStudentProfile` возвращают self-view существующего профиля и используются только `MeQueryFacade`. При отсутствии профиля возвращают `Optional.empty()`. Фасад сверяет отсутствие с ролями Identity: роль без профиля является нарушением межмодульного инварианта, а не обычным onboarding-состоянием.
 
-`findPublicTeacherProfile`/`findPublicStudentProfile` возвращают профиль без связи и без login только для активного пользователя Identity. Public-view содержит дату рождения, имя профиля, описание и прочие обычные поля, `contactDetails`, предметы, а `contactEmail` — только если он подтверждён. Pending email, неподтверждённый email и account email отсутствуют. Публичный HTTP-поиск использует отдельный application use case с пакетной проверкой статуса Identity и фильтрами предмета/возраста.
+`findPublicTeacherProfile`/`findPublicStudentProfile` возвращают профиль без связи и без login только для активного пользователя Identity. Public-view содержит возраст, имя профиля, описание и прочие обычные поля, `contactDetails`, предметы и указанный `contactEmail`. Account email и точная дата рождения отсутствуют. Публичный HTTP-поиск использует отдельный application use case с пакетной проверкой статуса и возраста через Identity и фильтрами предмета/возраста.
 
 `requireTeacherProfile` используется Scheduling при создании урока. Он проверяет **наличие профиля**, но не проверяет, входит ли предмет урока в `TeacherProfile.subjectCodes`. При отсутствии — `ProfileNotFoundException(TEACHER, teacherUserId)`.
 
 `findTeacherSummaries`/`findStudentSummaries` являются пакетными. `Summary` — сокращённая модель с `userId` и `displayName`, а не полный профиль. Возвращаемая `Map` содержит запись для каждого найденного профиля; отсутствующие ID в неё не входят. Метод не выполняет отдельный запрос к Identity для каждой записи и не возвращает contact email. Если вызывающему модулю необходимо проверить статус пользователя, он делает это через `IdentityQuery`.
 
-`findLinkedStudentProfile` и `findLinkedTeacherProfile` проверяют подтверждённую связь для сценария отношений. Их профильные поля соответствуют публичному представлению и не требуют связи сами по себе. Они возвращают только подтверждённый `contactEmail`; если он не подтверждён, поле равно `null`. Account email не подставляется вместо неподтверждённого профильного адреса.
+`findLinkedStudentProfile` и `findLinkedTeacherProfile` проверяют подтверждённую связь для сценария отношений и возвращают соответствующий `Public*View`. Поля этого ответа сами по себе публичны для активного профиля. `contactEmail` является адресом, указанным владельцем профиля; он не подтверждает принадлежность адреса пользователю. Account email не подставляется вместо профильного.
 
 При отсутствии связи linked-методы возвращают `Optional.empty()`; отдельные public-методы продолжают работать. Отсутствующий профиль при существующей связи означает нарушение целостности и не маскируется под `Optional.empty()`.
 
-Типы результата импортируются из `tutoring.api.model.profile.self`, `.publicview`, `.summary` и `.linked`; enum `ProfileTypeView` для ошибки отсутствия профиля — из `tutoring.api.model.profile`. Query-пакет не владеет моделями и не переэкспортирует HTTP DTO.
+Типы результата импортируются из `tutoring.api.model.profile.self`, `.publicview` и `.summary`; enum `ProfileTypeView` для ошибки отсутствия профиля — из `tutoring.api.model.profile`. Query-пакет не владеет моделями и не переэкспортирует HTTP DTO.
 
 ### 4.2 `TutoringSubjectQuery`
 
@@ -196,12 +195,12 @@ public interface TutoringRelationshipQuery {
 
 ## 5. Command API
 
-### 5.1 `TutoringRegistrationCommands`
+### 5.1 `TutoringProfileCreationCommands`
 
 ```java
-package tutoring.api.command.registration;
+package tutoring.api.command.profile;
 
-public interface TutoringRegistrationCommands {
+public interface TutoringProfileCreationCommands {
     InitialProfilesCreatedResult createInitialProfiles(
         CreateInitialProfilesCommand command
     );
@@ -214,45 +213,37 @@ public interface TutoringRegistrationCommands {
 }
 
 public record CreateInitialProfilesCommand(
-    UUID operationId,
     UUID userId,
-    LocalDate birthDate,
     Optional<TeacherProfileData> teacherProfile,
     Optional<StudentProfileData> studentProfile
 ) {}
 
 public record CreateTeacherProfileCommand(
-    UUID operationId,
     UUID userId,
-    LocalDate birthDate,
     TeacherProfileData profile
 ) {}
 
 public record CreateStudentProfileCommand(
-    UUID operationId,
     UUID userId,
-    LocalDate birthDate,
     StudentProfileData profile
 ) {}
 
 public record InitialProfilesCreatedResult(
-    UUID operationId,
     UUID userId,
     Set<ProfileTypeView> createdProfiles
 ) {}
 
 public record ProfileCreatedResult(
-    UUID operationId,
     UUID userId,
     ProfileTypeView profileType
 ) {}
 ```
 
-`TeacherProfileData` и `StudentProfileData` импортируются из `tutoring.api.model.profile.input`; `ProfileTypeView` — из `tutoring.api.model.profile`. Результаты регистрации/onboarding принадлежат `command.registration`, поскольку их жизненный цикл связан с этими командами, а не со всеми моделями Tutoring.
+`TeacherProfileData` и `StudentProfileData` импортируются из `tutoring.api.model.profile.input`; `ProfileTypeView` — из `tutoring.api.model.profile`. Результаты создания принадлежат `command.profile`, поскольку их жизненный цикл связан с этими командами, а не со всеми моделями Tutoring.
 
-`RegistrationWorkflow` создаёт `operationId`, проверяет точное соответствие `roles ↔ profiles`, вызывает Identity и затем `createInitialProfiles`. Он передаёт в команду `birthDate`, сохранённую в созданном `Identity.User`. В команде Tutoring **нет ролей и raw password**. Минимум один из двух `Optional` содержит данные; оба пустых — `InvalidProfileDataException`. Tutoring проверяет свой инвариант: через публичный `IdentityQuery` убеждается, что соответствующая роль существует у переданного `userId` в той же транзакции, но не меняет роль и не проверяет общий набор ролей повторно.
+`RegistrationWorkflow` проверяет точное соответствие `roles ↔ profiles`, вызывает Identity и затем `createInitialProfiles`. В команде Tutoring **нет даты рождения, ролей и raw password**. Минимум один из двух `Optional` содержит данные; оба пустых — `InvalidProfileDataException`. Tutoring проверяет свой инвариант: через публичный `IdentityQuery` убеждается, что соответствующая роль существует у переданного `userId` в той же транзакции, но не меняет роль и не проверяет общий набор ролей повторно.
 
-`RoleOnboardingWorkflow` после `IdentityRoleCommands.addRole(...)` получает существующий `Identity.User.birthDate` и вызывает **ровно один** типизированный метод `createTeacherProfile` или `createStudentProfile`. Generic `createProfile(ProfileType, Object)` не создаётся. Каждый метод проверяет отсутствие профиля, роль через `identity.api`, обязательность `birthDate`, валидность собственных данных и существование предметов.
+`RoleOnboardingWorkflow` после `IdentityRoleGateway.addRole(...)` вызывает **ровно один** типизированный метод `createTeacherProfile` или `createStudentProfile`. Generic `createProfile(ProfileType, Object)` не создаётся. Каждый метод проверяет отсутствие профиля, роль через `identity.api`, валидность собственных данных и существование предметов.
 
 Результат команды содержит только минимальные идентификаторы. Регистрация после commit отвечает `202 VerificationPendingResponse` без токенов; составной `MeResponse` собирается `MeQueryFacade` для последующего `GET /me`. При добавлении второй роли workflow после commit возвращает `201 MeResponse`. HTTP DTO не возвращается из Java API Tutoring.
 
@@ -285,12 +276,12 @@ public record TeacherStudentRemovalResult(
 ### 5.3 Транзакция и идемпотентность
 
 - Реализации всех четырёх межмодульных write-методов работают с `Propagation.MANDATORY`: вызов без внешней транзакции завершается ошибкой конфигурации/контракта до изменения данных. Workflows открывает внешнюю транзакцию единым `PlatformTransactionManager` и datasource.
-- Запись об обработанном `operationId`, типе команды, fingerprint входных данных и возвращённом результате принадлежит Tutoring и фиксируется вместе с изменениями Tutoring.
-- Для Tutoring один `operationId` обозначает **одну** command-операцию. Повтор того же метода с эквивалентным нормализованным payload возвращает прежний результат. Другой метод или другой payload с тем же ID — `IdempotencyConflictException`.
-- Нормализация email и предметов выполняется до вычисления fingerprint; порядок элементов наборов не меняет смысл payload. Raw password в fingerprint Tutoring не входит.
+- Для регистрации и добавления второй роли ключ повтора, fingerprint и итоговый результат хранит Workflows. Точный повтор обрабатывается до вызова Tutoring; изменённый payload с тем же ключом отклоняется.
+- Для независимых команд Tutoring, включая удаление связи, собственный `operationId` по-прежнему обозначает одну операцию. Повтор с эквивалентным нормализованным payload возвращает прежний результат; другой payload с тем же ID вызывает `IdempotencyConflictException`.
+- Нормализация email и предметов выполняется до сравнения payload. Raw password в Tutoring не передаётся.
 - Уникальные ограничения профиля по `userId` и связи по `(teacherUserId, studentUserId)` являются последней защитой конкурентных запросов.
 - Для повторного `removeTeacherStudent` с **тем же** `operationId` возвращается сохранённый результат. Новая операция на уже удалённую пару получает `TeacherStudentNotLinkedException`.
-- Одинаковый `operationId` гарантирует идемпотентность **Java-команд**. Повтор HTTP-запроса не получает эту гарантию автоматически: workflow создаст новый `operationId`, если не сможет распознать повтор исходного запроса. При последующей синхронизации HTTP-контрактов регистрация, role-onboarding и отвязка должны принимать стабильный клиентский `Idempotency-Key`; Workflows хранит отображение `(сценарий, пользователь или регистрационный контекст, ключ) → operationId` и при повторе использует прежний ID. Текущий OpenAPI такого заголовка не определяет и до синхронизации не обещает сквозную HTTP-идемпотентность.
+- HTTP-контракт регистрации, role-onboarding и отвязки принимает стабильный `Idempotency-Key`. Workflows гарантирует повтор составных регистрации и добавления роли целиком; для отвязки он передаёт стабильный `operationId` доверенной команде Tutoring. Сквозную HTTP-идемпотентность ещё предстоит реализовать.
 
 ## 6. Public models: атрибуты и правила
 
@@ -303,11 +294,9 @@ package tutoring.api.model.profile.self;
 
 public record TeacherProfileView(
     UUID userId,
-    LocalDate birthDate,
+    int age,
     String displayName,
     String contactEmail,
-    String pendingContactEmail,          // ?
-    Instant contactEmailVerifiedAt,      // ?
     List<String> contactDetails,
     Set<String> subjectCodes,
     String description,                  // ?
@@ -319,18 +308,16 @@ public record TeacherProfileView(
 
 public record StudentProfileView(
     UUID userId,
-    LocalDate birthDate,
+    int age,
     String displayName,
     String contactEmail,
-    String pendingContactEmail,          // ?
-    Instant contactEmailVerifiedAt,      // ?
     List<String> contactDetails,
     Set<String> subjectCodes,
     String photoUrl                      // ?
 ) {}
 ```
 
-Self-view показывает владельцу `birthDate`, текущий и pending профильный email, даже если email ещё не подтверждён. Это не даёт права использовать неподтверждённый адрес для уведомлений другому человеку.
+Self-view показывает владельцу возраст, вычисленный Identity на дату запроса, и указанный им контактный email. Точная дата рождения доступна владельцу в данных аккаунта Identity. Контактный адрес не используется как подтверждение личности или адрес системных уведомлений.
 
 ### 6.2 Summary — краткие пакетные сведения
 
@@ -343,59 +330,29 @@ public record StudentProfileSummary(UUID userId, String displayName) {}
 
 `Summary` не содержит фото, предметы, контакты, роль, статус аккаунта или возраст. При создании и чтении урока Scheduling может пакетно получить имена, но данные о статусе пользователя получает отдельно через Identity, если они необходимы.
 
-### 6.3 Публичный профиль и linked-view
+### 6.3 Публичный профиль
 
 ```java
 package tutoring.api.model.profile.publicview;
 
 public record PublicStudentProfileView(
-    UUID userId, LocalDate birthDate, String displayName,
-    String contactEmail, // nullable; только подтверждённый
+    UUID userId, int age, String displayName,
+    String contactEmail,
     List<String> contactDetails, Set<String> subjectCodes, String photoUrl
 ) {}
 
 public record PublicTeacherProfileView(
-    UUID userId, LocalDate birthDate, String displayName,
-    String contactEmail, // nullable; только подтверждённый
+    UUID userId, int age, String displayName,
+    String contactEmail,
     List<String> contactDetails, Set<String> subjectCodes,
     String description, String education, Integer experienceYears,
     String city, String photoUrl
 ) {}
 ```
 
-Публичное чтение доступно любому посетителю для активного профиля. Выбранные предметы читаются из профиля, возраст вычисляется из `birthDate` при поиске. Nullable teacher-поля и `photoUrl` сохраняют ту же nullable-семантику, что self-view. Краткий `Summary` остаётся отдельным внутренним типом.
+Публичное чтение доступно любому посетителю для активного профиля. Выбранные предметы читаются из профиля, возраст Identity вычисляет по своей дате рождения на дату запроса и возвращает Tutoring без раскрытия точной даты. Контактный email показывается как адрес, указанный пользователем, без отметки о подтверждении. Nullable teacher-поля и `photoUrl` сохраняют ту же nullable-семантику, что self-view. Краткий `Summary` остаётся отдельной публичной моделью для пакетного чтения имён.
 
-Linked-view ниже используется там, где само действие зависит от подтверждённой связи; он не ограничивает публичное чтение профиля. При формировании linked-списка не следует урезать публичные `contactDetails`, `education`, `experienceYears` и `city`.
-
-```java
-package tutoring.api.model.profile.linked;
-
-public record LinkedStudentProfileView(
-    UUID userId,
-    LocalDate birthDate,
-    String displayName,
-    String contactEmail,                 // ?; только подтверждённый
-    List<String> contactDetails,
-    Set<String> subjectCodes,
-    String photoUrl                      // ?
-) {}
-
-public record LinkedTeacherProfileView(
-    UUID userId,
-    LocalDate birthDate,
-    String displayName,
-    String contactEmail,                 // ?; только подтверждённый
-    List<String> contactDetails,
-    Set<String> subjectCodes,
-    String description,                  // ?
-    String education,                    // ?
-    Integer experienceYears,             // ?
-    String city,                         // ?
-    String photoUrl                      // ?
-) {}
-```
-
-Оба linked-view создаются после проверки `TeacherStudent`, потому что используются для списка отношений. Публичное чтение тех же профильных данных, включая точную `birthDate`, не требует связи. Настройки видимости нет.
+Методы для списка связей проверяют `TeacherStudent`, затем используют те же `PublicTeacherProfileView` и `PublicStudentProfileView`. Отдельных моделей с повтором этих полей нет. Связь ограничивает доступ к списку отношений, а не к публичным полям профиля. Точная дата рождения в Tutoring не передаётся.
 
 ### 6.4 Входные профильные данные и общие enum-типы
 
@@ -433,7 +390,7 @@ public enum ProfileTypeView { TEACHER, STUDENT }
 
 Минимум один предмет обязателен только в `TeacherProfileData`; `StudentProfileData` допускает пустой набор. Предметы описывают профиль и не являются разрешением вести урок.
 
-В `TeacherProfileData` и `StudentProfileData` нет `userId` и `birthDate`: общие значения принадлежат доверенной registration/onboarding-команде. В профильных данных также нет ролей, пароля, account email, `pendingContactEmail` и verification token. Tutoring получает account email через `IdentityQuery`, чтобы решить, можно ли подтвердить совпадающий профильный адрес после account-email verification.
+В `TeacherProfileData` и `StudentProfileData` нет `userId` и `birthDate`: ID передаётся доверенной командой, дата рождения остаётся только в Identity. В профильных данных также нет ролей, пароля и account email. `contactEmail` может отличаться от адреса входа в аккаунт; Tutoring проверяет его формат, но не подтверждает владение им.
 
 ## 7. Ошибки публичного Java API
 
@@ -460,30 +417,30 @@ public enum ProfileTypeView { TEACHER, STUDENT }
 
 | Элемент | Ответственность |
 | --- | --- |
-| `TutoringProfileQuery` | Предоставляет self-, public-, summary- и linked-представления профилей и проверку наличия профиля преподавателя. Public-view активного пользователя доступен без связи; linked-view проверяет связь из-за назначения операции. Не отдаёт domain aggregate или неподтверждённые контакты. |
+| `TutoringProfileQuery` | Предоставляет self-, public- и summary-представления профилей и проверку наличия профиля преподавателя. Public-view активного пользователя доступен без связи; linked-методы проверяют связь и возвращают тот же тип public-view. Не отдаёт domain aggregate или неподтверждённые контакты. |
 | `TutoringSubjectQuery` | Проверяет существование одного или нескольких кодов в принадлежащем Tutoring справочнике Subject. Вызывается Scheduling и другими согласованными потребителями; реализуется application-сервисом Tutoring. Не принимает преподавателя и не превращает профильные предметы в допуск к уроку. |
 | `TutoringRelationshipQuery` | Проверяет одну или набор подтверждённых связей преподавателя с учениками. Используется Scheduling и Workflows; реализуется application-сервисом с доступом к собственному relationship repository. Не возвращает `TeacherStudent` и не управляет уроками. |
-| `TutoringRegistrationCommands` | Принимает доверенные команды первоначального создания профилей и создания профиля второй роли. Вызывается Registration/RoleOnboarding workflows и реализуется Tutoring command service в их общей транзакции. Не добавляет роли Identity, не принимает пароль и не является REST controller. |
+| `TutoringProfileCreationCommands` | Принимает доверенные команды первоначального создания профилей и создания профиля второй роли. Вызывается Registration/RoleOnboarding workflows и реализуется Tutoring command service в их общей транзакции. Не добавляет роли Identity, не принимает пароль или дату рождения и не является REST controller. |
 | `TutoringRelationshipCommands` | Удаляет принадлежащую Tutoring связь по запросу `UnlinkStudentWorkflow` после успешной обработки будущих уроков. Реализация присоединяется к внешней транзакции и использует собственный repository port. Не вызывает Scheduling и не открывает прямой пользовательский endpoint. |
 
 ### 8.2 Commands, views и results
 
 | Элемент | Ответственность |
 | --- | --- |
-| `CreateInitialProfilesCommand` | Передаёт Tutoring `operationId`, созданный `userId` и данные одного или двух выбранных профилей. Формируется RegistrationWorkflow и обрабатывается `TutoringRegistrationCommands`. Не содержит ролей, account data или raw password. |
-| `CreateTeacherProfileCommand` | Передаёт создание TeacherProfile при добавлении роли TEACHER с тем же `operationId`, что у Identity. Формируется RoleOnboardingWorkflow и обрабатывается Tutoring. Не добавляет роль самостоятельно. |
-| `CreateStudentProfileCommand` | Передаёт создание StudentProfile и обязательную birthDate при добавлении роли STUDENT с тем же `operationId`, что у Identity. Формируется RoleOnboardingWorkflow и обрабатывается Tutoring. Не изменяет аккаунт. |
+| `CreateInitialProfilesCommand` | Передаёт Tutoring созданный `userId` и данные одного или двух выбранных профилей. Формируется RegistrationWorkflow и обрабатывается `TutoringProfileCreationCommands`. Не содержит ролей, account data или raw password. |
+| `CreateTeacherProfileCommand` | Передаёт создание TeacherProfile при добавлении роли TEACHER. Формируется RoleOnboardingWorkflow и обрабатывается Tutoring. Не добавляет роль самостоятельно. |
+| `CreateStudentProfileCommand` | Передаёт создание StudentProfile при добавлении роли STUDENT. Формируется RoleOnboardingWorkflow и обрабатывается Tutoring. Не изменяет аккаунт. |
 | `RemoveTeacherStudentCommand` | Определяет пару связи и `operationId` для удаления после обработки уроков. Формируется только UnlinkStudentWorkflow и обрабатывается Tutoring. Не описывает способ изменения уроков. |
-| `TeacherProfileView` | Возвращает владельцу полное состояние TeacherProfile, включая birthDate и current/pending контактный email. Получается только MeQueryFacade для текущего principal. Не содержит пароль или доменные объекты. |
-| `StudentProfileView` | Возвращает владельцу полное состояние StudentProfile, включая birthDate и current/pending контактный email. Получается только MeQueryFacade для текущего principal. Не содержит пароль или доменные объекты. |
+| `TeacherProfileView` | Возвращает владельцу полное состояние TeacherProfile, включая вычисленный возраст и указанный контактный email. Получается только MeQueryFacade для текущего principal. Не содержит дату рождения, пароль или доменные объекты. |
+| `StudentProfileView` | Возвращает владельцу полное состояние StudentProfile, включая вычисленный возраст и указанный контактный email. Получается только MeQueryFacade для текущего principal. Не содержит дату рождения, пароль или доменные объекты. |
 | `TeacherProfileSummary` | Даёт только `userId` и `displayName` для пакетного отображения преподавателей в других модулях. Возвращается `TutoringProfileQuery`. Не раскрывает контакты, профильные подробности и статус Identity. |
 | `StudentProfileSummary` | Даёт только `userId` и `displayName` для пакетного отображения учеников в других модулях. Возвращается `TutoringProfileQuery`. Не раскрывает контакты, возраст и профильные подробности. |
-| `LinkedStudentProfileView` | Возвращает преподавателю birthDate и разрешённые данные связанного ученика только после проверки TeacherStudent. Не содержит pending или неподтверждённый email. |
-| `LinkedTeacherProfileView` | Возвращает ученику birthDate и разрешённые данные связанного преподавателя только после проверки TeacherStudent. Не раскрывает pending email. |
+| `PublicStudentProfileView` | Возвращает данные активного профиля ученика без требования связи; после проверки TeacherStudent также используется linked-методом. Содержит указанный контактный email, но не account email и не точную дату рождения. |
+| `PublicTeacherProfileView` | Возвращает данные активного профиля преподавателя без требования связи; после проверки TeacherStudent также используется linked-методом. Содержит указанный контактный email, но не account email и не точную дату рождения. |
 | `TeacherProfileData` | Передаёт Tutoring необходимые для первичного создания профильные данные преподавателя. Формируется workflow из валидированного HTTP DTO и переводится application/domain в локальные типы. Не является domain aggregate или HTTP request DTO. |
-| `StudentProfileData` | Передаёт Tutoring ролевые данные StudentProfile. Общая birthDate передаётся на уровне доверенной команды. Не содержит данные входа в аккаунт. |
-| `InitialProfilesCreatedResult` | Подтверждает обработанную registration-команду и перечисляет созданные типы профилей. Возвращается TutoringRegistrationCommands и хранится для идемпотентного повтора. Не является HTTP `MeResponse`. |
-| `ProfileCreatedResult` | Подтверждает создание одного профиля второй роли и обработанный `operationId`. Возвращается `TutoringRegistrationCommands` в RoleOnboardingWorkflow. Не выдаёт полный профиль или новый JWT. |
+| `StudentProfileData` | Передаёт Tutoring ролевые данные StudentProfile. Не содержит дату рождения или данные входа в аккаунт. |
+| `InitialProfilesCreatedResult` | Подтверждает создание профилей и перечисляет их типы. Возвращается TutoringProfileCreationCommands; итоговый ответ для повтора хранит Workflows. Не является HTTP `MeResponse`. |
+| `ProfileCreatedResult` | Подтверждает создание одного профиля второй роли. Возвращается `TutoringProfileCreationCommands` в RoleOnboardingWorkflow. Не выдаёт полный профиль или новый JWT. |
 | `TeacherStudentRemovalResult` | Подтверждает удаление указанной связи и обработанный `operationId`. Возвращается UnlinkStudentWorkflow, в том числе при повторе той же операции. Не сообщает изменения уроков Scheduling. |
 | `ProfileTypeView` | Кодирует только тип создаваемого или отсутствующего учебного профиля. Используется результатами и исключениями Tutoring API. Не заменяет `Identity.UserRole` и не управляет авторизацией. |
 
@@ -517,16 +474,15 @@ Tutoring     → Identity.User или таблицы Identity
 | TUT-14: одна связь | `TutoringRelationshipQuery.areLinked` / `requireLinked` | `boolean` / `void` | `false` / `TeacherStudentNotLinkedException` |
 | TUT-15: набор связей | `TutoringRelationshipQuery.requireAllLinked` | `void` | `TeacherStudentNotLinkedException` со всеми отсутствующими ID |
 | TUT-16: предмет существует | `TutoringSubjectQuery.exists` / `requireAllExist` | `boolean` / `void` | `false` / `UnknownSubjectsException` |
-| TUT-17: межмодульный профиль | `TutoringProfileQuery.find*Profile`, `find*Summaries`, `findLinked*` | self/summary/linked views | `Optional.empty()` или отсутствие ключа в Map |
+| TUT-17: межмодульный профиль | `TutoringProfileQuery.find*Profile`, `find*Summaries`, `findLinked*` | self/public/summary views | `Optional.empty()` или отсутствие ключа в Map |
 | TUT-18: удаление связи | `TutoringRelationshipCommands.removeTeacherStudent` | `TeacherStudentRemovalResult` | `TeacherStudentNotLinkedException`, `IdempotencyConflictException` |
-| TUT-19: смена профильного email | **Внутренний use case Tutoring**, не `tutoring.api` | application result/HTTP 202 | Невалидный email, ownership, неверный профиль |
-| TUT-20: подтверждение профильного email | **Внутренний use case Tutoring**, не `tutoring.api` | application result/HTTP 204 | Недействительный/использованный verification token |
-| TUT-21: account email подтверждён | Входящий `identity.api.event.AccountEmailVerifiedEvent` | Нет исходящей public модели Tutoring | Повторный `eventId` идемпотентен |
-| TUT-22: первоначальный профиль | `TutoringRegistrationCommands.createInitialProfiles` | `InitialProfilesCreatedResult` | `InvalidProfileDataException`, `ProfileAlreadyExistsException`, `UnknownSubjectsException`, `IdempotencyConflictException` |
-| WF-01: регистрация | `createInitialProfiles` после `IdentityRegistrationCommands.createPendingUser` | `InitialProfilesCreatedResult` | Общий rollback при ошибке любого модуля |
-| WF-02: вторая роль | `createTeacherProfile` **или** `createStudentProfile` после `IdentityRoleCommands.addRole` | `ProfileCreatedResult` | Общий rollback, повтор с тем же operationId безопасен |
+| TUT-19: смена контактного email | **Внутренний use case Tutoring**, не `tutoring.api` | application result/HTTP 200 | Невалидный формат, ownership, неверный профиль |
+| TUT-20: account email подтверждён | Входящий `identity.api.event.AccountEmailVerifiedEvent` | Нет исходящей public модели Tutoring; привязка приглашений | Повторный `eventId` идемпотентен |
+| TUT-21: первоначальный профиль | `TutoringProfileCreationCommands.createInitialProfiles` | `InitialProfilesCreatedResult` | `InvalidProfileDataException`, `ProfileAlreadyExistsException`, `UnknownSubjectsException` |
+| WF-01: регистрация | `createInitialProfiles` после `IdentityRegistrationGateway.register` | `InitialProfilesCreatedResult` | Общий rollback при ошибке любого модуля |
+| WF-02: вторая роль | `createTeacherProfile` **или** `createStudentProfile` после `IdentityRoleGateway.addRole` | `ProfileCreatedResult` | Общий rollback; точный повтор обрабатывает Workflows |
 | WF-03: отвязка | `requireLinked` → Scheduling API → `removeTeacherStudent` | `TeacherStudentRemovalResult` | Общий rollback, связь остаётся при ошибке уроков |
-| QF-01: карточка ученика | `findPublicStudentProfile`; связь проверяется для статистики уроков | `PublicStudentProfileView.birthDate` и разрешённая статистика | Профиль доступен без связи, статистика — только при связи |
+| QF-01: карточка ученика | `findPublicStudentProfile`; связь проверяется для статистики уроков | `PublicStudentProfileView.age` и разрешённая статистика | Профиль доступен без связи, статистика — только при связи |
 | QF-02: `/me` | `findTeacherProfile` / `findStudentProfile` | self-views | Отсутствие обязательного профиля — инвариантная ошибка |
 
 TUT-01…TUT-13, кроме межмодульных проверок, обслуживаются внутренними application use cases и presentation Tutoring. Их HTTP DTO не являются публичными Java-моделями `tutoring.api`.
@@ -535,7 +491,7 @@ TUT-01…TUT-13, кроме межмодульных проверок, обсл�
 
 ### Contract tests
 
-- Public-типы размещены в пакетах из раздела 3; в корневых `tutoring.api.command` и `tutoring.api.model` нет классов, результаты команд не находятся среди профильных моделей.
+- Public-типы размещены в пакетах из раздела 3; в корневых `tutoring.api.command` и `tutoring.api.model` нет классов, результаты команд не находятся среди профильных моделей. Отдельных `Linked*View` нет.
 - Сигнатуры интерфейсов и public records совпадают со спецификацией; нет generic `TutoringQuery`, generic `createProfile` и методов `teachesSubject`/`requireTeacherCanTeach`.
 - `find*` корректно возвращают `Optional.empty()`/отсутствующие ключи Map; `require*` возвращают перечисленные типизированные исключения.
 - Batch-вызовы не превращаются в N+1; при неизвестных предметах/несвязанных учениках возвращаются полные наборы ошибок.
@@ -543,22 +499,21 @@ TUT-01…TUT-13, кроме межмодульных проверок, обсл�
 
 ### Privacy и integration tests
 
-- Self-view содержит pending email только для владельца через `MeQueryFacade`.
-- Linked view не выдаёт pending или неподтверждённый contact email и не появляется без `TeacherStudent`.
-- Self-view возвращает birthDate владельцу; public-view активного профиля возвращает её любому посетителю без связи; summary остаётся кратким и не содержит дату.
-- Публичный поиск фильтрует предметы по профилю и возраст по его birthDate, не выдаёт неактивные аккаунты Identity и не допускает N+1-проверки статуса. Неподтверждённая и pending почта не выходят в публичный ответ.
+- Self-view и public-view содержат возраст, но не дату рождения; точная дата доступна только владельцу через данные аккаунта Identity.
+- Linked-методы возвращают `Public*View` после проверки `TeacherStudent`; контактный email указан пользователем и не считается подтверждённым.
+- Публичный поиск фильтрует предметы по профилю, а возраст и активность получает пакетно из Identity без N+1. В Tutoring нет сохранённого возраста или даты рождения.
 - Scheduling может создать урок по существующему предмету вне `TeacherProfile.subjectCodes`, если прочие проверки выполнены.
-- Повтор `AccountEmailVerifiedEvent` не меняет результат: связывание приглашений и подтверждение совпадающего email идемпотентны.
-- Доставка приглашения/profile-email verification сохраняет delivery request в транзакции, SMTP не запускается до commit.
+- Повтор `AccountEmailVerifiedEvent` не меняет результат привязки приглашений.
+- Доставка приглашения сохраняет delivery request в транзакции, SMTP не запускается до commit.
 
 ### Transaction и architecture tests
 
 - Вызов command service без внешней транзакции с `MANDATORY` не записывает данные.
 - Ошибка Tutoring при регистрации/onboarding откатывает Identity; ошибка Scheduling при отвязке сохраняет связь.
-- Повтор Java-команды с тем же `operationId`/payload возвращает прежний результат; изменённый payload вызывает `IdempotencyConflictException`; конкурентные запросы не создают дубли. Сквозной HTTP-повтор проверяется после добавления `Idempotency-Key` в транспортный контракт.
+- Для регистрации и добавления роли точный повтор всего запроса возвращает результат из Workflows. Для независимых команд Tutoring повтор с тем же `operationId`/payload возвращает прежний результат, а изменённый payload вызывает `IdempotencyConflictException`. Сквозной HTTP-повтор проверяется после добавления `Idempotency-Key` в транспортный контракт.
 - Spring Modulith/ArchUnit запрещают импорты внутренних пакетов и чужих repositories/tables; Scheduling импортирует только `tutoring.api`; self-view используется только утверждённой query facade.
 - Публичный `tutoring.api` не зависит от Spring, HTTP DTO, domain, jOOQ, SMTP и Scheduling.
 
 Этап 2 утверждён пользователем 2026-09-16. Зафиксированы границы публичного Java API, структура пакетов, интерфейсы, команды, модели, ошибки и транзакционные условия, описанные в этом документе. Спецификация является согласованной основой для следующих этапов проектирования Tutoring.
 
-Перечисленные проверки остаются требованиями к будущей реализации; утверждение архитектуры не означает, что код реализован или тесты выполнены. изменение Git-проекта и синхронизация OpenAPI выполняются по отдельному запросу.
+Перечисленные проверки остаются требованиями к будущей реализации; утверждение архитектуры не означает, что все сценарии Tutoring уже реализованы или протестированы. Публичные Java-контракты добавлены, а целевые HTTP-схемы синхронизированы с ними.

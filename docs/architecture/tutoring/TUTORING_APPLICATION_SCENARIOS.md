@@ -236,156 +236,30 @@ Scheduling может использовать `TutoringSubjectQuery` для п�
 
 ### Граница ответственности
 
-`TeacherProfile` и `StudentProfile` — независимые агрегаты Tutoring с ключом `userId`. Профили хранят собственную копию `birthDate`; первоисточник даты при регистрации/onboarding — `Identity.User`. Роли, account email, пароль и статус аккаунта профилям не принадлежат.
-
-**Роль добавляет только Identity.** `RegistrationWorkflow` и `RoleOnboardingWorkflow` координируют вызовы Identity и Tutoring в общей транзакции. Команды Tutoring создают только запрошенные профили, не изменяют роли и получают `birthDate` из доверенного workflow. В соответствии с этапом 2 при создании можно проверить наличие соответствующей роли через публичный Identity API как межмодульный инвариант; это чтение не переносит владение ролью в Tutoring. Точное соответствие полного набора выбранных ролей профильным данным проверяет внешний workflow.
-
-При создании второй роли сбой создания профиля должен откатить добавление роли. Возможность общей транзакции между модулями — обязательное условие текущего проекта; если развёртывание этого не обеспечит, понадобится отдельный компенсационный протокол, который здесь не придумывается.
-
-### Структура Application
-
-```text
-tutoring.application.profile
-├── port.in
-│   ├── UpdateTeacherProfileUseCase
-│   └── UpdateStudentProfileUseCase
-├── port.out
-│   ├── TeacherProfileRepository
-│   └── StudentProfileRepository
-├── service
-│   ├── ProfileQueryService                // TutoringProfileQuery
-│   ├── TeacherProfileUpdateService
-│   ├── StudentProfileUpdateService
-│   ├── RegistrationProfileService         // TutoringRegistrationCommands
-│   └── LinkedProfileProjectionService     // только внутренний потребитель relationship
-├── mapper
-│   └── ProfileViewMapper
-└── model
-    ├── command
-    │   ├── UpdateTeacherProfileCommand
-    │   └── UpdateStudentProfileCommand
-    └── query
-        └── LinkedProfileBatchQuery
-```
-
-Публичные `TeacherProfileData`, `StudentProfileData`, self-/summary-/linked-view и команды регистрации остаются в `tutoring.api`, как зафиксировано этапом 2. Внутренние application-команды не являются HTTP DTO. Отдельных `model` и `value` пакетов в Domain не вводится: доменные типы профиля находятся в `tutoring.domain.profile.model`.
-
-`ProfileViewMapper` отдельно формирует self-view владельца, public-view активного профиля, минимальный summary и linked-view для операций со связью. Публичные данные включают `birthDate`, `contactDetails` и только подтверждённый current email; mapper не проверяет статус пользователя или связь, не делает запросы и не принимает HTTP DTO. Статус проверяет public application use case через Identity, связь — блок `relationship` там, где она требуется.
+TeacherProfile и StudentProfile — независимые агрегаты Tutoring с ключом userId. Они хранят учебные данные и один контактный email каждый. Роли, account email, точная дата рождения и статус аккаунта принадлежат Identity. В профилях не сохраняется возраст: Identity вычисляет его из своей даты рождения на указанную дату.
 
 ### Чтение профилей
 
-#### PROF-01/02 — собственный профиль
+ProfileQueryService реализует TutoringProfileQuery. Собственный профиль выдаётся только через MeQueryFacade, который сверяет principal.userId с запрошенным ID. Self-view содержит возраст и контактный email, но не дату рождения аккаунта. Отсутствие профиля при наличии соответствующей роли является нарушением межмодульного инварианта.
 
-Точка входа — `TutoringProfileQuery.findTeacherProfile(userId)` / `findStudentProfile(userId)`; результат `Optional<TeacherProfileView>` / `Optional<StudentProfileView>`. `MeQueryFacade` получает ID из доверенного principal и проверяет равенство с передаваемым `userId`. Публичный Java API не принимает principal и не предназначен для произвольного показа self-view чужому пользователю.
+Public-view активного пользователя доступен без связи и login. Tutoring читает свои профильные поля, пакетно получает возраст и активность из Identity, затем формирует PublicTeacherProfileView или PublicStudentProfileView. Указанный пользователем contactEmail показывается без статуса подтверждения. Для списков подтверждённых связей relationship сначала проверяет пары TeacherStudent и затем использует те же public-view. Summary содержит только userId и displayName; пустой набор ID не вызывает SQL.
 
-Сервис выполняет read-only-запрос своего репозитория, строит self-view и возвращает `Optional.empty()` при отсутствии профиля. Повторной проверки роли в этом чтении нет; ID операции не нужен. Self-view содержит все поля соответствующего профиля, в том числе `birthDate`, current email, pending email и время подтверждения. Он не содержит account email, пароль, токены и роль. Если роль есть, а профиль отсутствует, внешний `MeQueryFacade` трактует это как нарушение межмодульного инварианта, не как нормальное пустое onboarding-состояние.
+Публичный поиск фильтрует предметы по профилям и сортирует кандидатов по createdAt DESC, userId DESC. Возраст и ACTIVE-статус проверяются пакетно через Identity без N+1; при узком возрастном фильтре Tutoring добирает следующие порции кандидатов до limit + 1 либо конца набора. Курсор сохраняет UTC-дату расчёта возраста, чтобы следующие страницы использовали ту же дату.
 
-#### PROF-03/04 — пакетные summary
+### Изменение профиля
 
-Точка входа — существующие `TutoringProfileQuery.findTeacherSummaries(Set<UUID>)` и `findStudentSummaries(Set<UUID>)`. Для пустого входа возвращается пустая `Map` без обращения к БД. Для непустого выполняется один пакетный запрос, результат — `Map<UUID, TeacherProfileSummary>` либо `Map<UUID, StudentProfileSummary>` по найденным профилям; отсутствующие ID в карту не входят. Summary содержит только `userId` и `displayName`, без даты рождения, контактов и статуса Identity. Порядок элементов множества входа контрактом не гарантируется. Ограничение размера batch определяется при проектировании API/хранения.
+UpdateTeacherProfileUseCase и UpdateStudentProfileUseCase получают доверенный actorUserId, проверяют все subjectCodes одним запросом, блокируют собственный профиль, полностью заменяют обычные поля и выбор предметов, затем сохраняют агрегат. Teacher требует минимум один предмет, Student допускает пустой набор. Эти команды не меняют контактный email: для него есть ChangeProfileEmailUseCase.
 
-#### PROF-05/06 — пакетные данные для списка связей
+ChangeProfileEmailUseCase получает доверенный actorUserId, тип профиля и newEmail. Сервис проверяет формат, загружает собственный профиль с блокировкой и сразу сохраняет новый контактный адрес. Повтор того же нормализованного адреса — no-op. Контактный адрес не подтверждается письмом, не имеет pending-состояния и не используется как адрес входа или ключ поиска приглашений.
 
-Внутренний `LinkedProfileProjectionService` получает `Set<UUID>` уже связанных учеников или преподавателей **от блока relationship**. Он делает один пакетный запрос профилей и их предметов, собирает `Map<UUID, LinkedStudentProfileView>` или `Map<UUID, LinkedTeacherProfileView>`. Пустое множество даёт пустую карту. В представление входят `birthDate` из профиля и только подтверждённый current `contactEmail`; pending или неподтверждённый адрес не возвращается. Проверка связи перед вызовом — обязанность `relationship`, поэтому произвольный внешний потребитель не получает доступ к этой внутренней операции.
+### Создание из доверенных workflows
 
-Для связи, указывающей на отсутствующий профиль, слой relationship должен трактовать расхождение как ошибку целостности, а не молча строить неполную карточку. Имена внутренних batch-методов согласуются с утверждённым документом relationship при итоговой сборке; типы self-view и linked-view не смешиваются.
-
-#### PROF-07/08 — одиночный linked-профиль
-
-Публичные `TutoringProfileQuery.findLinkedStudentProfile(teacherUserId, studentUserId)` и `findLinkedTeacherProfile(studentUserId, teacherUserId)` реализуются композицией в блоке `relationship`: сначала проверка подтверждённой связи, затем получение linked-проекции профиля. Без связи возвращается `Optional.empty()` без раскрытия профиля или даты рождения. В блоке `profile` отдельный дублирующий use case для этих методов не создаётся.
-
-#### Дополнительно — `requireTeacherProfile`
-
-Существующий метод публичного API проверяет наличие профиля преподавателя по `userId`, не проверяет роль и не сопоставляет предмет урока с предметами преподавателя. При отсутствии — `ProfileNotFoundException(TEACHER, userId)`.
-
-### Изменение обычных данных
-
-#### PROF-09 — `UpdateTeacherProfileUseCase`
-
-Команда содержит доверенный `actorUserId` и **полный новый набор изменяемых обычных полей**: `displayName`, `contactDetails`, `subjectCodes`, `description`, `education`, `experienceYears`, `city`, `photoUrl`. Это полная замена перечисленных значений, не PATCH. `contactEmail`, `pendingContactEmail`, `contactEmailVerifiedAt`, `birthDate` и `userId` в команду не входят.
-
-1. Проверить обязательные поля и непустой набор предметов преподавателя.
-2. Одним вызовом Subject query проверить существование всех переданных предметов.
-3. В write-транзакции загрузить профиль по `actorUserId` с блокировкой на изменение; отсутствие — `ProfileNotFoundException`.
-4. Передать обычные поля в `TeacherProfile.updateDetails(...)`, выбор предметов — в `changeSubjects(...)`.
-5. Сохранить агрегат и завершить транзакцию. Результат use case — `void`; транспортный слой может отвечать `204`.
-
-Domain проверяет заполненность имени и неотрицательность `experienceYears`; application проверяет существование предметов. Никакой роли заново не создаётся или не проверяется. `operationId` для этого обычного обновления сейчас не требуется.
-
-#### PROF-10 — `UpdateStudentProfileUseCase`
-
-Аналогично: полный новый набор `displayName`, `contactDetails`, `subjectCodes`, `photoUrl`. Пустое множество предметов разрешено; при нём запрос `requireAllExist` не выполняется. Профиль загружается по доверенному `actorUserId`, изменяется через `StudentProfile.updateDetails(...)` и `changeSubjects(...)`, сохраняется атомарно. Email и `birthDate` не изменяются. Результат — `void`, без `operationId`.
-
-Блокировка строки сериализует конкурентные записи, но не распознаёт устаревшие данные в двух открытых браузерных вкладках. В v1 `expectedVersion` в публичном контракте нет; защита от перезаписи устаревшей формы на уровне клиента не обещается.
-
-### Создание профилей из доверенных workflows
-
-Общие правила PROF-11/12/13: до бизнес-действий вызвать `CommandIdempotency.beginOrReplay` с `operationId`, `userId`, конкретным типом операции и fingerprint нормализованного payload. `Replay` сразу возвращает сохранённый результат. Новое выполнение проверяет данные, существование предметов и отсутствие целевого профиля; `complete` записывает результат **в той же транзакции**. Уникальный `userId` для каждого вида профиля остаётся последней защитой от гонок. Tutoring не получает raw password и не добавляет роль.
-
-Первоначальная почта каждого нового профиля записывается как current, но ещё не подтверждённая; pending отсутствует. Затем `IdentityAccountGateway.findAccountEmailState(userId)` вызывается один раз для команды, и для каждого создаваемого профиля применяется правило:
-
-| Состояние | Действие Tutoring |
-|---|---|
-| Профильный email совпадает с уже подтверждённым account email | Подтвердить current email сразу, используя подтверждённый факт Identity. |
-| Совпадает с ещё неподтверждённым account email | Оставить неподтверждённым и ждать `AccountEmailVerifiedEvent`; не создавать `ProfileEmailVerification` и не отправлять второе письмо. |
-| Отличается от account email | Создать отдельный запрос `ProfileEmailVerification` и заявку в Notifications на подтверждение профильной почты. |
-
-При двух профилях с одним неподтверждённым account email оба ждут **одно** подтверждение Identity; событие подтверждает совпадающий current email обоих. Письмо Identity не отправляется Tutoring. Смена профильной почты позднее — другой сценарий блока `profile.verification`.
-
-#### PROF-11 — `createInitialProfiles`
-
-Вход: `CreateInitialProfilesCommand(operationId, userId, birthDate, Optional<TeacherProfileData>, Optional<StudentProfileData>)`. Внешний `RegistrationWorkflow` уже создал пользователя в Identity, проверил выбранные роли и соответствие `roles ↔ profiles`, передал сохранённую `Identity.User.birthDate` и использует общую транзакцию.
-
-1. Проверить обязательные `operationId`, `userId`, `birthDate` и хотя бы один непустой `Optional`.
-2. Нормализовать вход, выполнить idempotency begin/replay.
-3. Проверить данные выбранных профилей: преподавателю нужен минимум один предмет, ученику разрешён пустой набор; применить остальные профильные инварианты.
-4. Одним batch-вызовом проверить объединение всех переданных кодов предметов.
-5. Проверить отсутствие **каждого запрошенного** профиля и наличие соответствующих ролей через публичный Identity API; полный набор ролей здесь заново не сопоставлять.
-6. Создать один или оба агрегата с одинаковой переданной `birthDate` и первоначальным неподтверждённым current email.
-7. Один раз получить состояние account email из Identity и применить трёхветочное правило выше отдельно к каждому профилю.
-8. Сохранить профили, при необходимости verification и заявки Notifications; завершить idempotency с `InitialProfilesCreatedResult`.
-9. Вернуть результат; commit выполняет внешний workflow. Ошибка любого шага откатывает оба профиля, Identity-пользователя и связанные записи общей транзакции.
-
-#### PROF-12 — `createTeacherProfile`
-
-Вход: `CreateTeacherProfileCommand(operationId, userId, birthDate, TeacherProfileData)`. Внешний `RoleOnboardingWorkflow` вызывает **IdentityRoleCommands.addRole(TEACHER)**, получает существующую `Identity.User.birthDate` и вызывает Tutoring в общей транзакции. Tutoring роль не добавляет.
-
-1. Проверить и нормализовать вход; выполнить idempotency begin/replay.
-2. Проверить данные преподавателя, включая минимум один предмет, и существование всех кодов.
-3. Проверить отсутствие TeacherProfile; StudentProfile того же пользователя не изменять.
-4. Прочитать через Identity API наличие уже добавленной роли `TEACHER` как межмодульный инвариант этапа 2.
-5. Создать TeacherProfile с переданной `birthDate` и неподтверждённым current email.
-6. Получить состояние account email и применить трёхветочное правило подтверждения.
-7. Сохранить профиль и связанные записи, завершить idempotency с `ProfileCreatedResult(operationId,userId,TEACHER)`; внешний workflow фиксирует всё вместе. При ошибке откатывается и добавление роли в Identity.
-
-#### PROF-13 — `createStudentProfile`
-
-Зеркальный сценарий второй роли: `RoleOnboardingWorkflow` добавляет `STUDENT` **через Identity**, получает `birthDate`, затем вызывает `TutoringRegistrationCommands.createStudentProfile`. Проверки, idempotency, email-ветвление, rollback и результат `ProfileCreatedResult(..., STUDENT)` аналогичны PROF-12. Пустой `subjectCodes` ученика допустим, вызов проверки существования предметов тогда пропускается; TeacherProfile того же пользователя не меняется.
-
-### Репозитории, ошибки и транзакции
-
-`TeacherProfileRepository` и `StudentProfileRepository` предоставляют `findByUserId`, `findByUserIdForUpdate`, batch-загрузку summary и linked-проекций, `existsByUserId` и `save`. Конкретные сигнатуры и SQL определяются persistence-этапом; batch-запрос не должен превращаться в `N+1` на предметах. Репозитории профилей не получают зависимости на репозитории Identity, Scheduling или Notifications.
-
-Ожидаемые ошибки: некорректные данные профиля, неизвестные предметы, отсутствие/дубликат профиля, idempotency conflict и ошибка межмодульного инварианта «роль отсутствует при создании профиля». Неизвестная Identity account-email state или недоступность обязательного Identity API не является основанием молча пропустить подтверждение; транзакция откатывается.
-
-PROF-01…08 и `requireTeacherProfile` — read-only без `operationId`; PROF-09/10 — write-транзакции без `operationId`; PROF-11/12/13 — write-части внешних Registration/RoleOnboarding workflows с одним `operationId` на команду и общей атомарностью.
-
-### Критерии проверки
-
-- Собственный профиль показывает `birthDate` и оба состояния почты; summary их не показывает.
-- Точная дата рождения и подтверждённый контакт активного учебного профиля доступны публично; связь требуется для списка отношений и уроков.
-- Пустые предметы ученика допустимы; преподавателя — нет. Предметы не ограничивают выбор предмета урока.
-- Обычное обновление не меняет email, `birthDate` или другой профиль того же пользователя.
-- Регистрация двух ролей создаёт два профиля атомарно; сбой одного откатывает оба и Identity-операцию.
-- Identity одна добавляет роли; Tutoring проверяет, но не создаёт роль.
-- Совпадение с неподтверждённым account email ждёт событие Identity без второго письма.
-- Повтор с тем же `operationId` возвращает прежний результат, а с изменённым payload даёт конфликт.
-
+TutoringProfileCreationCommands предоставляет createInitialProfiles, createTeacherProfile и createStudentProfile. RegistrationWorkflow создаёт Identity.User и соответствующие профили в одной транзакции; RoleOnboardingWorkflow добавляет роль Identity и создаёт один новый профиль в той же транзакции. Tutoring проверяет наличие нужной роли через публичный API Identity, валидность данных и предметы. Команды содержат userId и профильные данные, но не birthDate, роли или пароль. Ошибка любого шага откатывает всю транзакцию.
 ## 3. Idempotency
 
 ### Ответственность и границы
 
-`tutoring.application.idempotency` обеспечивает повторяемость команд Tutoring по `operationId` и однократное применение входящего `eventId`. Он не генерирует эти ID, не определяет бизнес-результат, не подменяет уникальные ограничения БД и не делает HTTP-запрос автоматически идемпотентным. Для повторного HTTP-запроса внешний workflow должен повторно использовать тот же `operationId`.
+`tutoring.application.idempotency` обеспечивает повторяемость самостоятельных команд Tutoring по `operationId` и однократное применение входящего `eventId`. Регистрация и добавление роли используют журнал Workflows. Idempotency Tutoring не генерирует ID, не определяет бизнес-результат и не подменяет уникальные ограничения БД.
 
 Запись о команде принадлежит Tutoring и сохраняется в одной транзакции с бизнес-изменениями и результатом. При ошибке вся транзакция откатывается: ни завершённой записи, ни бизнес-изменений не остаётся.
 
@@ -431,7 +305,7 @@ tutoring.application.idempotency
 );
 ```
 
-`resultType` нужен для безопасного возврата ранее сохранённого результата; его точное представление в БД ещё не выбирается. Параметры `complete` позволяют сверить, что завершается именно начатая операция. При регистрации `userId` уже получен в общем workflow; для иных команд это доверенный actor/owner ID.
+`resultType` нужен для безопасного возврата ранее сохранённого результата; его точное представление в БД ещё не выбирается. Параметры `complete` позволяют сверить, что завершается именно начатая операция. Для самостоятельных команд Tutoring `userId` — доверенный actor/owner ID; регистрация и добавление роли проходят через журнал Workflows.
 
 Минимальные логические данные `CommandOperation`: `operationId` (уникальный ключ), `userId`, `operationType`, `payloadFingerprint`, сохранённый тип/схема результата, сохранённый результат и `completedAt`. Промежуточное состояние допускается только внутри незавершённой транзакции и не считается отдельным бизнес-статусом.
 
@@ -478,230 +352,17 @@ tutoring.application.idempotency
 
 ## 4. Integration
 
-### Статус и назначение
+### Identity API
 
-Документ фиксирует утверждённый проект `tutoring.application.integration` после переноса `birthDate` в `TeacherProfile` и `StudentProfile`.
+Tutoring вызывает только публичный API Identity. Для карточек и поиска используется IdentityQuery.findAgesByIds(userIds, asOf), возвращающий возраст существующих пользователей без точной даты рождения; для публичных ответов дополнительно проверяется ACTIVE-статус. Проверка роли при создании профиля не копирует роль в Tutoring. Приглашение ищет адресата только по подтверждённому account email Identity, а не по контактному адресу профиля.
 
-Интеграционный блок отвечает только за взаимодействие Tutoring с публичным API и событием Identity, необходимое для профильной почты и приглашений.
+### AccountEmailVerifiedEvent
 
-Отдельного сценария пакетного получения дат рождения нет: linked-use cases читают `birthDate` непосредственно из профилей Tutoring после проверки `TeacherStudent`.
+Подтверждение account email может привязать ожидающие приглашения к пользователю. Listener переводит событие в Application-команду; сервис дедуплицирует eventId, берёт общую email-блокировку с созданием приглашения и повторно сверяет актуальный подтверждённый адрес через Identity. Затем пакетно привязывает действующие приглашения и сохраняет receipt в той же транзакции. Устаревшее событие фиксируется как успешный no-op; недоступность Identity требует retry. Контактные email профилей событие не меняет.
 
-### Границы ответственности
+### Notifications
 
-Integration выполняет три сценария:
-
-1. Получение состояния account email пользователя.
-2. Поиск аккаунта по подтверждённому email при создании приглашения.
-3. Обработка `AccountEmailVerifiedEvent`.
-
-Integration не:
-
-- проверяет роли пользователя;
-- получает даты рождения для списков и карточек;
-- хранит копии данных Identity отдельно от профилей;
-- принимает приглашения;
-- создаёт `TeacherStudent`;
-- создаёт роли или профили;
-- отправляет SMTP напрямую;
-- обращается к таблицам Identity.
-
-Порты Notifications остаются в блоках-владельцах сценариев:
-
-```text
-profile.verification → письмо подтверждения профильной почты
-invitation           → письмо с приглашением
-```
-
-Scheduling не входит в этот блок: удаление связи координирует внешний workflow.
-
-### Структура
-
-```text
-tutoring.application.integration
-└── identity
-    ├── port
-    │   ├── in
-    │   │   └── HandleAccountEmailVerifiedUseCase
-    │   └── out
-    │       └── IdentityAccountGateway
-    ├── model
-    │   ├── command
-    │   │   └── HandleAccountEmailVerifiedCommand
-    │   └── result
-    │       ├── AccountEmailState
-    │       └── VerifiedAccountReference
-    ├── service
-    │   └── HandleAccountEmailVerifiedService
-    └── exception
-        ├── InvalidIdentityEventException
-        └── IdentityUserConsistencyException
-```
-
-Входящий infrastructure-listener преобразует публичный `Identity.AccountEmailVerifiedEvent` в application-команду. Application не зависит от Kafka, RabbitMQ, Spring events или HTTP DTO.
-
-### Output port Identity
-
-```java
-public interface IdentityAccountGateway {
-
-    Optional<AccountEmailState> findAccountEmailState(
-        UUID userId
-    );
-
-    Optional<VerifiedAccountReference> findByVerifiedEmail(
-        String normalizedEmail
-    );
-}
-```
-
-```java
-public record AccountEmailState(
-    String email,
-    boolean verified
-) {}
-```
-
-```java
-public record VerifiedAccountReference(
-    UUID userId,
-    String email
-) {}
-```
-
-Gateway реализуется infrastructure adapter, который вызывает только публичный API Identity. Он не читает таблицы Identity и не возвращает `Identity.User`.
-
-### Сценарий 1 — состояние account email
-
-Сценарий используется при первоначальном подтверждении профильной почты и при её изменении.
-
-```text
-1. Профильный сервис получает userId и целевой ProfileEmail.
-2. Вызывает IdentityAccountGateway.findAccountEmailState(userId).
-3. Gateway вызывает публичный Identity API.
-4. Identity возвращает account email и признак подтверждения.
-5. Application нормализует и сравнивает адреса.
-6. Если первоначальный current email совпадает с подтверждённым account email — профильный адрес подтверждается сразу.
-7. Если первоначальный current email совпадает с ещё неподтверждённым account email — профиль остаётся неподтверждённым и ждёт `AccountEmailVerifiedEvent`. Tutoring не создаёт `ProfileEmailVerification` и не ставит второе письмо на отправку.
-8. Если первоначальный current email отличается от account email — Tutoring создаёт `ProfileEmailVerification` и ставит письмо на отправку через Notifications.
-9. При смене профильной почты совпадающий подтверждённый account email может сразу подтвердить новый pending email. Правила для остальных случаев смены адреса определяются сценарием `profile.verification`.
-```
-
-Отсутствие пользователя в Identity при существующем профиле является нарушением межмодульной целостности и приводит к `IdentityUserConsistencyException`.
-
-Синхронная проверка подтверждённого account email может подтвердить pending адрес, который пользователь только что выбрал. Позднее согласованное правило распространяет это и на входящее событие: `AccountEmailVerifiedEvent` подтверждает совпадающий current **или** продвигает совпадающий pending. Перед применением события Tutoring повторно проверяет актуальное состояние account email через Identity API.
-
-Если при регистрации созданы два профиля и оба их первоначальных contact email совпадают с неподтверждённым account email, Identity отправляет своё письмо подтверждения аккаунта; Tutoring не создаёт два дополнительных профильных письма. После подтверждения account email входящее событие подтверждает current email каждого совпадающего профиля.
-
-### Сценарий 2 — поиск аккаунта при создании приглашения
-
-```text
-1. Преподаватель передаёт email предполагаемого ученика.
-2. Invitation Service нормализует email.
-3. Получает блокировку цели приглашения по нормализованному email.
-4. Вызывает IdentityAccountGateway.findByVerifiedEmail(...).
-5. Если аккаунт найден:
-   - создаёт StudentInvitation;
-   - сразу вызывает attachStudent(userId).
-6. Если аккаунт не найден:
-   - создаёт StudentInvitation без studentUserId.
-7. Сохраняет приглашение.
-8. Создаёт delivery request для Notifications.
-9. Завершает транзакцию.
-```
-
-Поиск нужен потому, что у уже зарегистрированного пользователя подтверждение account email могло произойти раньше и новое событие больше не придёт.
-
-Факт существования аккаунта не раскрывается преподавателю в HTTP-ответе. Роль `STUDENT` и наличие `StudentProfile` не проверяются; привязка приглашения не создаёт роль или профиль и не означает принятие.
-
-Блокировка нормализованного email согласуется со сценарием обработки события, чтобы конкурентное создание приглашения и подтверждение account email не оставили действующее приглашение непривязанным.
-
-### Сценарий 3 — AccountEmailVerifiedEvent
-
-#### Входная команда
-
-```java
-public record HandleAccountEmailVerifiedCommand(
-    UUID eventId,
-    UUID userId,
-    String verifiedEmail,
-    Instant verifiedAt
-) {}
-```
-
-```java
-public interface HandleAccountEmailVerifiedUseCase {
-
-    void handle(
-        HandleAccountEmailVerifiedCommand command
-    );
-}
-```
-
-#### Последовательность
-
-```text
-BEGIN
-
-1. Проверить eventId и входные данные.
-2. Если событие уже успешно обработано — завершить операцию без изменений.
-3. Нормализовать verifiedEmail.
-4. Получить общую с созданием приглашения и сменой профильной почты блокировку нормализованного email.
-5. Через IdentityAccountGateway повторно проверить, что это текущий подтверждённый account email данного userId. Устаревшее событие о прежнем адресе не применить.
-6. Загрузить TeacherProfile и StudentProfile пользователя, если они существуют, с защитой от конкурентной смены адреса.
-7. Для каждого профиля: при совпадении current подтвердить его, не очищая другой pending; при совпадении pending — продвинуть его в current и подтвердить. Ставший ненужным verification для подтверждённой цели аннулировать в той же транзакции.
-8. Пакетно найти действующие PENDING-приглашения на verifiedEmail с блокировкой.
-9. Привязать приглашения без адресата к userId; уже привязанные к нему оставить без изменений, привязанные к другому не переназначать. Самоприглашение после смены account email пропустить.
-10. Сохранить изменённые профили и приглашения.
-11. Сохранить eventId как обработанный в той же транзакции.
-
-COMMIT
-```
-
-#### Правила
-
-- Совпадающий pending profile email событием продвигается в current и подтверждается; несовпадающий не меняется.
-- Подтверждение current email не очищает существующий pending email.
-- Приглашения только привязываются, но не принимаются.
-- `TeacherStudent` не создаётся.
-- Роль и профиль ученика не создаются.
-- Истёкшие, принятые и отклонённые приглашения не изменяются.
-- Привязываются все допустимые действующие приглашения на подтверждённый адрес; самоприглашение пропускается и остаётся PENDING до истечения.
-- Событие о прежнем account email не меняет профили и приглашения. Если состояние Identity успешно прочитано, устаревший eventId можно отметить обработанным как безопасный no-op; недоступность Identity требует retry, а не такого receipt.
-- Повтор одного `eventId` безопасен.
-- Отсутствие профилей или приглашений является нормальным результатом.
-- Техническая ошибка откатывает всю транзакцию; инфраструктура повторяет доставку события.
-
-### Транзакции и конкурентность
-
-- Обработка события и отметка `eventId` выполняются атомарно.
-- Общая блокировка нормализованного email используется при создании приглашения, создании/смене профильной почты и обработке события.
-- Событие не отмечается обработанным при rollback.
-- Повторная доставка после технической ошибки снова выполняет сценарий.
-- `attachStudent` идемпотентен для того же userId и запрещает переназначение другому пользователю.
-- Конкретное хранение обработанных eventId определяется общим блоком `application.idempotency`.
-
-### Ошибки
-
-`InvalidIdentityEventException` используется для некорректного входящего события: отсутствующего eventId/userId, пустого email или некорректного времени.
-
-`IdentityUserConsistencyException` сообщает, что Tutoring ожидает существующий аккаунт, но публичный API Identity его не вернул. Исключение не содержит HTTP status или полного объекта пользователя.
-
-Временная недоступность Identity является технической ошибкой adapter/infrastructure. Она не превращается в бизнес-результат «пользователь не существует».
-
-### Критерии завершённости
-
-- Tutoring обращается только к публичному API Identity.
-- Для чтения birthDate интеграция с Identity не используется.
-- Совпадающий подтверждённый account email позволяет завершить профильное подтверждение без письма.
-- Совпадающий неподтверждённый account email при первоначальном создании профиля не запускает отдельное профильное письмо; подтверждение ожидает события Identity.
-- Поиск пользователя по email не раскрывается отправителю приглашения.
-- Уже зарегистрированный адресат привязывается при создании приглашения.
-- Новое подтверждение account email привязывает все действующие приглашения.
-- Event не принимает приглашение и не создаёт связь.
-- Совпадающий pending profile email событием подтверждается и становится current; устаревшее событие не применяется.
-- Повторный eventId не изменяет данные повторно.
-- Изменения профилей, приглашений и отметка события находятся в одной транзакции.
-
+Tutoring инициирует через публичный API Notifications только письма приглашений. Заявка сохраняется в общей транзакции, а SMTP выполняется после commit. Профильный контактный email не подтверждается и писем для него нет.
 ## 5. Invitation
 
 ### Общие правила
@@ -807,7 +468,7 @@ Notifications отправляет письмо после commit с retry пр�
 
 ## 6. Relationship
 
-Актуальное решение: `birthDate` хранится непосредственно в TeacherProfile и StudentProfile. Настраиваемой видимости нет; другой пользователь получает дату через публичный профиль активного пользователя без проверки TeacherStudent.
+Актуальное решение: `birthDate` хранится только в Identity; Tutoring показывает вычисленный возраст в self/public-view. Публичный активный профиль доступен без проверки TeacherStudent.
 
 ### Статус и назначение
 
@@ -1002,8 +663,8 @@ Tutoring требует наличие собственного `TeacherProfile`
 4. Загрузить limit + 1 отношений через TeacherStudentRepository.
 5. Если отношений нет — вернуть пустую страницу.
 6. Собрать Set<studentUserId> текущей страницы.
-7. Одним пакетным вызовом получить разрешённые LinkedStudentProfileView.
-8. Взять birthDate непосредственно из каждого LinkedStudentProfileView.
+7. Одним пакетным вызовом получить PublicStudentProfileView для участников связей.
+8. Взять возраст из каждого PublicStudentProfileView; профильный сервис получает его пакетно из Identity.
 9. Сформировать StudentRelationshipResult.
 10. Сформировать непрозрачный nextCursor, если получен лишний элемент.
 ```
@@ -1013,14 +674,14 @@ Tutoring требует наличие собственного `TeacherProfile`
 Внутренний сервис блока `profile` предоставляет операцию наподобие:
 
 ```java
-Map<UUID, LinkedStudentProfileView> findLinkedStudentProfileViews(
+Map<UUID, PublicStudentProfileView> findLinkedStudentProfileViews(
     Set<UUID> studentUserIds
 );
 ```
 
 `teacherUserId` этому методу не требуется: блок `relationship` уже получил все ID из подтверждённых связей текущего преподавателя.
 
-`LinkedStudentProfileView` формируется блоком `profile` и содержит разрешённые локальные данные, включая `birthDate` и подтверждённый профильный email. Метод вызывается только для ID, уже полученных из связей текущего преподавателя. Pending email никогда не возвращается. Полный self-view `StudentProfileView` здесь не используется.
+`PublicStudentProfileView` формируется блоком `profile` и содержит локальные публичные данные, возраст из Identity и указанный контактный email. Метод вызывается только для ID, уже полученных из связей текущего преподавателя. Полный self-view `StudentProfileView` здесь не используется.
 
 #### Результат
 
@@ -1032,13 +693,11 @@ public record StudentRelationshipResult(
     String contactEmail,
     Set<String> subjectCodes,
     String photoUrl,
-    LocalDate birthDate
+    int age
 ) {}
 ```
 
-Nullable-поля в Java-аннотациях должны быть отмечены явно. `contactEmail` возвращается только после подтверждения. `birthDate` обязательна в профиле и доступна также в публичном профиле без связи; здесь список ограничен связями из-за назначения самого списка.
-
-Отдельный запрос даты рождения в Identity не выполняется.
+Nullable-поля в Java-аннотациях должны быть отмечены явно. `contactEmail` — указанный пользователем адрес без подтверждения. Возраст обязателен в public-view и вычисляется Identity по пакетному запросу; здесь список ограничен связями из-за назначения самого списка.
 
 ```java
 public record StudentRelationshipPageResult(
@@ -1080,8 +739,8 @@ public record ListStudentTeachersQuery(
 4. Загрузить limit + 1 отношений.
 5. Если отношений нет — вернуть пустую страницу.
 6. Собрать Set<teacherUserId> текущей страницы.
-7. Одним пакетным вызовом получить разрешённые LinkedTeacherProfileView.
-8. Взять birthDate непосредственно из каждого LinkedTeacherProfileView.
+7. Одним пакетным вызовом получить PublicTeacherProfileView для участников связей.
+8. Взять возраст из каждого PublicTeacherProfileView; профильный сервис получает его пакетно из Identity.
 9. Сформировать TeacherRelationshipResult.
 10. Сформировать nextCursor при наличии следующей страницы.
 ```
@@ -1089,12 +748,12 @@ public record ListStudentTeachersQuery(
 Внутренний сервис блока `profile` предоставляет пакетную операцию:
 
 ```java
-Map<UUID, LinkedTeacherProfileView> findLinkedTeacherProfileViews(
+Map<UUID, PublicTeacherProfileView> findLinkedTeacherProfileViews(
     Set<UUID> teacherUserIds
 );
 ```
 
-Правила подтверждения email и раскрытия профильных данных принадлежат блоку `profile`.
+Правила раскрытия профильных данных принадлежат блоку `profile`.
 
 #### Результат
 
@@ -1102,7 +761,7 @@ Map<UUID, LinkedTeacherProfileView> findLinkedTeacherProfileViews(
 public record TeacherRelationshipResult(
     UUID teacherUserId,
     Instant linkedAt,
-    LocalDate birthDate,
+    int age,
     String displayName,
     String contactEmail,
     Set<String> subjectCodes,
@@ -1118,7 +777,7 @@ public record TeacherRelationshipPageResult(
 ) {}
 ```
 
-Неподтверждённый и pending email не раскрываются. `birthDate` возвращается в том числе связанному ученику, но публична и без связи. Результат не содержит account email, роли, статус аккаунта, domain aggregate или статистику уроков.
+Возраст возвращается в том числе связанному ученику, но доступен и в публичном профиле без связи. Контактный email указан владельцем профиля и не считается подтверждённым. Результат не содержит дату рождения, account email, роли, статус аккаунта, domain aggregate или статистику уроков.
 
 ### Cursor pagination
 
@@ -1392,19 +1051,17 @@ public record TeacherStudentRemovalResult(
 
 ```text
 relationship → подтверждает существование связи
-profile      → хранит birthDate и формирует разрешённые локальные профильные данные
-Identity     → остаётся источником истины birthDate при создании и исправлении профиля
+profile      → хранит учебные данные и формирует публичное представление
+Identity     → хранит birthDate и пакетно вычисляет возраст
 ```
 
-`IdentityPersonalDataGateway` и отдельный batch-запрос дат рождения для списков удаляются. Профили загружаются пакетно, и дата берётся из их сохранённого состояния.
+Профили загружаются пакетно; возраст для этих же ID запрашивается у Identity одним batch-вызовом. Точная дата рождения в Tutoring не передаётся.
 
-Настраиваемой видимости нет. Дата рождения входит в публичный ответ активного профиля и self-view владельца; минимальный внутренний summary её не содержит. Linked-view также включает дату, а проверка `TeacherStudent` нужна из-за контекста отношений, не из-за приватности даты.
+Self и public-view содержат возраст; минимальный summary его не содержит. Linked-методы также возвращают возраст, а проверка `TeacherStudent` нужна из-за контекста отношений, не из-за приватности возраста.
 
 В результаты и логи не попадают:
 
-- дата рождения пользователя, чей учебный профиль ещё не активен или уже не активен;
-- неподтверждённый contact email;
-- pending email;
+- точная дата рождения любого пользователя;
 - account email;
 - роли и статус аккаунта.
 
@@ -1426,9 +1083,9 @@ Identity     → остаётся источником истины birthDate п
 - Конкурентные принятия не создают дубликаты.
 - Tutoring не повторяет проверку ролей Identity.
 - Списки используют cursor pagination и стабильную сортировку.
-- Профили вместе с birthDate загружаются пакетно без `N+1` и без запроса в Identity.
-- `birthDate` возвращается в публичном профиле активного пользователя без связи; настраиваемой видимости нет.
-- Неподтверждённый и pending email не раскрываются.
+- Профили и возраст из Identity загружаются пакетно без `N+1`.
+- Возраст возвращается в публичном профиле активного пользователя без связи; дата рождения остаётся только в Identity.
+- Указанный владельцем контактный email публичен без подтверждения владения.
 - Пустой список возвращается как `List.of()`, а не `null`.
 - Обычная проверка связи не проверяет предмет, расписание, роль или активность аккаунта.
 - Пользовательское и внутреннее удаление разделены.

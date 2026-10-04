@@ -16,6 +16,7 @@ import org.junit.jupiter.api.Test;
 import org.mockito.InOrder;
 
 import java.time.Instant;
+import java.time.LocalDate;
 import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
@@ -154,6 +155,7 @@ class LogoutServiceTest {
                 new PasswordHash("stored-password-hash"),
                 "Logout",
                 "User",
+                LocalDate.of(2000, 1, 1),
                 Set.of(UserRole.STUDENT),
                 UserStatus.ACTIVE,
                 CREATED_AT,

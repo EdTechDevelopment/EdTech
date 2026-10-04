@@ -6,6 +6,14 @@
 identity
 ├── api
 │   ├── IdentityQuery
+│   ├── IdentityRegistrationGateway
+│   ├── IdentityRoleGateway
+│   ├── command
+│   │   ├── registration
+│   │   │   ├── RegistrationData
+│   │   │   └── RegistrationReceipt
+│   │   └── role
+│   │       └── AddUserRoleCommand
 │   ├── model
 │   │   ├── UserSummary
 │   │   ├── UserRoleView
@@ -60,8 +68,9 @@ identity
 │   ├── port
 │   │   ├── in
 │   │   │   ├── account
-│   │   │   │   ├── RegisterUserUseCase
 │   │   │   │   ├── GetCurrentUserUseCase
+│   │   │   │   ├── RegisterUserUseCase
+│   │   │   │   ├── AddUserRoleUseCase
 │   │   │   │   └── UpdateCurrentUserUseCase
 │   │   │   ├── verification
 │   │   │   │   ├── ConfirmEmailUseCase
@@ -88,8 +97,9 @@ identity
 │   │   └── TimeProvider
 │   ├── command
 │   │   ├── account
-│   │   │   ├── RegistrationRole
 │   │   │   ├── RegisterUserCommand
+│   │   │   ├── RegistrationRole
+│   │   │   ├── AssignRoleCommand
 │   │   │   └── UpdateCurrentUserCommand
 │   │   ├── verification
 │   │   │   ├── ConfirmEmailCommand
@@ -161,6 +171,9 @@ identity
 │       └── exception
 │           └── InvalidEmailVerificationException
 └── infrastructure
+    ├── integration
+    │   ├── RegistrationGatewayAdapter
+    │   └── RoleGatewayAdapter
     ├── configuration
     │   └── IdentityConfiguration
     ├── persistence

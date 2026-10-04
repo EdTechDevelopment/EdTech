@@ -1,8 +1,8 @@
 # Frontend-контракты v1.2.0
 
 > Статус: это целевой составной контракт frontend для Identity + Tutoring.
-> Текущий Identity MVP реализует account-only `POST /auth/register` без
-> `birthDate` и Tutoring profiles, а `GET /me` отложен. Использовать целевой
+> Текущий Identity MVP реализует account-only `POST /auth/register` с
+> `birthDate`, но без Tutoring profiles; составной `GET /me` отложен. Использовать целевой
 > registration/`MeResponse` контракт можно после появления RegistrationWorkflow
 > и Tutoring; временные несовместимые frontend DTO не создаются.
 
@@ -23,7 +23,7 @@
 3. Подтверждение account email возвращает `TokenResponse`, устанавливает refresh cookie, затем frontend вызывает `GET /me`.
 4. `GET /me` возвращает аккаунт и профили. Для каждой роли соответствующий профиль обязан существовать.
 5. Добавление второй роли отправляет профиль в role-onboarding endpoint. После успеха frontend обновляет access JWT через `/auth/refresh`.
-6. Изменение profile email выполняется отдельным verification flow и не изменяет account email.
+6. Изменение контактного email профиля сохраняется сразу после проверки формата и не изменяет account email.
 7. Приглашение всегда принимает ученик; регистрация только связывает его с подтверждённым account email.
 8. Календарь запрашивает диапазон `[from,to)`, сохраняет `nextCursor` и не разбирает курсор.
 9. Поиск активных профилей доступен без входа; предметы и возраст берутся из публичных профильных данных.
@@ -128,7 +128,7 @@ type UserResponse = {
 
 `MeResponse` всегда содержит `user`. `teacherProfile` равен `null`, только если у пользователя нет роли `TEACHER`; `studentProfile` равен `null`, только если нет роли `STUDENT`. Роль с отсутствующим профилем считается серверной ошибкой согласованности.
 
-Профиль хранит собственные `displayName`, `contactEmail`, `pendingContactEmail`, `contactEmailVerifiedAt`, `contactDetails` и выбранные предметы. `birthDate` копируется из Identity при создании профиля. В `MeResponse` данные аккаунта находятся в `user`, а профили — в соседних `teacherProfile`/`studentProfile`; внутри профилей повторного `user` нет.
+Профиль хранит собственные `displayName`, `contactEmail`, `contactDetails` и выбранные предметы. Он не хранит дату рождения или возраст: в self/public-ответах возраст вычисляется Identity. В `MeResponse` данные аккаунта, включая точную `birthDate`, находятся в `user`, а профили — в соседних `teacherProfile`/`studentProfile`; внутри профилей повторного `user` нет.
 
 Существующий профиль обновляется через:
 
@@ -149,7 +149,7 @@ POST /me/roles/student
 После ответа `201 MeResponse` frontend вызывает `POST /auth/refresh`, чтобы получить JWT с новым набором ролей.
 Оба запроса на добавление роли требуют стабильный `Idempotency-Key: UUID`.
 
-## Подтверждение profile email
+## Контактный email профиля
 
 Запрос изменения адреса:
 
@@ -157,22 +157,14 @@ POST /me/roles/student
 PUT /api/v1/tutoring/profiles/{type}/contact-email
 ```
 
-Тело содержит `{ "newEmail": "new.profile@example.com" }`. Текущий подтверждённый `contactEmail` продолжает действовать, а новый адрес появляется в `pendingContactEmail`. Повторная проверка current/pending выполняется через `POST /api/v1/tutoring/profiles/{type}/contact-email/confirmation-requests` с `{ "target": "CURRENT" | "PENDING" }`.
-
-Ссылка из письма передаёт токен в:
-
-```text
-POST /api/v1/tutoring/profile-email-confirmations
-```
-
-После успешного ответа `204` новый адрес становится `contactEmail`, `pendingContactEmail` очищается, а `contactEmailVerifiedAt` обновляется.
+Тело содержит `{ "newEmail": "new.profile@example.com" }`. После проверки формата адрес сразу становится новым `contactEmail`; ответ `204`. Письмо с подтверждением не отправляется. Этот адрес может отличаться от account email.
 
 ## Публичные профили, контакты и возраст
 
 - `GET /api/v1/tutoring/profiles/teachers` и `/students` дают публичный поиск активных профилей с фильтрами `subjectCode`, `minAge`, `maxAge`, `cursor`, `limit`; ответ `{items,nextCursor}`. Выбранные предметы берутся из профиля.
 - `GET /api/v1/tutoring/profiles/teachers/{userId}` и `/students/{userId}` дают публичную карточку активного профиля без login и без связи.
-- Карточка содержит точную `birthDate`, `displayName`, `contactDetails`, выбранные предметы, фото и обычные поля профиля. Возраст вычисляется из даты рождения; отдельного сохранённого `age` нет.
-- `contactEmail` виден всем только после подтверждения. Неподтверждённый и pending адрес видит только владелец. Account email не подставляется вместо профильного.
+- Карточка содержит `age`, `displayName`, `contactDetails`, выбранные предметы, фото и обычные поля профиля. Точная дата рождения остаётся в данных аккаунта и видна только владельцу.
+- Указанный `contactEmail` виден всем посетителям активного профиля без подтверждения владения адресом. Account email не подставляется вместо профильного.
 - Учебные списки и уроки используют профильный `displayName`, а не `Identity.firstName + lastName`. Список связей и статистика уроков требуют отдельного права доступа; публичность профиля их не открывает.
 - `GET /api/v1/tutoring/subjects` возвращает массив `{subjectCode,name}` без login. Справочник помогает выбрать допустимый код; предметы конкретного человека читаются из его профиля.
 
@@ -181,7 +173,7 @@ POST /api/v1/tutoring/profile-email-confirmations
 | Поле | Преподаватель | Ученик |
 |---|---:|---:|
 | Участники своего урока | Да | Да |
-| Подтверждённый profile email преподавателя | Собственный профиль | Да |
+| Контактный email преподавателя | Собственный профиль | Да |
 | Место или ссылка | Да | Да |
 | Причина и комментарий отмены | Да | Да |
 | Цена | Да | Нет |

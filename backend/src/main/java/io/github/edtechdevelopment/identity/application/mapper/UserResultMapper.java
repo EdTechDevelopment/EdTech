@@ -16,6 +16,7 @@ public final class UserResultMapper {
                 user.pendingEmail().map(email -> email.value()).orElse(null),
                 user.firstName(),
                 user.lastName(),
+                user.birthDate(),
                 user.roles(),
                 user.status(),
                 user.emailVerifiedAt().orElse(null),

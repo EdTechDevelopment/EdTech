@@ -7,6 +7,7 @@ import io.github.edtechdevelopment.identity.domain.user.exception.InvalidUserSta
 import org.junit.jupiter.api.Test;
 
 import java.time.Instant;
+import java.time.LocalDate;
 import java.util.HashSet;
 import java.util.Set;
 import java.util.UUID;
@@ -185,6 +186,7 @@ class UserEmailLifecycleTest {
                 PASSWORD_HASH,
                 "Anna",
                 "Petrova",
+                LocalDate.of(2000, 1, 1),
                 Set.of(UserRole.STUDENT),
                 REGISTERED_AT);
         user.pullDomainEvents();

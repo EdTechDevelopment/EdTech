@@ -4,8 +4,7 @@
 
 Visual Paradigm source, сгенерированные HTML, каталоги и изображения отражают
 исторический снимок Identity и ещё не переэкспортированы после решений Tutoring.
-В частности, старый `IdentityPersonalDataQuery` для карточек и закрытая
-`birthDate` в них не являются целевым контрактом. Актуальные публичные профили
+В частности, старый `IdentityPersonalDataQuery` для карточек не является целевым контрактом. Точная `birthDate` остаётся только в Identity; для профилей модуль отдаёт вычисленный возраст. Актуальные публичные профили
 описаны в [архитектуре Tutoring](../tutoring/TUTORING_ARCHITECTURE.md).
 
 ## Состав комплекта
@@ -47,8 +46,8 @@ Identity завершён как самостоятельный MVP-фундам
 refresh rotation/logout, изменение account-данных, persistence/security,
 доставка писем и `IdentityQuery.findUserById`.
 
-До полной готовности нужны Tutoring и Workflows: они позволят добавить
-`birthDate`, атомарную регистрацию с обязательными профилями, onboarding второй
+До полной готовности нужны Tutoring и Workflows: они позволят применить уже добавленную
+`birthDate` в составной регистрации с обязательными профилями, выполнить onboarding второй
 роли и составной `GET /me`. Production-hardening и актуальные открытые решения
 перечислены в [реестре решений](../../decisions/README.md).
 

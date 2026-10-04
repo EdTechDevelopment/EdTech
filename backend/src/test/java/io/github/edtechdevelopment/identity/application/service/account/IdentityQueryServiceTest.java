@@ -14,6 +14,8 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
 import java.time.Instant;
+import java.time.LocalDate;
+import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
@@ -64,6 +66,20 @@ class IdentityQueryServiceTest {
         verifyNoInteractions(userRepository);
     }
 
+    @Test
+    void calculatesAgeOnBothSidesOfBirthday() {
+        when(userRepository.findByIds(Set.of(USER_ID))).thenReturn(Map.of(USER_ID, activeUser()));
+
+        assertEquals(25, service.findAgesByIds(Set.of(USER_ID), LocalDate.of(2025, 12, 31)).get(USER_ID));
+        assertEquals(26, service.findAgesByIds(Set.of(USER_ID), LocalDate.of(2026, 1, 1)).get(USER_ID));
+    }
+
+    @Test
+    void skipsRepositoryForEmptyAgeBatch() {
+        assertTrue(service.findAgesByIds(Set.of(), LocalDate.of(2026, 1, 1)).isEmpty());
+        verifyNoInteractions(userRepository);
+    }
+
     private static User activeUser() {
         return User.reconstitute(
                 USER_ID,
@@ -72,6 +88,7 @@ class IdentityQueryServiceTest {
                 new PasswordHash("stored-password-hash"),
                 "Anna",
                 "Petrova",
+                LocalDate.of(2000, 1, 1),
                 Set.of(UserRole.STUDENT),
                 UserStatus.ACTIVE,
                 CREATED_AT,

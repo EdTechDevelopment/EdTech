@@ -12,6 +12,7 @@ import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
+import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
@@ -41,6 +42,37 @@ public class UserJooqRepository {
                 .fetchOne();
 
         return loadRelatedRecords(userRecord);
+    }
+
+    public Map<UUID, UserPersistenceData> findByIds(Set<UUID> userIds) {
+        Objects.requireNonNull(userIds, "User ids must not be null");
+        if (userIds.isEmpty()) {
+            return Map.of();
+        }
+
+        List<IdentityUsersRecord> users = dslContext.selectFrom(IDENTITY_USERS)
+                .where(IDENTITY_USERS.ID.in(userIds))
+                .fetch();
+        if (users.isEmpty()) {
+            return Map.of();
+        }
+
+        Set<UUID> foundIds = users.stream().map(IdentityUsersRecord::getId).collect(Collectors.toSet());
+        Map<UUID, List<IdentityUserEmailsRecord>> emails = dslContext.selectFrom(IDENTITY_USER_EMAILS)
+                .where(IDENTITY_USER_EMAILS.USER_ID.in(foundIds))
+                .fetch().stream().collect(Collectors.groupingBy(IdentityUserEmailsRecord::getUserId));
+        Map<UUID, List<IdentityUserRolesRecord>> roles = dslContext.selectFrom(IDENTITY_USER_ROLES)
+                .where(IDENTITY_USER_ROLES.USER_ID.in(foundIds))
+                .fetch().stream().collect(Collectors.groupingBy(IdentityUserRolesRecord::getUserId));
+
+        return users.stream().collect(Collectors.toUnmodifiableMap(
+                IdentityUsersRecord::getId,
+                user -> new UserPersistenceData(
+                        user,
+                        emails.getOrDefault(user.getId(), List.of()),
+                        roles.getOrDefault(user.getId(), List.of())
+                )
+        ));
     }
 
     @Transactional(propagation = Propagation.MANDATORY)
@@ -90,6 +122,30 @@ public class UserJooqRepository {
         return userId == null ? Optional.empty() : findById(userId);
     }
 
+    public Optional<UserPersistenceData> findByVerifiedEmail(String email) {
+        Objects.requireNonNull(email, "Email must not be null");
+        UUID userId = dslContext.select(IDENTITY_USER_EMAILS.USER_ID)
+                .from(IDENTITY_USER_EMAILS)
+                .join(IDENTITY_USERS).on(IDENTITY_USERS.ID.eq(IDENTITY_USER_EMAILS.USER_ID))
+                .where(IDENTITY_USER_EMAILS.EMAIL.eq(email))
+                .and(IDENTITY_USER_EMAILS.KIND.eq(CURRENT_EMAIL_KIND))
+                .and(IDENTITY_USERS.EMAIL_VERIFIED_AT.isNotNull())
+                .fetchOne(IDENTITY_USER_EMAILS.USER_ID);
+        return userId == null ? Optional.empty() : findById(userId);
+    }
+
+    public Set<UUID> findActiveUserIds(Set<UUID> userIds) {
+        Objects.requireNonNull(userIds, "User ids must not be null");
+        if (userIds.isEmpty()) {
+            return Set.of();
+        }
+        return dslContext.select(IDENTITY_USERS.ID)
+                .from(IDENTITY_USERS)
+                .where(IDENTITY_USERS.ID.in(userIds))
+                .and(IDENTITY_USERS.STATUS.eq("ACTIVE"))
+                .fetchSet(IDENTITY_USERS.ID);
+    }
+
     public Optional<UserPersistenceData> findByAnyEmail(String email) {
         Objects.requireNonNull(email, "Email must not be null");
 
@@ -133,6 +189,7 @@ public class UserJooqRepository {
                 .set(IDENTITY_USERS.PASSWORD_HASH, record.getPasswordHash())
                 .set(IDENTITY_USERS.FIRST_NAME, record.getFirstName())
                 .set(IDENTITY_USERS.LAST_NAME, record.getLastName())
+                .set(IDENTITY_USERS.BIRTH_DATE, record.getBirthDate())
                 .set(IDENTITY_USERS.STATUS, record.getStatus())
                 .set(IDENTITY_USERS.EMAIL_VERIFIED_AT, record.getEmailVerifiedAt())
                 .set(IDENTITY_USERS.CREATED_AT, record.getCreatedAt())
@@ -142,6 +199,7 @@ public class UserJooqRepository {
                 .set(IDENTITY_USERS.PASSWORD_HASH, record.getPasswordHash())
                 .set(IDENTITY_USERS.FIRST_NAME, record.getFirstName())
                 .set(IDENTITY_USERS.LAST_NAME, record.getLastName())
+                .set(IDENTITY_USERS.BIRTH_DATE, record.getBirthDate())
                 .set(IDENTITY_USERS.STATUS, record.getStatus())
                 .set(IDENTITY_USERS.EMAIL_VERIFIED_AT, record.getEmailVerifiedAt())
                 .set(IDENTITY_USERS.UPDATED_AT, record.getUpdatedAt())

@@ -13,7 +13,7 @@
 - у профилей Tutoring есть собственные имя и email;
 - Identity публикует отдельное событие подтверждения account email.
 
-Актуальное решение: `Identity.User.birthDate` остаётся первоисточником; при создании `TeacherProfile` и `StudentProfile` доверенный workflow передаёт дату в Tutoring. Дата публична в активном учебном профиле без связи. Отдельного `IdentityPersonalDataQuery` для карточек нет; публичный поиск использует пакетную проверку активности аккаунтов через Identity.
+Актуальное решение: `Identity.User.birthDate` хранится только в Identity и показывается владельцу в данных аккаунта. Tutoring не получает и не хранит дату рождения. Для активных публичных профилей Identity отдаёт пакетно вычисленный возраст; активность аккаунтов проверяется отдельным пакетным запросом.
 
 Package paths приведены относительно корневого Java package проекта.
 
@@ -22,12 +22,13 @@ Package paths приведены относительно корневого Jav
 Этот документ описывает целевую, зафиксированную архитектуру Identity. На
 2026-09-24 реализован самостоятельный MVP-фундамент: account-only регистрация,
 verification/resend, login, access/refresh/logout, изменение основных данных и
-account email, Notifications delivery и одиночный `IdentityQuery.findUserById`.
+account email, Notifications delivery и `IdentityQuery`.
 
-Identity пока реализован частично относительно этой целевой схемы. `birthDate`,
-`RegistrationWorkflow`, атомарное создание Tutoring profiles, public registration
-commands с `operationId`, role onboarding и составной `GET /me` появятся после
-реализации Tutoring и Workflows. До этого прямой `POST /auth/register` является
+Identity пока реализован частично относительно этой целевой схемы. На шаге 1
+добавлены `birthDate`, единый application `RegisterUserUseCase`, публичные gateways для Workflows и
+потребные Tutoring запросы `IdentityQuery`. `RegistrationWorkflow`, атомарное
+создание Tutoring profiles, составной `GET /me` и подключение role onboarding
+появятся на следующих шагах. До этого прямой `POST /auth/register` является
 осознанным временным account-only входом, а не окончательной реализацией
 регистрационной архитектуры.
 
@@ -65,7 +66,7 @@ Identity владеет:
 Identity не владеет:
 
 - `TeacherProfile`, `StudentProfile` и их `displayName`;
-- `contactEmail`, `pendingContactEmail` и подтверждением profile email;
+- `contactEmail` и другими контактными данными учебных профилей;
 - предметами, приглашениями и связями преподаватель–ученик;
 - уроками, расписанием и статистикой;
 - SMTP, почтовыми шаблонами и retry доставки;
@@ -111,9 +112,10 @@ identity.presentation   → identity.application.command/query/result
 identity.application    → identity.domain
 identity.application    → identity.api
 identity.infrastructure → identity.application.port.out
+identity.infrastructure → identity.application.port.in (публичные адаптеры)
 identity.infrastructure → identity.application.model
 identity.infrastructure → identity.domain
-workflows                → identity.api.command/query
+workflows                → identity.api
 tutoring                 → identity.api.query/event
 ```
 
@@ -129,7 +131,7 @@ identity                -X-> Tutoring internal packages
 identity                -X-> Notifications internal packages
 ```
 
-Командные контракты Identity вызываются только Workflows. Это ограничение закрепляется ArchUnit.
+`AuthController` вызывает внутренний `RegisterUserUseCase` через `application.port.in`. Workflows вызывает только публичные `IdentityRegistrationGateway` и `IdentityRoleGateway`; адаптеры передают запросы тем же application use cases. Межмодульные потребители не импортируют `identity.application`.
 
 ## 5. Полная структура пакетов
 
@@ -141,12 +143,12 @@ identity
 │   │   └── PersonalDataPurpose
 │   ├── command
 │   │   ├── registration
-│   │   │   ├── IdentityRegistrationCommands
-│   │   │   ├── CreatePendingUserCommand
-│   │   │   └── PendingUserResult
+│   │   │   ├── RegistrationData
+│   │   │   └── RegistrationReceipt
 │   │   └── role
-│   │       ├── IdentityRoleCommands
 │   │       └── AddUserRoleCommand
+│   ├── IdentityRegistrationGateway
+│   ├── IdentityRoleGateway
 │   ├── model
 │   │   ├── UserSummary
 │   │   ├── UserRoleView
@@ -201,6 +203,8 @@ identity
 │   │   ├── in
 │   │   │   ├── account
 │   │   │   │   ├── GetCurrentUserUseCase
+│   │   │   │   ├── RegisterUserUseCase
+│   │   │   │   ├── AddUserRoleUseCase
 │   │   │   │   └── UpdateCurrentUserUseCase
 │   │   │   ├── verification
 │   │   │   │   ├── ConfirmEmailUseCase
@@ -227,6 +231,9 @@ identity
 │   │   └── TimeProvider
 │   ├── command
 │   │   ├── account
+│   │   │   ├── RegisterUserCommand
+│   │   │   ├── RegistrationRole
+│   │   │   ├── AssignRoleCommand
 │   │   │   └── UpdateCurrentUserCommand
 │   │   ├── verification
 │   │   │   ├── ConfirmEmailCommand
@@ -238,6 +245,7 @@ identity
 │   ├── query
 │   │   └── GetCurrentUserQuery
 │   ├── result
+│   │   ├── RegistrationResult
 │   │   ├── ResendVerificationResult
 │   │   ├── AuthenticationResult
 │   │   └── CurrentUserResult
@@ -298,6 +306,9 @@ identity
 │       ├── VerificationPurpose
 │       └── InvalidEmailVerificationException
 └── infrastructure
+    ├── integration
+    │   ├── RegistrationGatewayAdapter
+    │   └── RoleGatewayAdapter
     ├── persistence
     │   ├── adapter
     │   │   ├── JooqUserRepositoryAdapter
@@ -357,18 +368,16 @@ public interface IdentityQuery {
     Map<UUID, UserSummary> findUsersByIds(Set<UUID> userIds);
     Optional<UserSummary> findUserByVerifiedEmail(String normalizedEmail);
     Set<UUID> findActiveUserIds(Set<UUID> userIds);
-    Optional<LocalDate> findBirthDateForProfileCreation(UUID userId);
+    Map<UUID, Integer> findAgesByIds(Set<UUID> userIds, LocalDate asOf);
 }
 ```
 
-`findUsersByIds` предотвращает N+1 при составных списках. `findUserByVerifiedEmail` используется для приглашений и возвращает только аккаунт с подтверждённым текущим email. `findActiveUserIds` пакетно отбирает ACTIVE аккаунты для публичного поиска профилей; `findBirthDateForProfileCreation` вызывается только доверенным workflow при добавлении роли, а не для просмотра карточек.
+`findUsersByIds` предотвращает N+1 при составных списках. `findUserByVerifiedEmail` используется для приглашений и возвращает только аккаунт с подтверждённым текущим email. `findActiveUserIds` пакетно отбирает ACTIVE аккаунты для публичного поиска профилей. `findAgesByIds` одним вызовом вычисляет возраст на переданную дату для найденных пользователей; точную дату рождения наружу не передаёт. Tutoring использует его после отбора активных профилей.
 
-Текущий MVP-фундамент реализует только `findUserById(UUID)` и возвращает
-`UserSummary`. Batch-метод и поиск по подтверждённому email добавляются вместе с
-конкретными сценариями Tutoring, чтобы не проектировать неиспользуемые запросы
-заранее.
+На шаге 1 реализованы все перечисленные методы. Пакетные запросы читают
+пользователей без N+1; пустой набор не отправляет запросы к базе.
 
-Дата рождения не входит в общий `UserSummary`. Tutoring получает её при создании профиля и затем читает свою локальную копию для публичных карточек. Отдельный персональный query с `requesterId`/`STUDENT_CARD` не создаётся.
+Дата рождения не входит в общий `UserSummary` и не передаётся в Tutoring при создании профиля. Она доступна владельцу в данных собственного аккаунта. В учебных профилях показывается только вычисленный возраст.
 
 ```java
 public record UserSummary(
@@ -393,53 +402,49 @@ public enum UserStatusView {
 }
 ```
 
-### 6.2 Registration command API
+### 6.2 Регистрация: внутренний порт и публичная граница
 
-Это внутренний Java API для `RegistrationWorkflow`, а не REST endpoint.
-
-```java
-package identity.api.command.registration;
-
-public interface IdentityRegistrationCommands {
-    PendingUserResult createPendingUser(CreatePendingUserCommand command);
-}
-
-public record CreatePendingUserCommand(
-    UUID operationId,
-    String email,
-    String rawPassword,
-    String firstName,
-    String lastName,
-    LocalDate birthDate,
-    Set<UserRoleView> roles
-) {}
-
-public record PendingUserResult(
-    UUID userId,
-    String email,
-    Instant verificationExpiresAt
-) {}
-```
-
-`operationId` обеспечивает идемпотентность повторного вызова Workflow. Raw password не сохраняется, не логируется и передаётся только в Identity.
-
-### 6.3 Role command API
+Внутри Identity остаётся один use case:
 
 ```java
-package identity.api.command.role;
+package identity.application.port.in.account;
 
-public interface IdentityRoleCommands {
-    void addRole(AddUserRoleCommand command);
+public interface RegisterUserUseCase {
+    RegistrationResult register(RegisterUserCommand command);
 }
-
-public record AddUserRoleCommand(
-    UUID operationId,
-    UUID userId,
-    UserRoleView role
-) {}
 ```
 
-Контракт вызывает только `RoleOnboardingWorkflow`. Identity проверяет существование, активность и отсутствие роли. Tutoring profile создаётся другим шагом той же общей транзакции.
+`RegisterUserCommand` лежит в `application.command.account` и содержит email,
+raw password, имя, фамилию, `birthDate` и набор `RegistrationRole`.
+`RegistrationResult` лежит в `application.result` и содержит `userId`, email и
+срок подтверждения. Временный `AuthController` обращается именно к этому порту.
+
+Для Workflows открыт отдельный контракт:
+
+```java
+package identity.api;
+
+public interface IdentityRegistrationGateway {
+    RegistrationReceipt register(RegistrationData data);
+}
+```
+
+`RegistrationData` и `RegistrationReceipt` — публичные модели в
+`identity.api.command.registration`. `RegistrationGatewayAdapter` в
+Infrastructure переводит их во внутренние command/result и вызывает тот же
+`RegisterUserUseCase`. Проверка данных, создание User и отправка письма в
+адаптере не повторяются. Identity возвращает `userId`; Workflow создаёт профили
+Tutoring в той же транзакции. Повтор всего запроса по `Idempotency-Key`
+контролирует Workflows. Raw password не сохраняется и не логируется.
+
+### 6.3 Добавление роли
+
+`AddUserRoleUseCase` и его command находятся в `identity.application`.
+Публичный `IdentityRoleGateway` находится в `identity.api`, принимает
+`AddUserRoleCommand(userId, UserRoleView)` и через `RoleGatewayAdapter` вызывает
+внутренний use case. Его вызывает только `RoleOnboardingWorkflow`. Identity
+проверяет существование, активность и отсутствие роли; профиль создаёт Tutoring
+в общей транзакции.
 
 ### 6.4 Integration events
 
@@ -629,7 +634,7 @@ public interface LogoutUseCase {
 }
 ```
 
-Registration и role onboarding используют public command API из `identity.api.command` как входные порты. Дублирующий `RegisterUserUseCase` не создаётся.
+Registration и role onboarding используют публичные gateways из `identity.api`. Внутри Identity есть один `RegisterUserUseCase`; публичный адаптер вызывает его, а не создаёт второй сценарий регистрации.
 
 ### 8.2 Commands, query, results и models
 
@@ -787,8 +792,8 @@ public interface TimeProvider {
 
 | Сервис | Реализует | Ответственность |
 |---|---|---|
-| `RegisterUserService` | `IdentityRegistrationCommands` | Идемпотентно создаёт pending User, роли и account-email verification; не знает о профилях |
-| `AddUserRoleService` | `IdentityRoleCommands` | Добавляет вторую отсутствующую роль активному User; не создаёт профиль |
+| `RegisterUserService` | `RegisterUserUseCase` | Создаёт pending User, роли и account-email verification; не знает о профилях |
+| `AddUserRoleService` | `AddUserRoleUseCase` | Добавляет вторую отсутствующую роль активному User; не создаёт профиль |
 | `GetCurrentUserService` | `GetCurrentUserUseCase` | Загружает User и формирует result |
 | `UpdateCurrentUserService` | `UpdateCurrentUserUseCase` | Изменяет account data; при смене email создаёт verification |
 | `IdentityQueryService` | `IdentityQuery` | Публичное одиночное, пакетное и email-чтение |
@@ -798,7 +803,7 @@ public interface TimeProvider {
 | `RefreshTokenService` | `RefreshTokenUseCase` | В порядке `User → RefreshToken` атомарно ротирует token с прежними family/expiry, выполняет reuse detection и выпускает access JWT |
 | `LogoutService` | `LogoutUseCase` | В порядке `User → RefreshToken` идемпотентно отзывает всю family предъявленного token; неизвестное или отсутствующее значение является успешным no-op |
 
-`RegisterUserService` и `AddUserRoleService` присоединяются к внешней транзакции Workflow. Для production рекомендуется `Propagation.MANDATORY`. Остальные mutating use cases используют транзакционную границу своего application service.
+`RegisterUserService` использует `REQUIRED`: временный `AuthController` может вызвать его самостоятельно, а будущий Workflow включает тот же метод в общую транзакцию. `AddUserRoleService` требует внешнюю транзакцию (`MANDATORY`). Остальные mutating use cases используют транзакционную границу своего application service.
 
 Application services не вызывают друг друга. Общая логика находится в domain, mapper или output port.
 
@@ -875,7 +880,7 @@ pullDomainEvents(): List<DomainEvent>
 - pending email не заменяет current email до подтверждения;
 - current и pending email не совпадают;
 - suspended/deactivated User не может login/refresh;
-- повторное добавление роли не изменяет агрегат и переводится application-слоем в идемпотентный результат либо `RoleAlreadyAssignedException` согласно контракту Workflow;
+- повторное добавление существующей роли отклоняется; точный повтор всего onboarding-запроса распознаёт Workflows до вызова Identity;
 - изменения обновляют `updatedAt` и создают необходимые domain events;
 - collections наружу возвращаются неизменяемыми.
 
@@ -1115,16 +1120,19 @@ INDEX (expires_at)
 sequenceDiagram
     participant C as RegistrationController
     participant W as RegistrationWorkflow
-    participant I as IdentityRegistrationCommands
-    participant T as TutoringRegistrationCommands
+    participant G as IdentityRegistrationGateway
+    participant I as RegisterUserUseCase
+    participant T as TutoringProfileCreationCommands
     participant N as Notifications
 
     C->>W: composite registration request
     W->>W: roles ↔ profiles validation
-    W->>I: createPendingUser(account, birthDate, roles)
+    W->>G: register(account, birthDate, roles)
+    G->>I: register(internal command)
     I->>N: enqueue verification delivery request
     N-->>I: delivery request saved
-    I-->>W: userId, email, verification expiry
+    I-->>G: userId, email, verification expiry
+    G-->>W: registration receipt
     W->>T: createInitialProfiles(userId, profiles)
     T-->>W: profiles created
     W-->>C: commit + VerificationPendingResponse
@@ -1142,14 +1150,14 @@ sequenceDiagram
 - Tutoring не импортирует внутренние пакеты Identity;
 - ошибка любого шага откатывает User, verification, роли, profiles и delivery request;
 - SMTP и внешние эффекты запускаются только после commit;
-- повторный `operationId` безопасно возвращает прежний результат.
+- повтор с тем же `Idempotency-Key` и теми же данными возвращает сохранённый результат Workflow без повторного вызова Identity.
 
 ### RoleOnboardingWorkflow
 
 ```text
 validate requested profile
-→ IdentityRoleCommands.addRole(operationId, userId, role)
-→ TutoringRegistrationCommands.createProfile(operationId, userId, profile)
+→ IdentityRoleGateway.addRole(AddUserRoleCommand(userId, role))
+→ TutoringProfileCreationCommands.createTeacherProfile(...) или createStudentProfile(...)
 → commit
 → frontend refreshes access JWT
 ```
@@ -1178,8 +1186,7 @@ Tutoring handler:
 AccountEmailVerifiedEvent
 → найти PENDING invitations по normalized email
 → связать их с userId без принятия
-→ найти profiles пользователя
-→ если contactEmail совпадает, отметить его подтверждённым
+→ не изменять contactEmail профилей: он не требует подтверждения
 ```
 
 Обработчик идемпотентен по `eventId` и database constraints.
@@ -1235,8 +1242,10 @@ Private keys, passwords, JWT и raw tokens не логируются.
 
 | Порт | Production implementation |
 |---|---|
-| `IdentityRegistrationCommands` | `RegisterUserService` |
-| `IdentityRoleCommands` | `AddUserRoleService` |
+| `RegisterUserUseCase` | `RegisterUserService` |
+| `IdentityRegistrationGateway` | `RegistrationGatewayAdapter` |
+| `AddUserRoleUseCase` | `AddUserRoleService` |
+| `IdentityRoleGateway` | `RoleGatewayAdapter` |
 | `IdentityQuery` | `IdentityQueryService` |
 | `GetCurrentUserUseCase` | `GetCurrentUserService` |
 | `UpdateCurrentUserUseCase` | `UpdateCurrentUserService` |
@@ -1265,12 +1274,13 @@ identity.api не зависит от внутренних пакетов Identi
 identity.domain зависит только от JDK
 identity.application не зависит от presentation/infrastructure
 identity.presentation не зависит от domain/infrastructure
+identity.presentation.auth не зависит от identity.api.command.registration
 identity.infrastructure.persistence.data.repository не зависит от domain
 service.account не зависит от service.verification/authentication
 service.verification не зависит от service.account/authentication
 service.authentication не зависит от service.account/verification
-только workflows вызывает identity.api.command
-только доверенный workflow получает birthDate из Identity для создания профиля
+только workflows вызывает публичные registration/role gateways Identity
+Identity не передаёт birthDate при создании профиля; Tutoring получает только возраст через пакетный query
 другие модули используют только identity.api
 identity использует только notifications.api
 jOOQ generated types не покидают persistence
@@ -1290,7 +1300,7 @@ Domain:
 
 Application:
 
-- идемпотентный `createPendingUser(operationId)`;
+- `register(command)` создаёт pending User и возвращает `userId` для Workflow;
 - `addRole` только активному User;
 - login/refresh/logout;
 - отдельный `AccountEmailVerifiedEvent` для регистрации и смены email;
@@ -1312,7 +1322,7 @@ Integration:
 1. Синхронизировать OpenAPI регистрации, профилей и текущего пользователя.
 2. Добавить public command/query/event API Identity.
 3. Обновить User и persistence schema полем `birthDate`.
-4. Реализовать `RegisterUserService` как `IdentityRegistrationCommands`.
+4. Реализовать `RegisterUserService` как единый `RegisterUserUseCase`.
 5. Реализовать `AddUserRoleService`.
 6. Реализовать Registration и RoleOnboarding workflows.
 7. Реализовать `AccountEmailVerifiedEvent` и Tutoring handler.
@@ -1327,7 +1337,7 @@ Integration:
 - Identity не знает о profile classes и tables;
 - birth date хранится только Identity;
 - profile display name/email принадлежат Tutoring;
-- command API Identity вызывается только Workflows;
+- команду добавления роли вызывает только Workflows; после переноса регистрации её единый контракт также вызывает Workflows;
 - подтверждение account email публикует отдельное событие;
 - raw password и tokens не сохраняются и не логируются;
 - jOOQ records не выходят из persistence;

@@ -9,6 +9,7 @@ import jakarta.validation.constraints.Pattern;
 import jakarta.validation.constraints.Size;
 import org.hibernate.validator.constraints.UniqueElements;
 
+import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
@@ -34,6 +35,9 @@ public record RegisterRequest(
         @NotBlank(message = "Last name must not be blank")
         @Size(max = 100, message = "Last name must not exceed 100 characters")
         String lastName,
+
+        @NotNull(message = "Birth date must not be null")
+        LocalDate birthDate,
 
         @NotEmpty(message = "At least one registration role must be provided")
         @Size(max = 2, message = "No more than two registration roles may be provided")

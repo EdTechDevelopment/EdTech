@@ -6,6 +6,7 @@ package io.github.edtechdevelopment.identity.infrastructure.persistence.data.gen
 
 import io.github.edtechdevelopment.identity.infrastructure.persistence.data.generated.tables.IdentityUsers;
 
+import java.time.LocalDate;
 import java.time.OffsetDateTime;
 import java.util.UUID;
 
@@ -133,6 +134,20 @@ public class IdentityUsersRecord extends UpdatableRecordImpl<IdentityUsersRecord
         return (OffsetDateTime) get(7);
     }
 
+    /**
+     * Setter for <code>public.identity_users.birth_date</code>.
+     */
+    public void setBirthDate(LocalDate value) {
+        set(8, value);
+    }
+
+    /**
+     * Getter for <code>public.identity_users.birth_date</code>.
+     */
+    public LocalDate getBirthDate() {
+        return (LocalDate) get(8);
+    }
+
     // -------------------------------------------------------------------------
     // Primary key information
     // -------------------------------------------------------------------------
@@ -156,7 +171,7 @@ public class IdentityUsersRecord extends UpdatableRecordImpl<IdentityUsersRecord
     /**
      * Create a detached, initialised IdentityUsersRecord
      */
-    public IdentityUsersRecord(UUID id, String passwordHash, String firstName, String lastName, String status, OffsetDateTime emailVerifiedAt, OffsetDateTime createdAt, OffsetDateTime updatedAt) {
+    public IdentityUsersRecord(UUID id, String passwordHash, String firstName, String lastName, String status, OffsetDateTime emailVerifiedAt, OffsetDateTime createdAt, OffsetDateTime updatedAt, LocalDate birthDate) {
         super(IdentityUsers.IDENTITY_USERS);
 
         setId(id);
@@ -167,6 +182,7 @@ public class IdentityUsersRecord extends UpdatableRecordImpl<IdentityUsersRecord
         setEmailVerifiedAt(emailVerifiedAt);
         setCreatedAt(createdAt);
         setUpdatedAt(updatedAt);
+        setBirthDate(birthDate);
         resetTouchedOnNotNull();
     }
 }

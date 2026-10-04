@@ -1,19 +1,25 @@
 package io.github.edtechdevelopment;
 
 import io.github.edtechdevelopment.identity.application.mapper.IdentityApiMapper;
+import io.github.edtechdevelopment.identity.api.IdentityRegistrationGateway;
+import io.github.edtechdevelopment.identity.api.IdentityRoleGateway;
 import io.github.edtechdevelopment.identity.api.query.IdentityQuery;
 import io.github.edtechdevelopment.identity.application.port.in.account.RegisterUserUseCase;
+import io.github.edtechdevelopment.identity.application.port.in.account.AddUserRoleUseCase;
 import io.github.edtechdevelopment.identity.application.port.in.account.UpdateCurrentUserUseCase;
 import io.github.edtechdevelopment.identity.application.port.in.authentication.LogoutUseCase;
 import io.github.edtechdevelopment.identity.application.port.in.verification.ResendEmailVerificationUseCase;
 import io.github.edtechdevelopment.identity.application.port.out.messaging.VerificationEmailSender;
 import io.github.edtechdevelopment.identity.application.port.out.security.AccessTokenIssuer;
 import io.github.edtechdevelopment.identity.application.service.account.RegisterUserService;
+import io.github.edtechdevelopment.identity.application.service.account.AddUserRoleService;
 import io.github.edtechdevelopment.identity.application.service.account.IdentityQueryService;
 import io.github.edtechdevelopment.identity.application.service.account.UpdateCurrentUserService;
 import io.github.edtechdevelopment.identity.application.service.authentication.LogoutService;
 import io.github.edtechdevelopment.identity.application.service.verification.ResendEmailVerificationService;
 import io.github.edtechdevelopment.identity.infrastructure.messaging.email.NotificationVerificationEmailAdapter;
+import io.github.edtechdevelopment.identity.infrastructure.integration.RegistrationGatewayAdapter;
+import io.github.edtechdevelopment.identity.infrastructure.integration.RoleGatewayAdapter;
 import io.github.edtechdevelopment.identity.infrastructure.security.token.SpringJwtAccessTokenIssuer;
 import io.github.edtechdevelopment.notifications.api.NotificationGateway;
 import io.github.edtechdevelopment.notifications.api.command.SendVerificationEmailCommand;
@@ -41,6 +47,9 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 class ApplicationCompositionTest {
 
     private final RegisterUserUseCase registerUserUseCase;
+    private final AddUserRoleUseCase addUserRoleUseCase;
+    private final IdentityRegistrationGateway identityRegistrationGateway;
+    private final IdentityRoleGateway identityRoleGateway;
     private final IdentityQuery identityQuery;
     private final UpdateCurrentUserUseCase updateCurrentUserUseCase;
     private final LogoutUseCase logoutUseCase;
@@ -57,6 +66,9 @@ class ApplicationCompositionTest {
     @Autowired
     ApplicationCompositionTest(
             RegisterUserUseCase registerUserUseCase,
+            AddUserRoleUseCase addUserRoleUseCase,
+            IdentityRegistrationGateway identityRegistrationGateway,
+            IdentityRoleGateway identityRoleGateway,
             IdentityQuery identityQuery,
             UpdateCurrentUserUseCase updateCurrentUserUseCase,
             LogoutUseCase logoutUseCase,
@@ -71,6 +83,9 @@ class ApplicationCompositionTest {
             JwtDecoder jwtDecoder
     ) {
         this.registerUserUseCase = registerUserUseCase;
+        this.addUserRoleUseCase = addUserRoleUseCase;
+        this.identityRegistrationGateway = identityRegistrationGateway;
+        this.identityRoleGateway = identityRoleGateway;
         this.identityQuery = identityQuery;
         this.updateCurrentUserUseCase = updateCurrentUserUseCase;
         this.logoutUseCase = logoutUseCase;
@@ -89,6 +104,10 @@ class ApplicationCompositionTest {
         assertAll(
                 () -> assertTrue(AopUtils.isAopProxy(registerUserUseCase)),
                 () -> assertEquals(RegisterUserService.class, AopUtils.getTargetClass(registerUserUseCase)),
+                () -> assertTrue(AopUtils.isAopProxy(addUserRoleUseCase)),
+                () -> assertEquals(AddUserRoleService.class, AopUtils.getTargetClass(addUserRoleUseCase)),
+                () -> assertEquals(RegistrationGatewayAdapter.class, identityRegistrationGateway.getClass()),
+                () -> assertEquals(RoleGatewayAdapter.class, identityRoleGateway.getClass()),
                 () -> assertTrue(AopUtils.isAopProxy(identityQuery)),
                 () -> assertEquals(IdentityQueryService.class, AopUtils.getTargetClass(identityQuery)),
                 () -> assertTrue(AopUtils.isAopProxy(updateCurrentUserUseCase)),

@@ -14,6 +14,7 @@ import org.mockito.ArgumentCaptor;
 import org.springframework.dao.DuplicateKeyException;
 
 import java.time.Instant;
+import java.time.LocalDate;
 import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
@@ -110,6 +111,7 @@ class JooqUserRepositoryAdapterTest {
                 new PasswordHash("stored-password-hash"),
                 "Anna",
                 "Petrova",
+                LocalDate.of(2000, 1, 1),
                 Set.of(UserRole.STUDENT),
                 UserStatus.ACTIVE,
                 CREATED_AT,

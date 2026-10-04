@@ -47,6 +47,7 @@ public final class UserPersistenceMapper {
                     new PasswordHash(userRecord.getPasswordHash()),
                     userRecord.getFirstName(),
                     userRecord.getLastName(),
+                    userRecord.getBirthDate(),
                     roles,
                     toUserStatus(userRecord.getStatus()),
                     toInstant(userRecord.getEmailVerifiedAt()),
@@ -69,7 +70,8 @@ public final class UserPersistenceMapper {
                 user.status().name(),
                 toOffsetDateTime(user.emailVerifiedAt().orElse(null)),
                 toOffsetDateTime(user.createdAt()),
-                toOffsetDateTime(user.updatedAt())
+                toOffsetDateTime(user.updatedAt()),
+                user.birthDate()
         );
 
         List<IdentityUserEmailsRecord> emailRecords = new ArrayList<>();

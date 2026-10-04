@@ -23,6 +23,7 @@ import org.mockito.ArgumentCaptor;
 import org.mockito.InOrder;
 
 import java.time.Duration;
+import java.time.LocalDate;
 import java.time.Instant;
 import java.util.Optional;
 import java.util.Set;
@@ -215,6 +216,7 @@ class ResendEmailVerificationServiceTest {
                 new PasswordHash("stored-password-hash"),
                 "Anna",
                 "Petrova",
+                LocalDate.of(2000, 1, 1),
                 Set.of(UserRole.STUDENT),
                 status,
                 verifiedAt,

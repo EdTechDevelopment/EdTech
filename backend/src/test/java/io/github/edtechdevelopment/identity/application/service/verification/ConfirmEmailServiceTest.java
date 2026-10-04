@@ -34,6 +34,7 @@ import org.mockito.ArgumentCaptor;
 import org.mockito.InOrder;
 
 import java.time.Instant;
+import java.time.LocalDate;
 import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
@@ -235,6 +236,7 @@ class ConfirmEmailServiceTest {
                 new PasswordHash("stored-password-hash"),
                 "Anna",
                 "Petrova",
+                LocalDate.of(2000, 1, 1),
                 Set.of(UserRole.STUDENT),
                 UserStatus.PENDING_EMAIL_VERIFICATION,
                 null,
@@ -251,6 +253,7 @@ class ConfirmEmailServiceTest {
                 new PasswordHash("stored-password-hash"),
                 "Anna",
                 "Petrova",
+                LocalDate.of(2000, 1, 1),
                 Set.of(UserRole.STUDENT),
                 UserStatus.ACTIVE,
                 CREATED_AT,

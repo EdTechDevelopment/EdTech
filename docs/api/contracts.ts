@@ -96,9 +96,9 @@ export type StudentProfileUpdateRequest = {
 
 export type PublicStudentProfileResponse = {
   userId: string;
-  birthDate: string;
+  age: number;
   displayName: string;
-  contactEmail: string | null;
+  contactEmail: string;
   contactDetails: Array<string>;
   subjectCodes: Array<string>;
   photoUrl: string | null;
@@ -112,16 +112,8 @@ export type PublicTeacherProfileResponse = PublicStudentProfileResponse & {
 export type PublicTeacherProfilePage = { items: Array<PublicTeacherProfileResponse>; nextCursor: string | null };
 export type PublicStudentProfilePage = { items: Array<PublicStudentProfileResponse>; nextCursor: string | null };
 
-export type TeacherProfileResponse = PublicTeacherProfileResponse & {
-  contactEmail: string;
-  pendingContactEmail: string | null;
-  contactEmailVerifiedAt: string | null;
-};
-export type StudentProfileResponse = PublicStudentProfileResponse & {
-  contactEmail: string;
-  pendingContactEmail: string | null;
-  contactEmailVerifiedAt: string | null;
-};
+export type TeacherProfileResponse = PublicTeacherProfileResponse;
+export type StudentProfileResponse = PublicStudentProfileResponse;
 export type MeResponse = {
   user: UserResponse;
   teacherProfile: TeacherProfileResponse | null;
@@ -129,11 +121,6 @@ export type MeResponse = {
 };
 
 export type ProfileEmailChangeRequest = { newEmail: string };
-export type ProfileEmailConfirmationRequest = { target: "CURRENT" | "PENDING" };
-export type ProfileEmailTokenRequest = { token: string };
-export type ProfileEmailRequestResult = {
-  state: "CONFIRMED" | "AWAITING_ACCOUNT_VERIFICATION" | "EMAIL_QUEUED";
-};
 
 export type InvitationStatus = "PENDING" | "ACCEPTED" | "REJECTED" | "EXPIRED";
 export type CreateStudentInvitationRequest = { studentEmail: string };

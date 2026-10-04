@@ -36,6 +36,7 @@ public final class UserPresentationMapper {
                 result.pendingEmail(),
                 result.firstName(),
                 result.lastName(),
+                result.birthDate(),
                 result.roles().stream()
                         .map(role -> UserRoleView.valueOf(role.name()))
                         .collect(Collectors.toUnmodifiableSet()),

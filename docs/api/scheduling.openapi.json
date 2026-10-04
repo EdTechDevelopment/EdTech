@@ -2078,7 +2078,7 @@
         "tags": [
           "Tutoring"
         ],
-        "summary": "Изменить профильный email",
+        "summary": "Изменить контактный email профиля",
         "parameters": [
           {
             "name": "type",
@@ -2104,228 +2104,41 @@
           }
         },
         "responses": {
-          "200": {
-            "description": "Изменить профильный email",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ProfileEmailRequestResult"
-                }
-              }
-            }
-          },
-          "400": {
-            "description": "Ошибка 400.",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ApiError"
-                }
-              }
-            }
-          },
-          "401": {
-            "description": "Ошибка 401.",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ApiError"
-                }
-              }
-            }
-          },
-          "403": {
-            "description": "Ошибка 403.",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ApiError"
-                }
-              }
-            }
-          },
-          "404": {
-            "description": "Ошибка 404.",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ApiError"
-                }
-              }
-            }
-          },
-          "429": {
-            "description": "Ошибка 429.",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ApiError"
-                }
-              }
-            }
-          },
-          "500": {
-            "description": "Ошибка 500.",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ApiError"
-                }
-              }
-            }
-          },
-          "503": {
-            "description": "Ошибка 503.",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ApiError"
-                }
-              }
-            }
-          }
-        }
-      }
-    },
-    "/tutoring/profiles/{type}/contact-email/confirmation-requests": {
-      "post": {
-        "operationId": "requestProfileEmailConfirmation",
-        "tags": [
-          "Tutoring"
-        ],
-        "summary": "Повторить подтверждение профильной почты",
-        "parameters": [
-          {
-            "name": "type",
-            "in": "path",
-            "required": true,
-            "schema": {
-              "type": "string",
-              "enum": [
-                "teacher",
-                "student"
-              ]
-            }
-          }
-        ],
-        "requestBody": {
-          "required": true,
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/ProfileEmailConfirmationRequest"
-              }
-            }
-          }
-        },
-        "responses": {
-          "200": {
-            "description": "Повторить подтверждение профильной почты",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ProfileEmailRequestResult"
-                }
-              }
-            }
-          },
-          "400": {
-            "description": "Ошибка 400.",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ApiError"
-                }
-              }
-            }
-          },
-          "401": {
-            "description": "Ошибка 401.",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ApiError"
-                }
-              }
-            }
-          },
-          "403": {
-            "description": "Ошибка 403.",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ApiError"
-                }
-              }
-            }
-          },
-          "404": {
-            "description": "Ошибка 404.",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ApiError"
-                }
-              }
-            }
-          },
-          "429": {
-            "description": "Ошибка 429.",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ApiError"
-                }
-              }
-            }
-          },
-          "500": {
-            "description": "Ошибка 500.",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ApiError"
-                }
-              }
-            }
-          },
-          "503": {
-            "description": "Ошибка 503.",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ApiError"
-                }
-              }
-            }
-          }
-        }
-      }
-    },
-    "/tutoring/profile-email-confirmations": {
-      "post": {
-        "operationId": "confirmProfileEmail",
-        "tags": [
-          "Tutoring"
-        ],
-        "summary": "Подтвердить профильную почту",
-        "security": [],
-        "requestBody": {
-          "required": true,
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/ProfileEmailTokenRequest"
-              }
-            }
-          }
-        },
-        "responses": {
           "204": {
-            "description": "Подтвердить профильную почту"
+            "description": "Контактный email сохранён без подтверждения."
           },
           "400": {
             "description": "Ошибка 400.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Ошибка 401.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Ошибка 403.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Ошибка 404.",
             "content": {
               "application/json": {
                 "schema": {
@@ -3710,10 +3523,6 @@
             "type": "string",
             "format": "uuid"
           },
-          "birthDate": {
-            "type": "string",
-            "format": "date"
-          },
           "displayName": {
             "type": "string"
           },
@@ -3754,20 +3563,14 @@
             "type": "string",
             "nullable": true
           },
-          "pendingContactEmail": {
-            "type": "string",
-            "format": "email",
-            "nullable": true
-          },
-          "contactEmailVerifiedAt": {
-            "type": "string",
-            "format": "date-time",
-            "nullable": true
+          "age": {
+            "type": "integer",
+            "minimum": 0
           }
         },
         "required": [
           "userId",
-          "birthDate",
+          "age",
           "displayName",
           "contactEmail",
           "contactDetails",
@@ -3776,9 +3579,7 @@
           "description",
           "education",
           "experienceYears",
-          "city",
-          "pendingContactEmail",
-          "contactEmailVerifiedAt"
+          "city"
         ]
       },
       "StudentProfileResponse": {
@@ -3788,10 +3589,6 @@
           "userId": {
             "type": "string",
             "format": "uuid"
-          },
-          "birthDate": {
-            "type": "string",
-            "format": "date"
           },
           "displayName": {
             "type": "string"
@@ -3816,27 +3613,19 @@
             "type": "string",
             "nullable": true
           },
-          "pendingContactEmail": {
-            "type": "string",
-            "format": "email",
-            "nullable": true
-          },
-          "contactEmailVerifiedAt": {
-            "type": "string",
-            "format": "date-time",
-            "nullable": true
+          "age": {
+            "type": "integer",
+            "minimum": 0
           }
         },
         "required": [
           "userId",
-          "birthDate",
+          "age",
           "displayName",
           "contactEmail",
           "contactDetails",
           "subjectCodes",
-          "photoUrl",
-          "pendingContactEmail",
-          "contactEmailVerifiedAt"
+          "photoUrl"
         ]
       },
       "MeResponse": {
@@ -3899,17 +3688,12 @@
             "type": "string",
             "format": "uuid"
           },
-          "birthDate": {
-            "type": "string",
-            "format": "date"
-          },
           "displayName": {
             "type": "string"
           },
           "contactEmail": {
             "type": "string",
-            "format": "email",
-            "nullable": true
+            "format": "email"
           },
           "contactDetails": {
             "type": "array",
@@ -3926,11 +3710,15 @@
           "photoUrl": {
             "type": "string",
             "nullable": true
+          },
+          "age": {
+            "type": "integer",
+            "minimum": 0
           }
         },
         "required": [
           "userId",
-          "birthDate",
+          "age",
           "displayName",
           "contactEmail",
           "contactDetails",
@@ -6147,17 +5935,12 @@
             "type": "string",
             "format": "uuid"
           },
-          "birthDate": {
-            "type": "string",
-            "format": "date"
-          },
           "displayName": {
             "type": "string"
           },
           "contactEmail": {
             "type": "string",
-            "format": "email",
-            "nullable": true
+            "format": "email"
           },
           "contactDetails": {
             "type": "array",
@@ -6191,11 +5974,15 @@
           "city": {
             "type": "string",
             "nullable": true
+          },
+          "age": {
+            "type": "integer",
+            "minimum": 0
           }
         },
         "required": [
           "userId",
-          "birthDate",
+          "age",
           "displayName",
           "contactEmail",
           "contactDetails",
@@ -6215,17 +6002,12 @@
             "type": "string",
             "format": "uuid"
           },
-          "birthDate": {
-            "type": "string",
-            "format": "date"
-          },
           "displayName": {
             "type": "string"
           },
           "contactEmail": {
             "type": "string",
-            "format": "email",
-            "nullable": true
+            "format": "email"
           },
           "contactDetails": {
             "type": "array",
@@ -6242,11 +6024,15 @@
           "photoUrl": {
             "type": "string",
             "nullable": true
+          },
+          "age": {
+            "type": "integer",
+            "minimum": 0
           }
         },
         "required": [
           "userId",
-          "birthDate",
+          "age",
           "displayName",
           "contactEmail",
           "contactDetails",
@@ -6383,51 +6169,6 @@
         },
         "required": [
           "newEmail"
-        ]
-      },
-      "ProfileEmailConfirmationRequest": {
-        "type": "object",
-        "additionalProperties": false,
-        "properties": {
-          "target": {
-            "type": "string",
-            "enum": [
-              "CURRENT",
-              "PENDING"
-            ]
-          }
-        },
-        "required": [
-          "target"
-        ]
-      },
-      "ProfileEmailTokenRequest": {
-        "type": "object",
-        "additionalProperties": false,
-        "properties": {
-          "token": {
-            "type": "string"
-          }
-        },
-        "required": [
-          "token"
-        ]
-      },
-      "ProfileEmailRequestResult": {
-        "type": "object",
-        "additionalProperties": false,
-        "properties": {
-          "state": {
-            "type": "string",
-            "enum": [
-              "CONFIRMED",
-              "AWAITING_ACCOUNT_VERIFICATION",
-              "EMAIL_QUEUED"
-            ]
-          }
-        },
-        "required": [
-          "state"
         ]
       },
       "CreatedInvitationResponse": {

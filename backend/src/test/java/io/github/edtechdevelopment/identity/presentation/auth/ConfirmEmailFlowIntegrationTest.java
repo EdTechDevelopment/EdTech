@@ -177,6 +177,7 @@ class ConfirmEmailFlowIntegrationTest {
                                   "password": "StrongPassword42!",
                                   "firstName": "Test",
                                   "lastName": "User",
+                                  "birthDate": "2000-01-01",
                                   "roles": ["STUDENT"]
                                 }
                                 """.formatted(email)))

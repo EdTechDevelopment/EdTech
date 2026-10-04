@@ -127,6 +127,7 @@ class RegistrationFlowIntegrationTest {
                 () -> assertEquals("CURRENT", emailRecord.getKind()),
                 () -> assertEquals("Test", userRecord.getFirstName()),
                 () -> assertEquals("User", userRecord.getLastName()),
+                () -> assertEquals(java.time.LocalDate.of(2000, 1, 1), userRecord.getBirthDate()),
                 () -> assertEquals("PENDING_EMAIL_VERIFICATION", userRecord.getStatus()),
                 () -> assertNull(userRecord.getEmailVerifiedAt()),
                 () -> assertNotEquals(RAW_PASSWORD, userRecord.getPasswordHash()),
@@ -179,6 +180,20 @@ class RegistrationFlowIntegrationTest {
                 .andExpect(jsonPath("$.message").value("Request validation failed"))
                 .andExpect(jsonPath("$.fieldErrors[0].field").value("password"))
                 .andExpect(jsonPath("$.requestId").isNotEmpty());
+
+        assertNoTestRecordsRemain();
+    }
+
+    @Test
+    void requiresBirthDateInRegistrationRequest() throws Exception {
+        String requestBody = validRegistrationJson(testEmail)
+                .replace("\"birthDate\": \"2000-01-01\",", "");
+
+        mockMvc.perform(post("/api/v1/auth/register")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(requestBody))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.fieldErrors[0].field").value("birthDate"));
 
         assertNoTestRecordsRemain();
     }
@@ -303,6 +318,7 @@ class RegistrationFlowIntegrationTest {
                   "password": "%s",
                   "firstName": "  Test  ",
                   "lastName": "  User  ",
+                  "birthDate": "2000-01-01",
                   "roles": ["STUDENT", "TEACHER"]
                 }
                 """.formatted(email, RAW_PASSWORD);

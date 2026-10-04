@@ -13,6 +13,14 @@
 | `UserStatusView` | `enum` | `PENDING_EMAIL_VERIFICATION`, `ACTIVE`, `SUSPENDED`, `DEACTIVATED` | Публичное Java-представление состояния учётной записи; синхронизировано с HTTP/OpenAPI `UserStatus`. |
 | `AccountEmailVerificationPurpose` | `enum` | `REGISTRATION`, `EMAIL_CHANGE` | Публичная причина подтверждения account email, не раскрывающая domain enum за границей модуля. |
 
+### `identity.api.command`
+
+| Элемент | Стереотип | Поля | Назначение |
+|---|---|---|---|
+| `RegistrationData` | `record` | email, raw password, имя, фамилия, `birthDate`, `Set<UserRoleView> roles` | Публичный вход `IdentityRegistrationGateway`; адаптер переводит его во внутреннюю команду. Пароль скрыт в `toString()`. |
+| `RegistrationReceipt` | `record` | `UUID userId`, `String email`, `Instant verificationExpiresAt` | Публичный результат для RegistrationWorkflow; не является HTTP-ответом. |
+| `AddUserRoleCommand` | `record` | `UUID userId`, `UserRoleView role` | Публичная команда `IdentityRoleGateway`. |
+
 ### `identity.api.event`
 
 | Элемент | Стереотип | Поля | Назначение |
@@ -30,7 +38,7 @@
 
 | Элемент | Стереотип | Поля | Назначение |
 |---|---|---|---|
-| `RegisterRequest` | `record`, request DTO | `String email`, `String password`, `String firstName`, `String lastName`, `List<RegistrationRole> roles` | JSON-запрос регистрации. Список сохраняет дубли до Bean Validation, чтобы выполнить OpenAPI `uniqueItems`; mapper передаёт в application уже множество. Password скрыт в `toString()`. |
+| `RegisterRequest` | `record`, request DTO | `String email`, `String password`, `String firstName`, `String lastName`, `LocalDate birthDate`, `List<RegistrationRole> roles` | JSON-запрос регистрации. Список сохраняет дубли до Bean Validation, чтобы выполнить OpenAPI `uniqueItems`; mapper передаёт во внутреннюю command уже множество. Password скрыт в `toString()`. |
 | `LoginRequest` | `record`, request DTO | `String email`, `String password` | JSON-запрос входа. Открытый пароль живёт только в пределах обработки запроса. |
 | `ConfirmEmailRequest` | `record`, request DTO | `String token` | Запрос подтверждения email по открытому verification token. |
 | `ResendEmailVerificationRequest` | `record`, request DTO | `String email` | Запрос повторного выпуска verification token. Ответ не должен позволять определить существование email. |
@@ -99,8 +107,9 @@ POST /api/v1/auth/email-verification/resend
 
 | Элемент | Стереотип | Поля | Назначение |
 |---|---|---|---|
-| `RegistrationRole` | `enum` | `TEACHER`, `STUDENT` | Application-представление запрошенной при регистрации роли; не заставляет Presentation зависеть от Domain. |
-| `RegisterUserCommand` | `record` | `String email`, `String rawPassword`, `String firstName`, `String lastName`, `Set<RegistrationRole> roles` | Вход регистрации после HTTP mapping. Сервис явно преобразует роли в доменный `UserRole`. |
+| `RegistrationRole` | `enum` | `TEACHER`, `STUDENT` | Внутреннее application-представление роли. |
+| `RegisterUserCommand` | `record` | `String email`, `String rawPassword`, `String firstName`, `String lastName`, `LocalDate birthDate`, `Set<RegistrationRole> roles` | Вход единственного application use case регистрации. Сервис преобразует роли в доменный `UserRole`. |
+| `AssignRoleCommand` | `record` | `UUID userId`, `RegistrationRole role` | Вход внутреннего use case добавления роли. |
 | `UpdateCurrentUserCommand` | `record` | `UUID userId`, `String email`, `String firstName`, `String lastName` | Изменение текущего пользователя. `userId` формируется из security context, а не из тела запроса. |
 
 ### `identity.application.command.verification`
@@ -130,7 +139,7 @@ POST /api/v1/auth/email-verification/resend
 
 | Элемент | Стереотип | Поля | Назначение |
 |---|---|---|---|
-| `RegistrationResult` | `record` | `String email`, `Instant verificationExpiresAt` | Результат регистрации до подтверждения email. |
+| `RegistrationResult` | `record` | `UUID userId`, `String email`, `Instant verificationExpiresAt` | Внутренний результат регистрации до подтверждения email. Публичный адаптер преобразует его в `RegistrationReceipt`; `userId` не включается в HTTP-ответ. |
 | `ResendVerificationResult` | `record` | `String email`, `Instant verificationExpiresAt` | Нейтральный результат повторной отправки. Не раскрывает наличие аккаунта. |
 | `AuthenticationResult` | `record` | `IssuedAccessToken accessToken`, `IssuedRefreshToken refreshToken` | Общий результат confirm, login и refresh. Пользователь загружается отдельно через `GET /me`; Presentation помещает refresh token в cookie. |
 | `CurrentUserResult` | `record` | `UUID id`, `String email`, `String? pendingEmail`, `String firstName`, `String lastName`, `Set<UserRole> roles`, `UserStatus status`, `Instant? emailVerifiedAt`, `Instant createdAt`, `Instant updatedAt` | Представление пользователя на application-границе. |

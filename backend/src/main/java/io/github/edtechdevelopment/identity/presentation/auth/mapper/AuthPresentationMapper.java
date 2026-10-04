@@ -40,6 +40,7 @@ public final class AuthPresentationMapper {
                 request.password(),
                 request.firstName(),
                 request.lastName(),
+                request.birthDate(),
                 Set.copyOf(request.roles())
         );
     }

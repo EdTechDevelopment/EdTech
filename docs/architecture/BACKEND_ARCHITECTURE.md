@@ -16,7 +16,7 @@
 4. `docs/api/scheduling.openapi.json` определяет уже синхронизированный HTTP-контракт.
 5. `docs/architecture/identity/architecture.vpp` и опубликованный HTML являются историческим снимком модели Identity.
 
-Решения от 2026-09-13 меняют регистрацию, профили и владение `birthDate`. До синхронизации соответствующих схем OpenAPI их нельзя реализовывать по старому контракту. Не создавай параллельные варианты DTO или enum.
+Решения по Tutoring меняют регистрацию, профили и показ возраста. Целевые схемы OpenAPI синхронизированы с ними; существующие HTTP-обработчики Identity ещё предстоит связать с составным Workflows. Не создавай параллельные варианты DTO или enum.
 
 ## Назначение продукта
 
@@ -79,9 +79,9 @@ Tutoring.TeacherProfile.userId
 Tutoring.StudentProfile.userId
 
 Identity.User.birthDate
-    ↓ копируется доверенным workflow при создании профиля
-Tutoring.TeacherProfile.birthDate / StudentProfile.birthDate
-    ↓ выдаётся в публичном профиле активного пользователя без связи
+    ↓ остаётся в Identity; пакетный запрос вычисляет возраст на дату просмотра
+Tutoring.TeacherProfile / StudentProfile + IdentityQuery.findAgesByIds
+    ↓ публичный профиль активного пользователя показывает возраст
 Tutoring.PublicProfileQuery / Workflows.StudentCardQueryFacade
 
 Tutoring.TeacherStudent
@@ -117,6 +117,7 @@ presentation   → application.port.in / command / query / result
 application    → domain
 application    → api
 infrastructure → application.port.out
+infrastructure → application.port.in (адаптер публичного API)
 infrastructure → application.model
 infrastructure → domain
 other module   → <module>.api
@@ -157,12 +158,12 @@ module A       -X-> internal packages, repositories or tables of module B
 
 ```text
 RegistrationWorkflow
-    → IdentityRegistrationCommands
-    → TutoringRegistrationCommands
+    → IdentityRegistrationGateway
+    → TutoringProfileCreationCommands
 
 RoleOnboardingWorkflow
-    → IdentityRoleCommands
-    → TutoringRegistrationCommands
+    → IdentityRoleGateway
+    → TutoringProfileCreationCommands
 
 UnlinkStudentWorkflow
     → Scheduling guard и обработка уроков
@@ -187,8 +188,8 @@ Workflow не читает чужие таблицы, не использует 
 RegistrationController
 → RegistrationWorkflow (@Transactional)
 → проверить точное соответствие roles ↔ profiles
-→ IdentityRegistrationCommands.createPendingUser(...)
-→ TutoringRegistrationCommands.createInitialProfiles(...)
+→ IdentityRegistrationGateway.register(...)
+→ TutoringProfileCreationCommands.createInitialProfiles(...)
 → Notifications сохраняет delivery request
 → commit
 → SMTP и обработчики integration events после commit
@@ -196,11 +197,11 @@ RegistrationController
 
 Identity знает роли, но не знает о профилях. Tutoring знает `userId`, но не изменяет роли. Общая PostgreSQL-транзакция обеспечивает правило «всё создано или ничего не создано».
 
-Команды Workflow содержат `operationId` и обрабатываются идемпотентно. Это сохраняет возможность позже заменить локальные adapters сетевыми и превратить Workflow в Saga orchestrator.
+Workflows хранит ключ повтора, fingerprint и результат составного запроса в той же транзакции, что изменения Identity и Tutoring. Точный повтор регистрации или добавления роли возвращает сохранённый результат без повторного выполнения команд модулей. При переходе к сетевым вызовам эти гарантии потребуется перепроектировать для распределённого процесса.
 
 ### Составные HTTP-ответы
 
-DTO может объединять данные нескольких модулей, но это не меняет владение данными. `GET /api/v1/me` возвращает аккаунт Identity и профили Tutoring через `MeQueryFacade`. Identity не переносит к себе профили; Tutoring не копирует account name и account email, но при создании каждого учебного профиля сохраняет локальную копию `Identity.User.birthDate`. Дата и обычные данные активного учебного профиля публичны без связи; подтверждение профильного email остаётся обязательным перед его публичным показом.
+DTO может объединять данные нескольких модулей, но это не меняет владение данными. `GET /api/v1/me` возвращает аккаунт Identity и профили Tutoring через `MeQueryFacade`. Identity не переносит к себе профили; Tutoring не копирует account name, account email или `birthDate`. Точная дата рождения видна владельцу в данных аккаунта. Активный учебный профиль публичен без связи и показывает возраст, вычисленный Identity. Контактный email профиля доступен публично после проверки формата; его владение не подтверждается.
 
 Профильные `displayName` и `contactEmail` являются самостоятельными данными Tutoring. Они могут начинаться со значений аккаунта, но после сохранения имеют независимый жизненный цикл.
 
@@ -400,7 +401,7 @@ architecture tests
 
 - публичный API соответствует OpenAPI;
 - роль и обязательный профиль создаются одной workflow-транзакцией;
-- `Identity.User.birthDate` остаётся источником истины; Tutoring хранит копию в каждом созданном учебном профиле;
+- `Identity.User.birthDate` хранится только в Identity; Tutoring получает вычисленный возраст для выдачи профиля;
 - profile display name/email хранятся только Tutoring;
 - изменение размещено в модуле-владельце данных;
 - слои зависят только в разрешённом направлении;

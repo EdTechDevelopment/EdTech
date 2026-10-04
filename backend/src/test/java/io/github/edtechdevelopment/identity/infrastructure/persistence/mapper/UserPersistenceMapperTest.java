@@ -13,6 +13,7 @@ import io.github.edtechdevelopment.identity.infrastructure.persistence.exception
 import org.junit.jupiter.api.Test;
 
 import java.time.Instant;
+import java.time.LocalDate;
 import java.time.OffsetDateTime;
 import java.time.ZoneOffset;
 import java.util.List;
@@ -51,6 +52,7 @@ class UserPersistenceMapperTest {
                 () -> assertEquals(originalUser.passwordHash(), restoredUser.passwordHash()),
                 () -> assertEquals(originalUser.firstName(), restoredUser.firstName()),
                 () -> assertEquals(originalUser.lastName(), restoredUser.lastName()),
+                () -> assertEquals(originalUser.birthDate(), restoredUser.birthDate()),
                 () -> assertEquals(originalUser.roles(), restoredUser.roles()),
                 () -> assertEquals(originalUser.status(), restoredUser.status()),
                 () -> assertEquals(originalUser.emailVerifiedAt(), restoredUser.emailVerifiedAt()),
@@ -122,6 +124,7 @@ class UserPersistenceMapperTest {
                 PASSWORD_HASH,
                 "Anna",
                 "Petrova",
+                LocalDate.of(2000, 1, 1),
                 Set.of(UserRole.STUDENT, UserRole.TEACHER),
                 UserStatus.ACTIVE,
                 VERIFIED_AT,
@@ -147,7 +150,8 @@ class UserPersistenceMapperTest {
                 UserStatus.ACTIVE.name(),
                 OffsetDateTime.ofInstant(VERIFIED_AT, ZoneOffset.UTC),
                 OffsetDateTime.ofInstant(CREATED_AT, ZoneOffset.UTC),
-                OffsetDateTime.ofInstant(UPDATED_AT, ZoneOffset.UTC)
+                OffsetDateTime.ofInstant(UPDATED_AT, ZoneOffset.UTC),
+                LocalDate.of(2000, 1, 1)
         );
     }
 }

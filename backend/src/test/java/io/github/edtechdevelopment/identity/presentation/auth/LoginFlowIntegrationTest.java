@@ -164,6 +164,7 @@ class LoginFlowIntegrationTest {
                                   "password": "%s",
                                   "firstName": "Test",
                                   "lastName": "User",
+                                  "birthDate": "2000-01-01",
                                   "roles": ["STUDENT"]
                                 }
                                 """.formatted(email, RAW_PASSWORD)))

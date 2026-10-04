@@ -7,7 +7,7 @@
 
 `tutoring.application` координирует агрегаты Tutoring, транзакции, порты хранения, публичный Java API Tutoring и интеграции через разрешённые API других модулей. Domain защищает локальные инварианты агрегатов; Application проверяет существование пользователя, роли, предметов и профилей, наличие связи, право раскрытия данных, идемпотентность и согласованность нескольких агрегатов.
 
-Identity владеет аккаунтом, ролями, account email и первоначальной `birthDate`. Tutoring владеет двумя независимыми профилями, их копиями `birthDate`, профильной почтой, предметами, приглашениями и связями. Scheduling владеет уроками; Notifications — очередью доставки писем, включая raw token до отправки. Application Tutoring не принимает HTTP DTO, не читает чужие таблицы, не обращается к `SecurityContext`, SMTP, jOOQ или Spring-событиям напрямую.
+Identity владеет аккаунтом, ролями, account email и единственной сохранённой `birthDate`. Tutoring владеет двумя независимыми профилями без даты рождения, их контактным email, предметами, приглашениями и связями. Scheduling владеет уроками; Notifications — очередью доставки писем приглашений. Application Tutoring не принимает HTTP DTO, не читает чужие таблицы, не обращается к `SecurityContext`, SMTP, jOOQ или Spring-событиям напрямую.
 
 Время получает сервис через `Clock` и явно передаёт в Domain. Публичные межмодульные интерфейсы остаются в `tutoring.api`; внутренний `port.in` их не дублирует. Пользовательские use case получают `actorUserId` только от доверенной presentation/workflow-границы. Ни один сервис Tutoring не добавляет роль Identity.
 
@@ -26,35 +26,17 @@ tutoring.application
 │   └── exception                InvalidSubjectCodeException, SubjectNotFoundException
 ├── profile
 │   ├── port.in                  UpdateTeacherProfileUseCase, UpdateStudentProfileUseCase,
-│   │                            GetPublicProfileUseCase, SearchPublicProfilesUseCase
+│   │                            ChangeProfileEmailUseCase, GetPublicProfileUseCase,
+│   │                            SearchPublicProfilesUseCase
 │   ├── port.out                 TeacherProfileRepository, StudentProfileRepository
-│   ├── model.command            UpdateTeacherProfileCommand, UpdateStudentProfileCommand
+│   ├── model.command            UpdateTeacherProfileCommand, UpdateStudentProfileCommand,
+│   │                            ChangeProfileEmailCommand
 │   ├── model.query              LinkedProfileBatchQuery, PublicProfileSearchQuery
 │   ├── service                  ProfileQueryService, PublicProfileSearchService,
 │   │                            LinkedProfileProjectionService,
 │   │                            TeacherProfileUpdateService, StudentProfileUpdateService,
-│   │                            RegistrationProfileService
-│   ├── mapper                   ProfileViewMapper
-│   └── verification
-│       ├── port.in              ChangeProfileEmailUseCase,
-│       │                        RequestProfileEmailConfirmationUseCase,
-│       │                        ConfirmProfileEmailUseCase,
-│       │                        ExpireProfileEmailVerificationsUseCase
-│       ├── port.out             ProfileEmailVerificationRepository,
-│       │                        ProfileVerificationTokenGenerator,
-│       │                        ProfileVerificationTokenHasher,
-│       │                        ProfileVerificationEmailSender,
-│       │                        ProfileVerificationEmailQuota
-│       ├── model.command        ChangeProfileEmailCommand,
-│       │                        RequestProfileEmailConfirmationCommand,
-│       │                        ConfirmProfileEmailCommand, ProfileEmailTarget
-│       ├── model.result         ProfileEmailChangeResult, ProfileEmailConfirmationResult
-│       ├── model.notification   ProfileVerificationEmailRequest
-│       ├── service              InitialProfileEmailCoordinator,
-│       │                        ProfileEmailVerificationService,
-│       │                        ExpiredProfileVerificationService
-│       └── exception            InvalidProfileVerificationTokenException,
-│                                ProfileEmailRateLimitException
+│   │                            ChangeProfileEmailService, RegistrationProfileService
+│   └── mapper                   ProfileViewMapper
 ├── invitation
 │   ├── port.in                  CreateStudentInvitationUseCase,
 │   │                            ListSentInvitationsUseCase,
@@ -121,9 +103,9 @@ tutoring.application
     └── port.out                 NormalizedEmailLock
 ```
 
-`TeacherStudentNotLinkedException`, `ProfileNotFoundException`, `ProfileAlreadyExistsException`, `InvalidProfileDataException`, `UnknownSubjectsException` и `IdempotencyConflictException` остаются в `tutoring.api.exception`: Application не создаёт их дубликаты. Типы self/summary/linked-view и регистрационные команды также остаются в `tutoring.api`. Имена новых внутренних классов в дереве фиксируют намерение; сигнатуры портов ниже являются логическими контрактами без привязки к Spring или SQL.
+`TeacherStudentNotLinkedException`, `ProfileNotFoundException`, `ProfileAlreadyExistsException`, `InvalidProfileDataException`, `UnknownSubjectsException` и `IdempotencyConflictException` остаются в `tutoring.api.exception`: Application не создаёт их дубликаты. Типы self/public/summary-view и регистрационные команды также остаются в `tutoring.api`. Имена новых внутренних классов в дереве фиксируют намерение; сигнатуры портов ниже являются логическими контрактами без привязки к Spring или SQL.
 
-Общая `NormalizedEmailLock` живёт отдельно от `profile.verification` и `invitation`. Её метод `lock(normalizedEmail)` требует активной write-транзакции; блокировка удерживается до её завершения. Единый порядок захвата блокировок для нескольких адресов и реализация определяются Infrastructure.
+Общая `NormalizedEmailLock` нужна для создания приглашений и обработки Identity-события. Её метод `lock(normalizedEmail)` требует активной write-транзакции; блокировка удерживается до её завершения. Реализация определяется Infrastructure.
 
 ### 2.1 Логические сигнатуры входных сценариев
 
@@ -136,10 +118,7 @@ tutoring.application
 | `SearchPublicProfilesUseCase` | `PublicProfilePageResult search(type,subjectCode,minAge,maxAge,cursor,limit)` |
 | `UpdateTeacherProfileUseCase` | `void execute(UpdateTeacherProfileCommand)` |
 | `UpdateStudentProfileUseCase` | `void execute(UpdateStudentProfileCommand)` |
-| `ChangeProfileEmailUseCase` | `ProfileEmailChangeResult execute(ChangeProfileEmailCommand)` |
-| `RequestProfileEmailConfirmationUseCase` | `ProfileEmailChangeResult execute(RequestProfileEmailConfirmationCommand)` |
-| `ConfirmProfileEmailUseCase` | `ProfileEmailConfirmationResult execute(ConfirmProfileEmailCommand)` |
-| `ExpireProfileEmailVerificationsUseCase` | `int expireBatch(int batchSize)`; scheduler повторяет пачки до пустой |
+| `ChangeProfileEmailUseCase` | `void execute(ChangeProfileEmailCommand)`; адрес заменяется сразу |
 | `CreateStudentInvitationUseCase` | `InvitationCreatedResult execute(CreateStudentInvitationCommand)` |
 | `ListSentInvitationsUseCase` | `SentInvitationPageResult execute(SentInvitationsQuery)` |
 | `ListIncomingInvitationsUseCase` | `IncomingInvitationPageResult execute(IncomingInvitationsQuery)` |
@@ -149,7 +128,7 @@ tutoring.application
 | `ListStudentTeachersUseCase` | `TeacherRelationshipPageResult execute(ListStudentTeachersQuery)` |
 | `HandleAccountEmailVerifiedUseCase` | `void handle(HandleAccountEmailVerifiedCommand)` |
 
-`ChangeProfileEmailCommand` содержит `(actorUserId, profileType, newEmail)`. `RequestProfileEmailConfirmationCommand` содержит `(actorUserId, profileType, target)`, где внутренний `ProfileEmailTarget` равен `CURRENT` или `PENDING`; это устраняет неоднозначность, когда одновременно ожидают подтверждения оба адреса. `ConfirmProfileEmailCommand` содержит только raw token; результат не возвращает email или userId посетителю ссылки. Создание/ответ на приглашение содержит `operationId`, доверенный actor и email либо `invitationId`. Query списка содержит доверенный actor, фильтр статуса, cursor и limit. Точные имена полей result-моделей должны совпадать с описанным в разделах 4–7 составом, без скрытых account/role данных.
+`ChangeProfileEmailCommand` содержит `(actorUserId, profileType, newEmail)` и не запускает подтверждение адреса. Создание/ответ на приглашение содержит `operationId`, доверенный actor и email либо `invitationId`. Query списка содержит доверенный actor, фильтр статуса, cursor и limit. Точные имена полей result-моделей должны совпадать с описанным в разделах 4–7 составом, без скрытых account/role данных.
 
 ## 3. Subject
 
@@ -161,63 +140,35 @@ tutoring.application
 
 ### 4.1 Чтение и раскрытие данных
 
-`ProfileQueryService` реализует `TutoringProfileQuery`. `findTeacherProfile(userId)` и `findStudentProfile(userId)` возвращают полный self-view или `Optional.empty()`, но доступны для показа только через `MeQueryFacade`, сверяющий `principal.userId == userId`. Self-view содержит `birthDate`, текущий и pending email и состояние подтверждения. Он не содержит роль, пароль или account email.
+`ProfileQueryService` реализует `TutoringProfileQuery`. `findTeacherProfile(userId)` и `findStudentProfile(userId)` возвращают полный self-view или `Optional.empty()`, но доступны для показа только через `MeQueryFacade`, сверяющий `principal.userId == userId`. Self-view содержит вычисленный возраст и контактный email, но не дату рождения, роль, пароль или account email.
 
 `findTeacherSummaries(Set<UUID>)` и `findStudentSummaries(Set<UUID>)` делают один batch-запрос и возвращают `Map<UUID, Summary>` только для найденных профилей. Пустой набор даёт пустую карту без БД; это уточнение позднего сценария PROF-03/04 имеет приоритет над общим правилом этапа 2 о пустом batch. Summary содержит только `userId` и `displayName`.
 
-Публичное чтение отдельного профиля и поиск не требуют principal или `TeacherStudent`. `GetPublicProfileUseCase` отдаёт ACTIVE профиль или `Optional.empty()`; `SearchPublicProfilesUseCase` фильтрует выбранные предметы по таблице соответствующего профиля и возраст по локальной `birthDate`. Поиск сортирует по `createdAt DESC,userId DESC`, проверяет статусы пользователей пакетным Identity API, добирает до `limit + 1` активных записей и подписывает курсор с фильтрами и датой расчёта возраста UTC. Pending/неподтверждённый email не попадает в результат. Ошибка Identity не превращается в пустую страницу.
+Публичное чтение отдельного профиля и поиск не требуют principal или `TeacherStudent`. `GetPublicProfileUseCase` отдаёт ACTIVE профиль или `Optional.empty()`; `SearchPublicProfilesUseCase` фильтрует выбранные предметы по таблице соответствующего профиля, а возраст и активность получает из Identity пакетами по ID кандидатов. Поиск сортирует по `createdAt DESC,userId DESC`, добирает до `limit + 1` подходящих записей и подписывает курсор с фильтрами и датой расчёта возраста UTC. Контактный email профиля показывается как введённый пользователем адрес без статуса подтверждения. Ошибка Identity не превращается в пустую страницу.
 
-`LinkedProfileProjectionService` пакетно собирает `LinkedStudentProfileView`/`LinkedTeacherProfileView` только для ID, которые `relationship` уже получил из подтверждённых связей. Их поля совпадают с публичными полями профиля: дата рождения, обычные сведения, `contactDetails` и только подтверждённый current `contactEmail`; pending и неподтверждённый email не передаются. Публичное чтение профиля выполняется отдельным use case без связи и проверяет активность пользователя Identity. Отсутствующий профиль при существующей связи — ошибка целостности, не неполная карточка. Для одиночного `findLinked*Profile` сервис relationship сначала проверяет связь; без связи возвращает `Optional.empty()` только для linked-операции.
+`LinkedProfileProjectionService` пакетно собирает `PublicStudentProfileView`/`PublicTeacherProfileView` только для ID, которые `relationship` уже получил из подтверждённых связей. Эти модели содержат возраст из Identity, обычные сведения, `contactDetails` и указанный `contactEmail`. Публичное чтение профиля выполняется отдельным use case без связи и проверяет активность пользователя Identity. Отсутствующий профиль при существующей связи — ошибка целостности, не неполная карточка. Для одиночного `findLinked*Profile` сервис relationship сначала проверяет связь; без связи возвращает `Optional.empty()` только для linked-операции.
 
-`ProfileViewMapper` имеет разные операции для self, public, summary и linked. `RelationshipResultMapper` принимает только linked-view, не self-view. Mapper не обращается к репозиториям, Identity или Notifications и не принимает решение о наличии права на просмотр.
+`ProfileViewMapper` имеет операции для self, public и summary; для списка связей используется та же public-модель после проверки `TeacherStudent`. `RelationshipResultMapper` принимает public-view, не self-view. Mapper не обращается к репозиториям, Identity или Notifications и не принимает решение о наличии права на просмотр.
 
 ### 4.2 Обычные изменения
 
 `UpdateTeacherProfileUseCase` полностью заменяет обычные поля `displayName`, `contactDetails`, `subjectCodes`, `description`, `education`, `experienceYears`, `city`, `photoUrl`; `UpdateStudentProfileUseCase` — `displayName`, `contactDetails`, `subjectCodes`, `photoUrl`. Это не PATCH. Сервис проверяет коды предметов пакетно, загружает собственный профиль с блокировкой, вызывает `updateDetails` и `changeSubjects`, сохраняет агрегат. У преподавателя предметов минимум один; у ученика допустим пустой набор, при котором справочник не запрашивается. Результат `void`, `operationId` не нужен.
 
-`birthDate`, current/pending email, время подтверждения и `userId` обычные update-команды не меняют. Блокировка сериализует записи, но защита от stale browser form через `expectedVersion` отдельно не обещана; это решение Persistence/Presentation.
+Контактный email и `userId` обычные update-команды не меняют; для адреса есть отдельный `ChangeProfileEmailUseCase`. Блокировка сериализует записи, но защита от stale browser form через `expectedVersion` отдельно не обещана; это решение Persistence/Presentation.
 
 ### 4.3 Создание профилей
 
-`RegistrationProfileService` реализует публичные `createInitialProfiles`, `createTeacherProfile` и `createStudentProfile`. Каждая команда проверяет/резервирует `operationId`, валидирует профильные данные, пакетно проверяет предметы, требует отсутствие целевого профиля и наличие уже созданной роли через публичный Identity API, затем создаёт профиль с переданной Identity `birthDate`. Идемпотентность, профиль, запросы подтверждения и очередь Notifications фиксируются в одной внешней транзакции.
+`RegistrationProfileService` реализует публичные `createInitialProfiles`, `createTeacherProfile` и `createStudentProfile`. Каждая команда валидирует профильные данные, пакетно проверяет предметы, требует отсутствие целевого профиля и наличие уже созданной роли через публичный Identity API, затем создаёт профиль. Ключ повтора и итоговый результат сохраняет Workflows в одной транзакции с профилем.
 
-`createInitialProfiles` требует хотя бы один из двух `Optional`; при двух ролях создаёт оба профиля атомарно. Внешний `RegistrationWorkflow` создаёт Identity.User и согласует выбранные роли с данными профилей; Tutoring проверяет лишь существование соответствующих ролей. Внешний `RoleOnboardingWorkflow` сначала добавляет вторую роль через Identity и передаёт существующую `birthDate` в одну типизированную команду Tutoring. Ошибка Tutoring откатывает и создание пользователя/роли во внешнем workflow. У двух профилей одного пользователя почта и предметы независимы.
+`createInitialProfiles` требует хотя бы один из двух `Optional`; при двух ролях создаёт оба профиля атомарно. Внешний `RegistrationWorkflow` создаёт Identity.User и согласует выбранные роли с данными профилей; Tutoring проверяет лишь существование соответствующих ролей. Внешний `RoleOnboardingWorkflow` сначала добавляет вторую роль через Identity и вызывает одну типизированную команду Tutoring без даты рождения. Ошибка Tutoring откатывает и создание пользователя/роли во внешнем workflow. У двух профилей одного пользователя почта и предметы независимы.
 
-Первоначальный `contactEmail` сохраняется как current, неподтверждённый; pending отсутствует. Для каждого создаваемого профиля `InitialProfileEmailCoordinator` применяет правила раздела 5. Публичный результат содержит идентификаторы созданных профилей, но не HTTP DTO.
+Первоначальный `contactEmail` сохраняется как указанный пользователем контактный адрес без подтверждения. Публичный результат содержит идентификаторы созданных профилей, но не HTTP DTO.
 
-## 5. Profile verification
+## 5. Контактный email профиля
 
-### 5.1 Состояния и операции
+`ChangeProfileEmailUseCase` получает доверенный `actorUserId`, тип профиля и новый контактный адрес. Сервис загружает собственный профиль, проверяет формат через `ProfileEmail`, вызывает `changeContactEmail` и сразу сохраняет результат. Повтор текущего адреса не меняет состояние. Подтверждение владения, pending-адрес, токены, квота и отправка письма для профильного адреса отсутствуют.
 
-Профиль хранит current, pending и `contactEmailVerifiedAt`; `ProfileEmailVerification` — отдельный агрегат с `id`, `userId`, `profileType`, `targetEmail`, `purpose`, `tokenHash`, `createdAt`, `expiresAt`, `consumedAt?`, `invalidatedAt?` и согласованным дополнением `expiredAt?` для материализации фоновой задачей. Raw token в агрегате и таблицах Tutoring не хранится. Доменный метод `expire(now)` отмечает запрос истёкшим только при `now >= expiresAt` и отсутствии более раннего терминального состояния. Независимо от фоновой задачи `isActiveAt(now)` всегда проверяет время синхронно.
-
-Токен действует 30 минут (`expiresAt = createdAt + 30 минут`). Это отдельная конфигурация Tutoring, не TTL Identity. У заявки Notifications срок отправки не позднее `expiresAt`. Notifications уже сохраняет raw token в своей durable delivery-записи; Tutoring хранит только хеш. Конкретный URL ссылки принадлежит Presentation/Notifications.
-
-### 5.2 Первоначальный адрес
-
-После создания профиля Application получает состояние account email один раз для команды:
-
-1. Совпадающий подтверждённый account email — сразу подтвердить current без письма Tutoring.
-2. Совпадающий неподтверждённый account email — ждать событие Identity, не создавать токен и не отправлять второе письмо.
-3. Другой адрес — создать одноразовый verification и поставить письмо Tutoring в Notifications в той же транзакции.
-
-Если два профиля ждут одно подтверждение Identity, событие может подтвердить current email обоих.
-
-### 5.3 Смена, повторная проверка и токен
-
-`ChangeProfileEmailUseCase` принимает доверенный `actorUserId`, тип профиля и новый адрес. Передача текущего адреса ничего не меняет, включая существующий pending. Передача уже установленного pending также не заменяет verification и не инициирует переотправку. Другой адрес становится pending; прежний активный verification для смены адреса аннулируется. Возврат позднее к старому pending не восстанавливает старый токен.
-
-Если новый pending совпадает с подтверждённым account email — он становится current сразу, pending очищается, прежний verification для этой цели аннулируется и фиксируется время подтверждения. Если совпадает с неподтверждённым account email — остаётся pending в ожидании события Identity, без письма Tutoring. Если не совпадает — создаётся новый verification и заявка на письмо. Подтверждение текущего адреса не очищает pending.
-
-`RequestProfileEmailConfirmationUseCase` — аутентифицированная повторная проверка current либо pending адреса. Он заново читает Identity: если адрес теперь подтверждённый account email, завершает подтверждение немедленно; если тот же адрес ещё ожидает Identity, остаётся ожидание; если account email уже другой, создаёт письмо Tutoring. Пока для той же цели существует активный токен, второе письмо не создаётся; после истечения можно создать новый запрос. Этот use case покрывает ранее обсуждённое «переотправить/проверить», отдельного слепого resend нет.
-
-`ConfirmProfileEmailUseCase` получает raw token без обязательного login, хеширует его, загружает verification с блокировкой и профиль, проверяет активность, purpose и актуальность target. `INITIAL_CONFIRMATION` подтверждает только совпадающий current; `EMAIL_CHANGE` продвигает только совпадающий pending в current, очищает pending и устанавливает время подтверждения. Verification помечается consumed в той же транзакции. Неизвестный, истёкший, использованный, аннулированный или устаревший токен даёт одну внешнюю ошибку `InvalidProfileVerificationTokenException` без раскрытия состояния адреса.
-
-Новые письма Tutoring ограничены: не более пяти на `userId` за скользящие 24 часа суммарно по обоим профилям. `ProfileVerificationEmailQuota` резервирует слот атомарно в той же транзакции; ожидание Identity и немедленное подтверждение лимит не расходуют. Ошибка enqueue откатывает профиль, verification, резервирование квоты и идемпотентность. SMTP после commit выполняет Notifications и не откатывает Tutoring.
-
-### 5.4 VER-06
-
-Ежедневная фоновая задача вызывает `ExpireProfileEmailVerificationsUseCase` и пакетно материализует истёкшие неиспользованные запросы через `expire(now)`. Каждая ограниченная пачка — отдельная транзакция. Задача не меняет профильный current/pending email и не отправляет письма. Даже если задача задержалась, применение токена при `now >= expiresAt` запрещено синхронной проверкой.
+Контактный адрес может отличаться от account email Identity. Он публичен как введённые пользователем данные и не используется для входа, подтверждения личности, системных уведомлений или поиска получателя приглашения.
 
 ## 6. Invitation
 
@@ -245,38 +196,33 @@ tutoring.application
 
 `AttachPendingInvitationsService` вызывается обработчиком подтверждённого account email. Под общей email-блокировкой он пакетно загружает действующие `PENDING` на адрес с блокировкой, привязывает только записи без адресата; тот же userId — no-op, другой userId не назначается. Если после смены account email обнаружено самоприглашение, оно пропускается и остаётся `PENDING` до истечения. Ни роль, ни профиль, ни связь не создаются.
 
-Отдельного `INV-06` background use case в v1 нет. `now >= expiresAt` проверяется при чтении и каждой значимой команде; только INV-01 материализует старое истёкшее приглашение перед новым. Это не влияет на ежедневную задачу VER-06, относящуюся к профильным токенам.
+Отдельного `INV-06` background use case в v1 нет. `now >= expiresAt` проверяется при чтении и каждой значимой команде; только INV-01 материализует старое истёкшее приглашение перед новым. Задачи очистки профильных токенов нет, поскольку контактный email профиля не подтверждается.
 
 ## 7. Relationship
 
 `TutoringRelationshipQuery` реализует одиночную и пакетную проверку пары; `requireAllLinked` проверяет весь набор одним запросом и возвращает все отсутствующие ID через публичную ошибку. Создание `TeacherStudent` не является отдельным пользовательским use case: им владеет принятие приглашения.
 
-`ListTeacherStudentsUseCase` и `ListStudentTeachersUseCase` берут владельца из доверенного контекста, требуют его профиль, загружают `limit + 1` связей с keyset cursor по `createdAt DESC, otherUserId DESC`, затем одним batch-вызовом получают linked-view профилей. Результаты содержат `linkedAt`, `birthDate` и только подтверждённый профильный email. `RelationshipCursorCodec` привязывает курсор к владельцу и направлению списка. Пустая страница содержит пустой список и `nextCursor = null`. `RelationshipResultMapper` не принимает полные self-view.
+`ListTeacherStudentsUseCase` и `ListStudentTeachersUseCase` берут владельца из доверенного контекста, требуют его профиль, загружают `limit + 1` связей с keyset cursor по `createdAt DESC, otherUserId DESC`, затем одним batch-вызовом получают public-view профилей участников связей. Результаты содержат `linkedAt`, вычисленный возраст и указанный контактный email. `RelationshipCursorCodec` привязывает курсор к владельцу и направлению списка. Пустая страница содержит пустой список и `nextCursor = null`. `RelationshipResultMapper` не принимает полные self-view.
 
 `TutoringRelationshipCommands.removeTeacherStudent` является внутренней доверенной командой внешнего `UnlinkStudentWorkflow`, а не самостоятельным REST endpoint. Workflow до удаления получает guard Scheduling для пары, обрабатывает будущие уроки и незавершённые запросы, затем вызывает Tutoring в той же транзакции. Tutoring блокирует пару и удаляет только `TeacherStudent`. Повтор с тем же `operationId` возвращает сохранённый результат; новая операция на отсутствующей паре получает `TeacherStudentNotLinkedException`. Любая ошибка откатывает Scheduling, outbox и удаление. Создание нового урока для этой пары должно пользоваться совместимым guard, иначе возможна гонка после проверки.
 
 ## 8. Identity event и общая email-блокировка
 
-`IdentityAccountGateway` предоставляет `findAccountEmailState(userId)` и `findByVerifiedEmail(normalizedEmail)` через публичный Identity API. Он не возвращает `Identity.User`, пароль, роли или токены. Проверка роли при создании профиля выполняется разрешённым публичным Identity API. Техническая недоступность Identity не превращается в бизнес-ответ «не найдено».
+`IdentityAccountGateway` предоставляет `findByVerifiedEmail(normalizedEmail)`, проверку роли и пакетное получение возраста через публичный Identity API. Он не возвращает `Identity.User`, пароль, дату рождения или токены. Техническая недоступность Identity не превращается в бизнес-ответ «не найдено».
 
-Инфраструктурный listener переводит Identity event в `HandleAccountEmailVerifiedCommand(eventId, userId, verifiedEmail, verifiedAt)`. В write-транзакции `HandleAccountEmailVerifiedService` дедуплицирует `eventId`, берёт `NormalizedEmailLock`, **повторно подтверждает через Identity API**, что это текущий подтверждённый account email данного userId, затем:
+Инфраструктурный listener переводит Identity event в `HandleAccountEmailVerifiedCommand(eventId, userId, verifiedEmail, verifiedAt)`. В write-транзакции `HandleAccountEmailVerifiedService` дедуплицирует `eventId`, берёт `NormalizedEmailLock`, **повторно подтверждает через Identity API**, что это текущий подтверждённый account email данного userId, затем пакетно привязывает действующие приглашения на адрес и сохраняет приглашения с receipt события в той же транзакции.
 
-1. подтверждает совпадающий current email каждого существующего профиля и аннулирует ставший ненужным запрос подтверждения этой цели;
-2. если совпадает pending — продвигает его в current, подтверждает без письма Tutoring и аннулирует ставший ненужным запрос этой цели;
-3. пакетно привязывает действующие приглашения на этот адрес по правилам INV-07;
-4. сохраняет профили, приглашения и receipt события в той же транзакции.
-
-Устаревшее событие о прежнем account email не подтверждает профиль и не привязывает приглашения; при успешно прочитанном актуальном состоянии Identity оно фиксируется как обработанный no-op. Недоступность Identity требует retry, а не такого receipt. Точный повтор `eventId` не делает изменений. Нет профилей/приглашений — нормальный успешный результат. Роль/профиль ученика и `TeacherStudent` событие не создаёт. Все операции создания/смены профильного email, INV-01 и этот обработчик используют один протокол email-блокировки, чтобы не пропустить подтверждение при гонке.
+Устаревшее событие о прежнем account email не привязывает приглашения; при успешно прочитанном актуальном состоянии Identity оно фиксируется как обработанный no-op. Недоступность Identity требует retry, а не такого receipt. Точный повтор `eventId` не делает изменений. Отсутствие приглашений — нормальный успешный результат. Роль/профиль ученика и `TeacherStudent` событие не создаёт. Создание приглашения и этот обработчик используют один протокол email-блокировки, чтобы не пропустить привязку при гонке.
 
 ## 9. Идемпотентность и конкуренция
 
-`CommandIdempotency.beginOrReplay(operationId, userId, operationType, payloadFingerprint, resultType)` вызывается в той же транзакции до бизнес-изменений. Новый ID возвращает `Proceed`; завершённый с тем же userId, типом, нормализованным payload и resultType — `Replay` с прежним результатом; иначе — публичный `IdempotencyConflictException`. `complete(...)` фиксирует результат и `completedAt` один раз. Нельзя завершить уже завершённую операцию. Уникальный `operationId` сериализует конкурентов; после rollback первой попытки другая может выполнить команду. Fingerprint, raw payload и токены не выводятся в ошибки и логи.
+Для самостоятельных команд Tutoring `CommandIdempotency.beginOrReplay(operationId, userId, operationType, payloadFingerprint, resultType)` вызывается в той же транзакции до бизнес-изменений. Новый ID возвращает `Proceed`; завершённый с тем же userId, типом, нормализованным payload и resultType — `Replay` с прежним результатом; иначе — публичный `IdempotencyConflictException`. `complete(...)` фиксирует результат и `completedAt` один раз. Нельзя завершить уже завершённую операцию. Уникальный `operationId` сериализует конкурентов; после rollback первой попытки другая может выполнить команду. Fingerprint, raw payload и токены не выводятся в ошибки и логи.
 
 Отдельные IDEM-03/04/05 не создаются: replay, конфликт и конкурентный доступ входят в `beginOrReplay`. Для Identity event используется отдельный `ProcessedIdentityEventRepository`; отметка `eventId` коммитится вместе с эффектами. Алгоритм fingerprint, формат сохранённого результата и сроки хранения receipts — технические решения Persistence, не основание изменить поведение Application.
 
 | Операция | Ключ | Повтор |
 |---|---|---|
-| Первоначальные профили и onboarding второй роли | `operationId` | Прежний typed result без повторного создания |
+| Первоначальные профили и onboarding второй роли | `Idempotency-Key` в Workflows | Прежний итоговый ответ без повторного вызова Tutoring |
 | Создание/принятие/отклонение приглашения | `operationId` | Прежний result без повторного письма/перехода |
 | Удаление связи | `operationId` на уровне workflow и команды Tutoring | Без повторной обработки уроков или удаления |
 | Подтверждение account email из Identity | `eventId` | No-op после успешного receipt |
@@ -288,15 +234,12 @@ tutoring.application
 |---|---|
 | `SubjectRepository` | `findAll`, `exists`, пакетный `findExistingCodes` |
 | `TeacherProfileRepository` / `StudentProfileRepository` | `findByUserId`, `findByUserIdForUpdate`, `existsByUserId`, пакетные summary/linked-проекции, явные `insert` и `update` без upsert |
-| `ProfileEmailVerificationRepository` | поиск по `tokenHash`, повторное чтение `forUpdate`, активные запросы по `(userId, profileType, purpose)` с блокировкой, пакет истёкших для VER-06, явные `insert`/`update` |
 | `StudentInvitationRepository` | `findByIdForUpdate`, действующие/старые `PENDING` по teacher+email, действующие `PENDING` по email для привязки, страницы отправленных/входящих с фильтром `asOf` и для входящих `attachedAt <= asOf` до limit, явные `insert`/`update`/`updateAll` |
 | `TeacherStudentRepository` | `find`, `findForUpdate`, `exists`, пакетный `findLinkedStudentUserIds`, keyset `findByTeacher`/`findByStudent`, `insert`, `delete` |
 | `CommandOperationRepository` / `ProcessedIdentityEventRepository` | атомарный reserve/replay и receipt с уникальными ключами |
-| `IdentityAccountGateway` | состояние account email пользователя; точный поиск аккаунта по подтверждённому email |
-| `NormalizedEmailLock` | транзакционная блокировка нормализованного адреса, одинаковая для профильной почты, INV-01 и Identity event |
-| `ProfileVerificationTokenGenerator` / `Hasher` | криптографически стойкий raw token и детерминированный hash для поиска |
-| `ProfileVerificationEmailQuota` | атомарно зарезервировать одно из пяти писем в rolling 24h по userId |
-| `ProfileVerificationEmailSender` / `InvitationNotificationSender` | поставить durable заявку Notifications в той же транзакции, с dedup key и сроком отправки |
+| `IdentityAccountGateway` | точный поиск аккаунта по подтверждённому email, проверка роли и пакетное получение возраста |
+| `NormalizedEmailLock` | транзакционная блокировка нормализованного account email для приглашения и Identity event |
+| `InvitationNotificationSender` | поставить durable заявку письма приглашения в той же транзакции, с dedup key и сроком отправки |
 | `RelationshipCursorCodec` / `InvitationCursorCodec` | непрозрачный проверяемый cursor, привязанный к владельцу и виду списка |
 
 Порты возвращают доменные типы или внутренние проекции, не jOOQ records и не чужие entity. Batch-методы не выполняют `N+1`. SQL, индексы, физический тип блокировки и сериализация cursor относятся к Infrastructure. Для приглашения понадобится расширить публичный Notifications API/шаблон: текущий verification-only gateway недостаточен; это отдельная интеграционная работа следующего этапа.
@@ -307,15 +250,14 @@ tutoring.application
 |---|---|---|
 | Subject, self/summary/linked profile, списки связей и приглашений | Read-only; без `operationId` | Без скрытых записей истечения |
 | Обычное обновление профиля | Локальная write; профиль `forUpdate` | Обычные поля и предметы |
-| PROF-11/12/13 | Внешняя Registration/RoleOnboarding write, вызов Tutoring в существующей транзакции | Identity user/role, профили, verification, заявка Notifications, idempotency |
-| Смена/повторная проверка/подтверждение профильного email | Локальная write; email lock, профиль и verification, quota при письме | Профиль, запрос/токен, заявка, квота |
-| VER-06 | Write по ограниченным batch | `expiredAt` verification, без изменения профиля |
+| PROF-11/12/13 | Внешняя Registration/RoleOnboarding write, вызов Tutoring в существующей транзакции | Identity user/role, профили, журнал Workflows |
+| Смена контактного email | Локальная write; профиль `forUpdate` | Сразу сохранённый адрес без письма или подтверждения |
 | INV-01 | Локальная write; email lock, существующие приглашения | Старое истечение, новое приглашение, заявка письма, idempotency |
 | INV-04/05 | Локальная write; приглашение `forUpdate` | Ответ и, для accept, пара `TeacherStudent`, idempotency |
-| Identity email event | Локальная write; event receipt, email lock, затронутые профили и приглашения | Подтверждение/привязка и receipt |
+| Identity email event | Локальная write; event receipt, email lock и приглашения | Привязка приглашений и receipt |
 | Удаление связи | Внешняя write `UnlinkStudentWorkflow`; Scheduling guard и пара `forUpdate` | Уроки/запросы, outbox Scheduling, удаление связи, idempotency |
 
-Внешние доверенные Java-команды `TutoringRegistrationCommands` и `TutoringRelationshipCommands` требуют уже открытой транзакции (семантика `MANDATORY`). Команды с собственным пользовательским входом открывают локальную транзакцию на сервисной границе. Конкретные Spring-аннотации здесь не определяются.
+Внешние доверенные Java-команды `TutoringProfileCreationCommands` и `TutoringRelationshipCommands` требуют уже открытой транзакции (семантика `MANDATORY`). Команды с собственным пользовательским входом открывают локальную транзакцию на сервисной границе. Конкретные Spring-аннотации здесь не определяются.
 
 ## 12. Каталог ошибок и преобразование
 
@@ -330,24 +272,21 @@ Domain-исключения остаются внутренними. Application
 | Приглашение отсутствует либо чужое | Одинаковая `InvitationUnavailableException`; ownership до состояния |
 | Своё приглашение истекло или уже обработано | `InvitationResponseConflictException` с причиной `EXPIRED`/`ALREADY_RESPONDED` |
 | Новое приглашение конфликтует с действующим, связью или самоприглашением | `InvitationCreationConflictException` с машинной причиной |
-| Токен неизвестен/стар/использован/аннулирован/неактуален | Одна `InvalidProfileVerificationTokenException` |
-| Превышены 5 новых писем за 24 часа | `ProfileEmailRateLimitException` с безопасным `retryAfter` |
 | Cursor повреждён, чужой или для другого направления/фильтра | Ошибка cursor соответствующего блока, без раскрытия чужих данных |
 
-Нарушение целостности (например, связь без профиля) — не нормальный `Optional.empty()` в списке. Недоступность Identity, Notifications enqueue или БД — техническая ошибка с rollback, не бизнес-«не найдено». Известный конфликт уникальности пары преобразуется в конфликт создания связи; иные нарушения ограничений не маскируются. Raw token, полный email/payload и fingerprint не включаются в тексты ошибок и логи.
+Нарушение целостности (например, связь без профиля) — не нормальный `Optional.empty()` в списке. Недоступность Identity, Notifications enqueue или БД — техническая ошибка с rollback, не бизнес-«не найдено». Известный конфликт уникальности пары преобразуется в конфликт создания связи; иные нарушения ограничений не маскируются. Полный email/payload и fingerprint не включаются в тексты ошибок и логи.
 
 ## 13. Критерии завершения и синхронизация документов
 
-- Профили обеих ролей независимы; дата рождения хранится в каждом и раскрывается в публичном активном профиле без `TeacherStudent`.
+- Профили обеих ролей независимы и не хранят дату рождения или возраст; Identity вычисляет возраст для self/public-view, а точную дату показывает владельцу в данных аккаунта.
 - `StudentProfile` может иметь пустые предметы, `TeacherProfile` — нет; специализация не ограничивает предмет урока.
-- Self/summary/linked-view не смешиваются; batch-запросы обходятся без `N+1`.
-- Account email не изменяется при смене профильного; pending и неподтверждённый current email не раскрываются другим пользователям.
-- Токен истекает через 30 минут синхронно; VER-06 материализует истечение ежедневно; отдельного INV-06 нет.
-- Событие Identity подтверждает совпадающий current **или pending** профильный email только после актуальной проверки account email через Identity API.
+- Self/summary/public-view не смешиваются; для списка связей public-view строится после проверки отношения, batch-запросы обходятся без `N+1`.
+- Account email не изменяется при смене контактного адреса; новый профильный email публикуется сразу как данные, введённые пользователем.
+- Событие Identity привязывает приглашения к подтверждённому account email, не изменяя профильные адреса.
 - INV-04 атомарно принимает приглашение и создаёт связь; внешнее удаление сначала согласует уроки с Scheduling.
-- Raw token хранится только в Notifications delivery, Tutoring хранит hash. Письмо и бизнес-изменение ставятся в общую транзакцию; SMTP после commit не меняет результат.
+- Письмо приглашения и бизнес-изменение ставятся в общую транзакцию; SMTP после commit не меняет результат.
 - Этот этап не включает Java-код, SQL-миграции, OpenAPI или HTTP DTO.
 
-Вместе с этим документом синхронизированы прежние спецификации: в relationship заменён self-view на linked-view; в integration обновлены обработка pending и актуальная проверка события; в Domain добавлены `expiredAt`/`expire(now)` verification; Subject batch error приведён к публичной `UnknownSubjectsException`; в этапе 2 уточнён пустой batch summary; invitation дополнен INV-07/08; в profile добавлен согласованный mapper. Физическая реализация БД, точные ограничения длины полей, cursor encoding, fingerprint schema, retention и client-side optimistic version остаются следующими техническими этапами.
+Вместе с этим документом синхронизированы прежние спецификации: в relationship полное self-view заменено на публичную модель после проверки связи; событие Identity оставлено для приглашений; Subject batch error приведён к публичной `UnknownSubjectsException`; invitation дополнен INV-07/08; в profile добавлен согласованный mapper. Физическая реализация БД, точные ограничения длины полей, cursor encoding, fingerprint schema, retention и client-side optimistic version остаются следующими техническими этапами.
 
-Утверждение включает предметно-ориентированную структуру пакетов, имена новых портов и явный выбор `CURRENT`/`PENDING` для повторной проверки профильной почты. Оно не означает, что Java-код, SQL-миграции или тесты уже реализованы.
+Утверждение включает предметно-ориентированную структуру пакетов и имена новых портов. Контактная почта профиля не имеет состояния подтверждения. Документ сам по себе не означает, что Java-код, SQL-миграции или тесты реализованы.

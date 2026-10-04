@@ -11,6 +11,7 @@ import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.Instant;
+import java.time.LocalDate;
 import java.time.OffsetDateTime;
 import java.time.ZoneOffset;
 import java.util.UUID;
@@ -255,6 +256,7 @@ class EmailVerificationJooqRepositoryIntegrationTest {
                 .set(IDENTITY_USERS.PASSWORD_HASH, "stored-password-hash")
                 .set(IDENTITY_USERS.FIRST_NAME, "Anna")
                 .set(IDENTITY_USERS.LAST_NAME, "Petrova")
+                .set(IDENTITY_USERS.BIRTH_DATE, LocalDate.of(2000, 1, 1))
                 .set(IDENTITY_USERS.STATUS, "ACTIVE")
                 .set(IDENTITY_USERS.EMAIL_VERIFIED_AT, timestamp)
                 .set(IDENTITY_USERS.CREATED_AT, timestamp)

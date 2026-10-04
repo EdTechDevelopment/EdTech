@@ -8,6 +8,8 @@ import io.github.edtechdevelopment.identity.domain.user.exception.InvalidUserDat
 import io.github.edtechdevelopment.identity.domain.user.exception.InvalidUserStateException;
 
 import java.time.Instant;
+import java.time.LocalDate;
+import java.time.ZoneOffset;
 import java.util.ArrayList;
 import java.util.EnumSet;
 import java.util.HashSet;
@@ -32,6 +34,7 @@ public final class User {
     private PasswordHash passwordHash;
     private String firstName;
     private String lastName;
+    private final LocalDate birthDate;
     private final Set<UserRole> roles;
     private UserStatus status;
     private Instant emailVerifiedAt;
@@ -41,6 +44,7 @@ public final class User {
 
     private User(
             UUID id, Email email, Email pendingEmail, PasswordHash passwordHash, String firstName, String lastName,
+            LocalDate birthDate,
             Set<UserRole> roles, UserStatus status, Instant emailVerifiedAt, Instant createdAt, Instant updatedAt) {
 
         this.id = requireValue(id, "User id must not be null");
@@ -49,21 +53,25 @@ public final class User {
         this.passwordHash = requireValue(passwordHash, "Password hash must not be null");
         this.firstName = normalizeName(firstName, "First name");
         this.lastName = normalizeName(lastName, "Last name");
+        this.birthDate = requireValue(birthDate, "Birth date must not be null");
         this.roles = copyRoles(roles);
         this.status = requireValue(status, "User status must not be null");
         this.emailVerifiedAt = emailVerifiedAt;
         this.createdAt = requireValue(createdAt, "Creation time must not be null");
         this.updatedAt = requireValue(updatedAt, "Update time must not be null");
         validateTimestamps(this.createdAt, this.updatedAt, this.emailVerifiedAt);
+        if (this.birthDate.isAfter(LocalDate.ofInstant(this.createdAt, ZoneOffset.UTC))) {
+            throw new InvalidUserDataException("Birth date must not be in the future");
+        }
         this.domainEvents = new ArrayList<>();
     }
 
     public static User register(
             UUID id, Email email, PasswordHash passwordHash, String firstName,
-            String lastName, Set<UserRole> roles, Instant registeredAt) {
+            String lastName, LocalDate birthDate, Set<UserRole> roles, Instant registeredAt) {
 
         User user = new User(
-                id, email, null, passwordHash, firstName, lastName,
+                id, email, null, passwordHash, firstName, lastName, birthDate,
                 roles, UserStatus.PENDING_EMAIL_VERIFICATION, null, registeredAt, registeredAt);
 
         user.domainEvents.add(new UserRegisteredDomainEvent(user.id, user.email, registeredAt));
@@ -72,10 +80,11 @@ public final class User {
 
     public static User reconstitute(
             UUID id, Email email, Email pendingEmail, PasswordHash passwordHash, String firstName, String lastName,
+            LocalDate birthDate,
             Set<UserRole> roles, UserStatus status, Instant emailVerifiedAt, Instant createdAt, Instant updatedAt) {
 
         return new User(
-                id, email, pendingEmail, passwordHash, firstName, lastName,
+                id, email, pendingEmail, passwordHash, firstName, lastName, birthDate,
                 roles, status, emailVerifiedAt, createdAt, updatedAt);
     }
 
@@ -165,6 +174,20 @@ public final class User {
         domainEvents.add(new UserAccountUpdatedDomainEvent(id, changedFields, changedAt));
     }
 
+    public void addRole(UserRole role, Instant changedAt) {
+        requireStatus(UserStatus.ACTIVE, "Only an active user can add a role");
+        requireValue(role, "User role must not be null");
+        validateChangeTime(changedAt);
+        if (roles.contains(role)) {
+            throw new InvalidUserStateException("User already has this role");
+        }
+        if (roles.size() >= UserRole.values().length) {
+            throw new InvalidUserStateException("User already has all available roles");
+        }
+        roles.add(role);
+        updatedAt = changedAt;
+    }
+
     public UUID id() {
         return id;
     }
@@ -187,6 +210,10 @@ public final class User {
 
     public String lastName() {
         return lastName;
+    }
+
+    public LocalDate birthDate() {
+        return birthDate;
     }
 
     public Set<UserRole> roles() {
