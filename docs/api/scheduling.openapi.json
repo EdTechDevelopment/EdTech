@@ -1589,6 +1589,7 @@
           "Tutoring"
         ],
         "summary": "Публичный поиск профилей teachers",
+        "description": "Возвращает до 20 коротких карточек. Размер страницы фиксирован.",
         "security": [],
         "parameters": [
           {
@@ -1621,9 +1622,6 @@
           },
           {
             "$ref": "#/components/parameters/Cursor"
-          },
-          {
-            "$ref": "#/components/parameters/Limit"
           }
         ],
         "responses": {
@@ -1834,6 +1832,7 @@
           "Tutoring"
         ],
         "summary": "Публичный поиск профилей students",
+        "description": "Возвращает до 20 коротких карточек. Размер страницы фиксирован.",
         "security": [],
         "parameters": [
           {
@@ -1866,9 +1865,6 @@
           },
           {
             "$ref": "#/components/parameters/Cursor"
-          },
-          {
-            "$ref": "#/components/parameters/Limit"
           }
         ],
         "responses": {
@@ -2061,104 +2057,6 @@
           },
           "500": {
             "description": "Ошибка 500.",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ApiError"
-                }
-              }
-            }
-          }
-        }
-      }
-    },
-    "/tutoring/profiles/{type}/contact-email": {
-      "put": {
-        "operationId": "changeProfileContactEmail",
-        "tags": [
-          "Tutoring"
-        ],
-        "summary": "Изменить контактный email профиля",
-        "parameters": [
-          {
-            "name": "type",
-            "in": "path",
-            "required": true,
-            "schema": {
-              "type": "string",
-              "enum": [
-                "teacher",
-                "student"
-              ]
-            }
-          }
-        ],
-        "requestBody": {
-          "required": true,
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/ProfileEmailChangeRequest"
-              }
-            }
-          }
-        },
-        "responses": {
-          "204": {
-            "description": "Контактный email сохранён без подтверждения."
-          },
-          "400": {
-            "description": "Ошибка 400.",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ApiError"
-                }
-              }
-            }
-          },
-          "401": {
-            "description": "Ошибка 401.",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ApiError"
-                }
-              }
-            }
-          },
-          "403": {
-            "description": "Ошибка 403.",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ApiError"
-                }
-              }
-            }
-          },
-          "404": {
-            "description": "Ошибка 404.",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ApiError"
-                }
-              }
-            }
-          },
-          "500": {
-            "description": "Ошибка 500.",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ApiError"
-                }
-              }
-            }
-          },
-          "503": {
-            "description": "Ошибка 503.",
             "content": {
               "application/json": {
                 "schema": {
@@ -6040,12 +5938,95 @@
           "photoUrl"
         ]
       },
+      "TeacherProfileCardView": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "userId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "displayName": {
+            "type": "string"
+          },
+          "age": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "photoUrl": {
+            "type": "string",
+            "nullable": true
+          },
+          "subjectCodes": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "city": {
+            "type": "string",
+            "nullable": true
+          },
+          "descriptionPreview": {
+            "type": "string",
+            "maxLength": 200,
+            "nullable": true
+          }
+        },
+        "required": [
+          "userId",
+          "displayName",
+          "age",
+          "photoUrl",
+          "subjectCodes",
+          "city",
+          "descriptionPreview"
+        ]
+      },
+      "StudentProfileCardView": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "userId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "displayName": {
+            "type": "string"
+          },
+          "age": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "photoUrl": {
+            "type": "string",
+            "nullable": true
+          },
+          "subjectCodes": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          }
+        },
+        "required": [
+          "userId",
+          "displayName",
+          "age",
+          "photoUrl",
+          "subjectCodes"
+        ]
+      },
       "TeacherProfileUpdateRequest": {
         "type": "object",
         "additionalProperties": false,
         "properties": {
           "displayName": {
             "type": "string"
+          },
+          "contactEmail": {
+            "type": "string",
+            "format": "email"
           },
           "contactDetails": {
             "type": "array",
@@ -6084,6 +6065,7 @@
         },
         "required": [
           "displayName",
+          "contactEmail",
           "contactDetails",
           "subjectCodes"
         ]
@@ -6094,6 +6076,10 @@
         "properties": {
           "displayName": {
             "type": "string"
+          },
+          "contactEmail": {
+            "type": "string",
+            "format": "email"
           },
           "contactDetails": {
             "type": "array",
@@ -6114,6 +6100,7 @@
         },
         "required": [
           "displayName",
+          "contactEmail",
           "contactDetails",
           "subjectCodes"
         ]
@@ -6124,8 +6111,9 @@
         "properties": {
           "items": {
             "type": "array",
+            "maxItems": 20,
             "items": {
-              "$ref": "#/components/schemas/PublicTeacherProfileResponse"
+              "$ref": "#/components/schemas/TeacherProfileCardView"
             }
           },
           "nextCursor": {
@@ -6144,8 +6132,9 @@
         "properties": {
           "items": {
             "type": "array",
+            "maxItems": 20,
             "items": {
-              "$ref": "#/components/schemas/PublicStudentProfileResponse"
+              "$ref": "#/components/schemas/StudentProfileCardView"
             }
           },
           "nextCursor": {
@@ -6156,19 +6145,6 @@
         "required": [
           "items",
           "nextCursor"
-        ]
-      },
-      "ProfileEmailChangeRequest": {
-        "type": "object",
-        "additionalProperties": false,
-        "properties": {
-          "newEmail": {
-            "type": "string",
-            "format": "email"
-          }
-        },
-        "required": [
-          "newEmail"
         ]
       },
       "CreatedInvitationResponse": {

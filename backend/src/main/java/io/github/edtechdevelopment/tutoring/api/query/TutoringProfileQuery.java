@@ -1,9 +1,7 @@
 package io.github.edtechdevelopment.tutoring.api.query;
 
-import io.github.edtechdevelopment.tutoring.api.model.profile.publicview.PublicStudentProfileView;
-import io.github.edtechdevelopment.tutoring.api.model.profile.publicview.PublicTeacherProfileView;
-import io.github.edtechdevelopment.tutoring.api.model.profile.self.StudentProfileView;
-import io.github.edtechdevelopment.tutoring.api.model.profile.self.TeacherProfileView;
+import io.github.edtechdevelopment.tutoring.api.model.profile.StudentProfileView;
+import io.github.edtechdevelopment.tutoring.api.model.profile.TeacherProfileView;
 import io.github.edtechdevelopment.tutoring.api.model.profile.summary.StudentProfileSummary;
 import io.github.edtechdevelopment.tutoring.api.model.profile.summary.TeacherProfileSummary;
 
@@ -18,9 +16,9 @@ public interface TutoringProfileQuery {
 
     Optional<StudentProfileView> findStudentProfile(UUID userId);
 
-    Optional<PublicTeacherProfileView> findPublicTeacherProfile(UUID userId);
+    Optional<TeacherProfileView> findPublicTeacherProfile(UUID userId);
 
-    Optional<PublicStudentProfileView> findPublicStudentProfile(UUID userId);
+    Optional<StudentProfileView> findPublicStudentProfile(UUID userId);
 
     void requireTeacherProfile(UUID teacherUserId);
 
@@ -28,7 +26,7 @@ public interface TutoringProfileQuery {
 
     Map<UUID, StudentProfileSummary> findStudentSummaries(Set<UUID> studentUserIds);
 
-    Optional<PublicStudentProfileView> findLinkedStudentProfile(UUID teacherUserId, UUID studentUserId);
+    Optional<StudentProfileView> findLinkedStudentProfile(UUID teacherUserId, UUID studentUserId);
 
-    Optional<PublicTeacherProfileView> findLinkedTeacherProfile(UUID studentUserId, UUID teacherUserId);
+    Optional<TeacherProfileView> findLinkedTeacherProfile(UUID studentUserId, UUID teacherUserId);
 }

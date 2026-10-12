@@ -6,6 +6,7 @@ import io.github.edtechdevelopment.tutoring.domain.profile.exception.InvalidProf
 import io.github.edtechdevelopment.tutoring.domain.subject.model.SubjectCode;
 
 import java.net.URI;
+import java.time.Instant;
 import java.util.List;
 import java.util.Objects;
 import java.util.Set;
@@ -14,6 +15,7 @@ import java.util.UUID;
 public final class TeacherProfile {
 
     private final UUID userId;
+    private final Instant createdAt;
     private String displayName;
     private ProfileEmail contactEmail;
     private List<String> contactDetails;
@@ -27,9 +29,10 @@ public final class TeacherProfile {
     private TeacherProfile(
             UUID userId, String displayName, ProfileEmail contactEmail, List<String> contactDetails,
             Set<SubjectCode> subjectCodes, String description, String education, Integer experienceYears,
-            String city, URI photoUrl) {
+            String city, URI photoUrl, Instant createdAt) {
 
         this.userId = Objects.requireNonNull(userId, "User id must not be null");
+        this.createdAt = Objects.requireNonNull(createdAt, "Creation time must not be null");
         this.displayName = normalizeName(displayName);
         this.contactEmail = Objects.requireNonNull(contactEmail, "Contact email must not be null");
         this.contactDetails = List.copyOf(Objects.requireNonNull(contactDetails, "Contact details must not be null"));
@@ -44,19 +47,19 @@ public final class TeacherProfile {
     public static TeacherProfile create(
             UUID userId, String displayName, ProfileEmail contactEmail, List<String> contactDetails,
             Set<SubjectCode> subjectCodes, String description, String education, Integer experienceYears,
-            String city, URI photoUrl) {
+            String city, URI photoUrl, Instant createdAt) {
 
         return new TeacherProfile(userId, displayName, contactEmail, contactDetails, subjectCodes,
-                description, education, experienceYears, city, photoUrl);
+                description, education, experienceYears, city, photoUrl, createdAt);
     }
 
     public static TeacherProfile reconstitute(
             UUID userId, String displayName, ProfileEmail contactEmail, List<String> contactDetails,
             Set<SubjectCode> subjectCodes, String description, String education, Integer experienceYears,
-            String city, URI photoUrl) {
+            String city, URI photoUrl, Instant createdAt) {
 
         return new TeacherProfile(userId, displayName, contactEmail, contactDetails, subjectCodes,
-                description, education, experienceYears, city, photoUrl);
+                description, education, experienceYears, city, photoUrl, createdAt);
     }
 
     public void updateDetails(
@@ -91,6 +94,10 @@ public final class TeacherProfile {
 
     public UUID userId() {
         return userId;
+    }
+
+    public Instant createdAt() {
+        return createdAt;
     }
 
     public String displayName() {

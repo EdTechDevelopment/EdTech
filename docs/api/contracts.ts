@@ -79,6 +79,7 @@ export type GetSubjectsResponse = Array<SubjectResponse>;
 
 export type TeacherProfileUpdateRequest = {
   displayName: string;
+  contactEmail: string;
   contactDetails: Array<string>;
   subjectCodes: Array<string>;
   description?: string | null;
@@ -89,6 +90,7 @@ export type TeacherProfileUpdateRequest = {
 };
 export type StudentProfileUpdateRequest = {
   displayName: string;
+  contactEmail: string;
   contactDetails: Array<string>;
   subjectCodes: Array<string>;
   photoUrl?: string | null;
@@ -109,8 +111,30 @@ export type PublicTeacherProfileResponse = PublicStudentProfileResponse & {
   experienceYears: number | null;
   city: string | null;
 };
-export type PublicTeacherProfilePage = { items: Array<PublicTeacherProfileResponse>; nextCursor: string | null };
-export type PublicStudentProfilePage = { items: Array<PublicStudentProfileResponse>; nextCursor: string | null };
+export type TeacherProfileCardView = {
+  userId: string;
+  age: number;
+  displayName: string;
+  photoUrl: string | null;
+  subjectCodes: Array<string>;
+  city: string | null;
+  descriptionPreview: string | null;
+};
+export type StudentProfileCardView = {
+  userId: string;
+  age: number;
+  displayName: string;
+  photoUrl: string | null;
+  subjectCodes: Array<string>;
+};
+export type PublicProfileSearchQuery = {
+  subjectCode?: string;
+  minAge?: number;
+  maxAge?: number;
+  cursor?: string;
+};
+export type PublicTeacherProfilePage = { items: Array<TeacherProfileCardView>; nextCursor: string | null };
+export type PublicStudentProfilePage = { items: Array<StudentProfileCardView>; nextCursor: string | null };
 
 export type TeacherProfileResponse = PublicTeacherProfileResponse;
 export type StudentProfileResponse = PublicStudentProfileResponse;
@@ -119,8 +143,6 @@ export type MeResponse = {
   teacherProfile: TeacherProfileResponse | null;
   studentProfile: StudentProfileResponse | null;
 };
-
-export type ProfileEmailChangeRequest = { newEmail: string };
 
 export type InvitationStatus = "PENDING" | "ACCEPTED" | "REJECTED" | "EXPIRED";
 export type CreateStudentInvitationRequest = { studentEmail: string };

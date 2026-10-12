@@ -7,6 +7,7 @@ import io.github.edtechdevelopment.tutoring.domain.profile.exception.InvalidProf
 import io.github.edtechdevelopment.tutoring.domain.subject.model.SubjectCode;
 import org.junit.jupiter.api.Test;
 
+import java.time.Instant;
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
@@ -21,6 +22,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 class ProfileTest {
 
     private static final SubjectCode MATH = new SubjectCode("MATH");
+    private static final Instant CREATED_AT = Instant.parse("2026-01-01T00:00:00Z");
 
     @Test
     void teacherRequiresSubjectsButStudentMayClearThem() {
@@ -40,12 +42,13 @@ class ProfileTest {
         List<String> contacts = new ArrayList<>(List.of("telegram"));
         Set<SubjectCode> subjects = new HashSet<>(Set.of(MATH));
         TeacherProfile teacher = TeacherProfile.create(UUID.randomUUID(), " Teacher ", new ProfileEmail("a@example.com"),
-                contacts, subjects, null, null, null, null, null);
+                contacts, subjects, null, null, null, null, null, CREATED_AT);
 
         contacts.add("phone");
         subjects.clear();
 
         assertEquals("Teacher", teacher.displayName());
+        assertEquals(CREATED_AT, teacher.createdAt());
         assertEquals(List.of("telegram"), teacher.contactDetails());
         assertEquals(Set.of(MATH), teacher.subjectCodes());
         assertThrows(UnsupportedOperationException.class, () -> teacher.contactDetails().add("other"));
@@ -76,11 +79,11 @@ class ProfileTest {
 
     private static TeacherProfile teacher(Set<SubjectCode> subjects) {
         return TeacherProfile.create(UUID.randomUUID(), "Teacher", new ProfileEmail("teacher@example.com"),
-                List.of(), subjects, null, null, null, null, null);
+                List.of(), subjects, null, null, null, null, null, CREATED_AT);
     }
 
     private static StudentProfile student(Set<SubjectCode> subjects) {
         return StudentProfile.create(UUID.randomUUID(), "Student", new ProfileEmail("student@example.com"),
-                List.of(), subjects, null);
+                List.of(), subjects, null, CREATED_AT);
     }
 }

@@ -6,7 +6,7 @@
 
 ### Текущий статус реализации
 
-На 2026-10-07 в backend добавлены публичные Java-контракты и чистая доменная модель Tutoring с локальными тестами. Application, Infrastructure, HTTP-контроллеры и Flyway-таблицы модуля ещё не созданы. Identity и Notifications имеют собственный MVP-код, но не все публичные контракты, необходимые этой архитектуре. До реализации межмодульных workflows текущий account-only вход регистрации не является окончательной регистрацией с учебными профилями.
+На 2026-10-09 в backend добавлены публичные Java-контракты, чистая доменная модель и Application для справочника, создания, обновления, чтения и поиска профилей Tutoring с точечными тестами. Остальные сценарии Application, Infrastructure, HTTP-контроллеры и Flyway-таблицы модуля ещё предстоит написать. Identity и Notifications имеют собственный MVP-код, но не все публичные контракты, необходимые этой архитектуре. До реализации межмодульных workflows текущий account-only вход регистрации не является окончательной регистрацией с учебными профилями.
 
 
 ## 2. Источники истины и канонические решения
@@ -25,6 +25,8 @@
 | Публичный `tutoring.api` для других модулей | Импорт чужим модулем внутреннего Domain/Application/Persistence Tutoring |
 
 TeacherProfile обязан иметь минимум один предмет. StudentProfile может иметь пустой набор. Оба профиля одного пользователя независимы: их имя, предметы и контактная почта могут различаться. Контактный адрес проверяется только на формат и не считается подтверждённым.
+
+В форме выбора предметов человек видит уникальные названия без кодов. Клиент получает из справочника пару `{subjectCode,name}` и отправляет выбранные `subjectCodes` при создании или изменении профиля. Код служит стабильным идентификатором предмета; уникальность названий без учёта регистра защищает хранилище.
 
 ## 3. Ответственность и границы
 
@@ -83,7 +85,7 @@ Scheduling/Workflows    -X-> внутренние пакеты или табли
 tutoring               -X-> scheduling.* и внутренние пакеты Identity/Notifications
 ```
 
-Публичные команды `TutoringProfileCreationCommands` и `TutoringRelationshipCommands` доступны только утверждённым workflows; self-view — только `MeQueryFacade`. Это закрепляется архитектурными тестами. Пользовательские сервисы получают `actorUserId` от доверенной границы, не из тела HTTP-запроса.
+Публичные команды `TutoringProfileCreationCommands` и `TutoringRelationshipCommands` доступны только утверждённым workflows; собственный профиль получает только `MeQueryFacade` для доверенного principal. Тот же формат `TeacherProfileView`/`StudentProfileView` используется публичными и linked-query после их собственных проверок. Это закрепляется архитектурными тестами. Пользовательские сервисы получают `actorUserId` от доверенной границы, не из тела HTTP-запроса.
 
 ## 5. Итоговая структура пакетов
 
@@ -95,7 +97,7 @@ tutoring
 │   ├── query                         Profile, Subject, Relationship
 │   ├── command.profile               создание профилей из Workflows
 │   ├── command.relationship          удаление связи из Workflows
-│   ├── model.profile                 input, self, publicview, summary
+│   ├── model.profile                 views, input, summary
 │   └── exception                     публичные ошибки
 ├── presentation                      subject, profile, invitation, relationship, error
 ├── application                       subject, profile, invitation, relationship,
@@ -116,15 +118,15 @@ tutoring
 public interface TutoringProfileQuery {
     Optional<TeacherProfileView> findTeacherProfile(UUID userId);
     Optional<StudentProfileView> findStudentProfile(UUID userId);
-    Optional<PublicTeacherProfileView> findPublicTeacherProfile(UUID userId);
-    Optional<PublicStudentProfileView> findPublicStudentProfile(UUID userId);
+    Optional<TeacherProfileView> findPublicTeacherProfile(UUID userId);
+    Optional<StudentProfileView> findPublicStudentProfile(UUID userId);
     void requireTeacherProfile(UUID teacherUserId);
     Map<UUID, TeacherProfileSummary> findTeacherSummaries(Set<UUID> ids);
     Map<UUID, StudentProfileSummary> findStudentSummaries(Set<UUID> ids);
-    Optional<PublicStudentProfileView> findLinkedStudentProfile(
+    Optional<StudentProfileView> findLinkedStudentProfile(
         UUID teacherUserId, UUID studentUserId
     );
-    Optional<PublicTeacherProfileView> findLinkedTeacherProfile(
+    Optional<TeacherProfileView> findLinkedTeacherProfile(
         UUID studentUserId, UUID teacherUserId
     );
 }
@@ -141,9 +143,9 @@ public interface TutoringRelationshipQuery {
 }
 ```
 
-`findTeacherProfile`/`findStudentProfile` выдают полные self-view только `MeQueryFacade`. Публичные `findPublicTeacherProfile`/`findPublicStudentProfile` и поиск профилей доступны без связи и без login, но только для профилей активных пользователей Identity. Self и public-view содержат вычисленный Identity возраст, `displayName`, `contactDetails`, выбранные `subjectCodes`, фото, контактный email и соответствующие поля преподавателя; точную дату рождения не содержат. Контактный адрес указан пользователем и не подтверждает владение им. Summary содержит лишь `userId` и `displayName`; пустой batch summary возвращает пустую карту без SQL. `requireAllExist` и `requireAllLinked` проверяют наборы одним запросом и возвращают все отсутствующие коды/ID. Предмет урока проверяется по справочнику, не по специализации преподавателя; выбранные предметы пользователя читаются из его профиля.
+`findTeacherProfile`/`findStudentProfile` для владельца вызываются через `MeQueryFacade`. Подробный публичный профиль и linked-чтение доступны только для профилей активных пользователей Identity и возвращают общие `TeacherProfileView`/`StudentProfileView`: вычисленный возраст, `displayName`, `contactDetails`, выбранные `subjectCodes`, фото, контактный email и остальные поля профиля, но не точную дату рождения. Поиск также доступен без связи и входа, но возвращает короткие `TeacherProfileCardView`/`StudentProfileCardView`; размер страницы фиксирован в 20. Карточка содержит только данные, полезные для выбора результата; полный профиль запрашивается отдельно по `userId`. Контактный адрес указан пользователем и не подтверждает владение им. Summary содержит лишь `userId` и `displayName`; пустой batch summary возвращает пустую карту без SQL. `requireAllExist` и `requireAllLinked` проверяют наборы одним запросом и возвращают все отсутствующие коды/ID. Предмет урока проверяется по справочнику, не по специализации преподавателя; выбранные предметы пользователя читаются из его профиля.
 
-Linked lookup сперва проверяет `TeacherStudent`: отсутствие связи даёт `Optional.empty()` для операции, требующей отношения, но не запрещает отдельное публичное чтение профиля. Есть связь, но нет профиля — ошибка целостности. Linked-метод использует те же публичные профильные данные, включая возраст и указанный контактный email.
+Linked lookup сперва проверяет `TeacherStudent`: отсутствие связи даёт `Optional.empty()` для операции, требующей отношения, но не запрещает отдельное публичное чтение профиля. Есть связь, но нет профиля — ошибка целостности. Неактивный целевой аккаунт также даёт `Optional.empty()`; связь при этом сохраняется. Linked-метод использует те же публичные профильные данные, включая возраст и указанный контактный email.
 
 ### 6.2 Доверенные command API
 
@@ -208,7 +210,6 @@ Presentation переводит HTTP DTO в Application commands/queries и по
 | `GET /profiles/teachers/{userId}`, `GET /profiles/students/{userId}` | Публично | `200` публичный профиль активного пользователя; `404`, если недоступен |
 | `PUT /profiles/teacher` | Аутентифицированный владелец TeacherProfile | `204`, полная замена обычных полей |
 | `PUT /profiles/student` | Аутентифицированный владелец StudentProfile | `204`, пустые subjectCodes допустимы |
-| `PUT /profiles/{type}/contact-email` | Владелец профиля | `204`, новый адрес сохраняется после проверки формата |
 | `POST /invitations` | Активный TEACHER с TeacherProfile | `201` `{invitationId,expiresAt}` |
 | `GET /invitations/sent` | Владелец TeacherProfile | `200` cursor-страница |
 | `GET /invitations/incoming` | Привязанный аутентифицированный пользователь | `200` cursor-страница |
@@ -217,15 +218,15 @@ Presentation переводит HTTP DTO в Application commands/queries и по
 | `GET /relationships/students` | Владелец TeacherProfile | `200` linked-список |
 | `GET /relationships/teachers` | Владелец StudentProfile | `200` linked-список |
 
-Публичный поиск принимает необязательные `subjectCode`, `minAge`, `maxAge`, `cursor`, `limit`; возраст вычисляет Identity из своей даты рождения на дату запроса по UTC; Tutoring не хранит его. Список содержит только активные профили Identity, сортируется по `createdAt DESC, userId DESC`, имеет формат `{items,nextCursor}` и предел 1…100 (по умолчанию 50). Курсор подписан и привязан к виду профиля, фильтрам и дате расчёта возраста. Предметный фильтр сверяет выбранные предметы именно в профиле; справочник нужен для выбора и проверки допустимости кода. Нельзя показывать ожидающий подтверждения, приостановленный или деактивированный аккаунт. Для страниц нужен пакетный Identity API получения возраста и проверки активности, чтобы избежать отдельного запроса на каждого пользователя и пустых страниц после фильтрации.
+Публичный поиск принимает необязательные `subjectCode`, `minAge`, `maxAge` и `cursor`; размер страницы задаёт сервер и он равен 20. Возраст вычисляет Identity из своей даты рождения на дату запроса по UTC; Tutoring не хранит его. Список содержит только активные профили Identity, сортируется по `createdAt DESC, userId DESC` и имеет формат `{items,nextCursor}`. Курсор подписан и привязан к виду профиля, фильтрам и дате расчёта возраста. Дата создания неизменна и хранится в доменной модели профиля; поиск читает лёгких кандидатов с `userId` и `createdAt`, а затем загружает полные доменные модели только для карточек текущей страницы и преобразует их в сокращённый ответ. Предметный фильтр сверяет выбранные предметы именно в профиле; справочник нужен для выбора и проверки допустимости кода. Нельзя показывать ожидающий подтверждения, приостановленный или деактивированный аккаунт. Для страниц используется пакетный Identity API получения возраста и проверки активности, чтобы избежать отдельного запроса на каждого пользователя и пустых страниц после фильтрации.
 
 `POST /invitations` и оба ответа требуют заголовок `Idempotency-Key: UUID`. Отсутствующий/некорректный ключ — `400`. Запросы не принимают `actorUserId` или клиентский email при ответе. Получение входящих и отказ доступны до student-onboarding; принятие — после появления StudentProfile. Изменяющего `GET` для принятия приглашения нет.
 
 ### 7.2 DTO и ответы
 
-Teacher PUT содержит `displayName`, `contactDetails`, непустой `subjectCodes`, nullable `description`, `education`, `experienceYears`, `city`, `photoUrl`. Student PUT содержит общие `displayName`/`contactDetails`/`subjectCodes` и nullable `photoUrl`; пустые subjectCodes разрешены. Коллекции не могут быть `null`. Необязательное поле, опущенное в полном PUT или переданное как `null`, очищается. контактный email меняется отдельным PUT, а даты рождения в профиле нет.
+Teacher PUT содержит `displayName`, обязательный `contactEmail`, `contactDetails`, непустой `subjectCodes`, nullable `description`, `education`, `experienceYears`, `city`, `photoUrl`. Student PUT содержит общие `displayName`/`contactEmail`/`contactDetails`/`subjectCodes` и nullable `photoUrl`; пустые subjectCodes разрешены. Коллекции не могут быть `null`. Необязательное поле, опущенное в полном PUT или переданное как `null`, очищается. Контактный email сохраняется вместе с остальными полями после проверки формата; даты рождения в профиле нет.
 
-Email-change DTO содержит только `newEmail`. Успешное изменение сразу возвращает `204`; писем, токенов и состояния ожидания у контактного адреса нет.
+Успешное обновление профиля возвращает `204`; писем, токенов и состояния ожидания у контактного адреса нет. Отдельной операции изменения контактной почты нет.
 
 Списки приглашений принимают status-фильтр, cursor и limit (по умолчанию 50, диапазон 1…100), возвращают `{items,nextCursor}` без общего total. Отправленный элемент содержит адрес цели, эффективный статус и даты, но не `studentUserId` и не факт регистрации. Входящий элемент содержит имя преподавателя из batch summary. Списки связей возвращают `linkedAt`, публичные данные связанных профилей и cursor. Связь требуется для самих списков и операций с уроками, но не для публичного просмотра профиля.
 
@@ -239,7 +240,7 @@ Email-change DTO содержит только `newEmail`. Успешное из
 
 Application координирует сценарии профилей, предметов, приглашений и связей. Внутренние use cases обслуживают HTTP; доверенные TutoringProfileCreationCommands и TutoringRelationshipCommands реализуются сервисами Application без дублирующего port.in. Через output ports сервисы сохраняют собственные агрегаты и обращаются к публичным API Identity и Notifications.
 
-Identity отвечает за точную дату рождения. Для self/public-view и поиска Tutoring запрашивает возраст через пакетный IdentityQuery.findAgesByIds(userIds, asOf); публичное чтение отдельно проверяет ACTIVE-статус. Профильные таблицы не содержат дату рождения или возраст. Поиск читает кандидатов по предмету и порядку createdAt/userId, пакетно проверяет возраст и активность, затем добирает страницу до limit + 1. Дата расчёта возраста UTC закрепляется в курсоре.
+Identity отвечает за точную дату рождения. Для чтения профиля и поиска Tutoring запрашивает возраст через пакетный IdentityQuery.findAgesByIds(userIds, asOf); публичное чтение отдельно проверяет ACTIVE-статус. Профильные таблицы не содержат дату рождения или возраст, но хранят `created_at`, который восстанавливается в неизменяемое поле доменной модели профиля. Поиск читает кандидатов по предмету и порядку createdAt/userId, пакетно проверяет возраст и активность и возвращает до 20 коротких карточек. Поиск проверяет до 21 подходящего результата: дополнительный результат нужен для точного `nextCursor`. Курсор остаётся на последней показанной карточке, поэтому следующий запрос повторно просматривает lookahead-кандидата, а при фильтрации — возможно, и некоторые отсеянные строки после границы страницы. Это намеренное допущение MVP; хранить результат lookahead между запросами не требуется. Пользователь не выбирает размер страницы. Дата расчёта возраста UTC закрепляется в курсоре.
 
 Обновление обычных полей полностью заменяет их, проверяет предметы пакетно и блокирует строку профиля. Контактный email меняется отдельным use case и сразу сохраняется после проверки формата. При создании профилей Workflows открывает общую транзакцию с Identity; Tutoring проверяет существование соответствующих ролей и не получает дату рождения. Приглашения, отношения, идемпотентность и обработка Identity-события описаны подробно в TUTORING_STAGE_4_APPLICATION.md.
 
@@ -301,7 +302,7 @@ RegistrationWorkflow и RoleOnboardingWorkflow создают аккаунт/р�
 
 ## 17. Проверки и порядок реализации
 
-Архитектурные тесты должны подтверждать, что другие модули используют только tutoring.api, Domain не зависит от Spring/HTTP/SQL, Infrastructure не читает чужие таблицы, а self-view выдаётся только владельцу через MeQueryFacade. При реализации требуются проверки общей транзакции Workflows, профилей, поиска по возрасту без N+1, приглашений, связи и идемпотентности. Сейчас реализованы публичные Java-контракты и Domain Tutoring; остальные проверки относятся к будущим слоям.
+Архитектурные тесты должны подтверждать, что другие модули используют только tutoring.api, Domain не зависит от Spring/HTTP/SQL, Infrastructure не читает чужие таблицы, а собственный профиль доступен владельцу только через MeQueryFacade. Точечные тесты Application уже проверяют создание, редактирование и чтение профилей, групповые запросы, фильтрацию поиска и продолжение страницы без пропусков. Проверки реальной общей транзакции Workflows, SQL, подписи курсоров, приглашений, связей и идемпотентности относятся к будущим слоям.
 
 ## 18. Связанные материалы
 

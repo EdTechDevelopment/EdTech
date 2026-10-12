@@ -98,6 +98,17 @@ public final class StudentInvitation {
         return status == InvitationStatus.PENDING && isExpiredAt(now) ? InvitationStatus.EXPIRED : status;
     }
 
+    public InvitationStatus statusAt(Instant asOf) {
+        Objects.requireNonNull(asOf, "Status date must not be null");
+        if (asOf.isBefore(createdAt)) {
+            throw new InvalidInvitationStateException(id, status, "read status before creation");
+        }
+        if (respondedAt != null && !respondedAt.isAfter(asOf)) {
+            return status;
+        }
+        return !asOf.isBefore(expiresAt) ? InvitationStatus.EXPIRED : InvitationStatus.PENDING;
+    }
+
     public boolean expire(Instant now) {
         Objects.requireNonNull(now, "Current time must not be null");
         if (status != InvitationStatus.PENDING || !isExpiredAt(now)) {

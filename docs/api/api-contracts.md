@@ -17,7 +17,7 @@
 - Запросы с Bearer access token не используют отдельный CSRF-токен. Защита refresh-cookie endpoint'ов обеспечивается согласованными `SameSite`, CORS и проверкой Origin на сервере.
 - Время: RFC 3339 с offset, ответы в UTC.
 - Деньги: decimal-строка в RUB, например `"1500.00"`.
-- Пагинация: `cursor + limit`, по умолчанию 50, максимум 100.
+- Пагинация для endpoint-ов со свободным размером страницы: `cursor + limit`, по умолчанию 50, максимум 100. Публичный поиск профилей возвращает фиксированные 20 карточек и принимает только `cursor`.
 - Ошибка: `{code, message, fieldErrors, requestId}`.
 
 ## Endpoint'ы
@@ -35,7 +35,6 @@ Base URL: `/api/v1`. Ниже целевой составной API; сущес�
 | `GET` | `/tutoring/profiles/teachers`, `/tutoring/profiles/students` | Публичный поиск активных профилей |
 | `GET` | `/tutoring/profiles/teachers/{userId}`, `/tutoring/profiles/students/{userId}` | Публичная карточка активного профиля |
 | `PUT` | `/tutoring/profiles/teacher`, `/tutoring/profiles/student` | Полностью обновить свой существующий профиль |
-| `PUT` | `/tutoring/profiles/{type}/contact-email` | Сразу изменить контактный адрес профиля |
 | `POST` | `/tutoring/invitations` | Пригласить по email; `Idempotency-Key` |
 | `GET` | `/tutoring/invitations/sent`, `/tutoring/invitations/incoming` | Свои отправленные/входящие приглашения |
 | `POST` | `/tutoring/invitations/{invitationId}/accept`, `/reject` | Ответить на приглашение; `Idempotency-Key` |
@@ -54,7 +53,7 @@ Base URL: `/api/v1`. Ниже целевой составной API; сущес�
 - Публичность профиля не раскрывает чужие связи, уроки или статистику. Отвязка обрабатывает будущие уроки Scheduling до удаления связи Tutoring.
 - Изменяющие межмодульные запросы и операции приглашения принимают стабильный `Idempotency-Key: UUID`; совпавший ключ с другим содержимым даёт `409`.
 - Пароль принимается только в регистрации/login, 8–72 символа ASCII `!`…`~` без пробелов. Refresh token остаётся в HttpOnly cookie; access JWT в ответе после подтверждения account email/login.
-- Ответ ошибки: `{code,message,fieldErrors,requestId}`. Время — RFC 3339 UTC, дата рождения — `YYYY-MM-DD`. Страницы — `cursor + limit` (50 по умолчанию, 1…100).
+- Ответ ошибки: `{code,message,fieldErrors,requestId}`. Время — RFC 3339 UTC, дата рождения — `YYYY-MM-DD`. Для страниц с `limit` действует диапазон 1…100 и значение по умолчанию 50; поиск профилей возвращает фиксированные 20 карточек.
 
 ## Публичные схемы
 
@@ -64,11 +63,11 @@ Base URL: `/api/v1`. Ниже целевой составной API; сущес�
 | `UserResponse` | account-поля Identity, включая `birthDate`, роли и статус |
 | `MeResponse` | `user`, nullable `teacherProfile`, nullable `studentProfile`; роль без профиля — ошибка целостности |
 | `TeacherProfileInput` / `StudentProfileInput` | `displayName`, `contactEmail`, `contactDetails`, `subjectCodes`, допустимые поля преподавателя/фото; без `birthDateVisibility` |
-| `TeacherProfileUpdateRequest` / `StudentProfileUpdateRequest` | обычные поля; `contactEmail` меняется отдельным запросом, даты рождения в профиле нет |
+| `TeacherProfileUpdateRequest` / `StudentProfileUpdateRequest` | обычные поля и обязательный `contactEmail`; даты рождения в профиле нет |
 | `PublicTeacherProfileResponse` / `PublicStudentProfileResponse` | `userId`, `age`, `displayName`, `contactDetails`, предметы, указанный `contactEmail`, фото и обычные поля роли |
-| `PublicTeacherProfilePage` / `PublicStudentProfilePage` | `{items,nextCursor}` |
+| `TeacherProfileCardView` / `StudentProfileCardView` | Короткие элементы поиска; не содержат контакты или подробные поля профиля |
+| `PublicTeacherProfilePage` / `PublicStudentProfilePage` | `{items,nextCursor}`, до 20 поисковых карточек |
 | `SubjectResponse` | `{subjectCode,name}`; `GET /tutoring/subjects` возвращает массив |
-| `ProfileEmailChangeRequest` | `{newEmail}` |
 | `SentInvitation` / `IncomingInvitation` | Отправленная запись не содержит recipient ID; входящая содержит краткое имя преподавателя |
 | `InvitationDecisionResult` | `{invitationId,status}` после accept/reject |
 | `LinkedStudentItem` / `LinkedTeacherItem` | `linkedAt` и публичные поля профиля; доступен только участникам связи |
@@ -130,7 +129,7 @@ Refresh token отсутствует в JSON и доступен frontend тол
 
 ### Профили
 
-`MeResponse.user` содержит данные аккаунта Identity. `teacherProfile` и `studentProfile` содержат self-view Tutoring без вложенного `user`; `null` допустим лишь при отсутствии соответствующей роли. Публичные карточки отличаются от self-view: в них нет pending email и неподтверждённого current email, зато дата рождения, обычные сведения и `contactDetails` доступны любому посетителю для ACTIVE профиля.
+`MeResponse.user` содержит данные аккаунта Identity, включая точную дату рождения, текущую и ожидающую подтверждения почту аккаунта. `teacherProfile` и `studentProfile` содержат self-view Tutoring без вложенного `user`; `null` допустим лишь при отсутствии соответствующей роли. Self и public-карточки профилей показывают вычисленный возраст, обычные сведения, указанный `contactEmail` и `contactDetails`; точной даты рождения и почты аккаунта в них нет. Публичная карточка доступна любому посетителю для ACTIVE профиля.
 
 ## Операции
 
@@ -320,15 +319,17 @@ cookie, и удаляет cookie. Отсутствующая, неизвестн
 
 `GET /api/v1/tutoring/subjects` доступен без login и отвечает `200` массивом `{subjectCode,name}`. Пустой справочник — внутренняя ошибка. Это список допустимых кодов, а не выбранные предметы конкретного человека.
 
-`GET /api/v1/tutoring/profiles/teachers` и `/students` доступны без login. Фильтры: `subjectCode`, `minAge`, `maxAge`, `cursor`, `limit`. Identity пакетно вычисляет возраст на дату запроса UTC; ответ `200 {items,nextCursor}` с ACTIVE профилями, сортировка `createdAt DESC,userId DESC`. Неверный фильтр/курсор — `400`. Фильтр предмета проверяет предметы, выбранные в самом профиле.
+`GET /api/v1/tutoring/profiles/teachers` и `/students` доступны без login. Фильтры: `subjectCode`, `minAge`, `maxAge`, `cursor`. Размер страницы фиксирован — до 20 карточек; клиент не отправляет `limit`. Identity пакетно вычисляет возраст на дату запроса UTC; ответ `200 {items,nextCursor}` содержит ACTIVE профили в порядке `createdAt DESC,userId DESC`. Неверный фильтр/курсор — `400`. Фильтр предмета проверяет предметы, выбранные в самом профиле.
 
-`GET /api/v1/tutoring/profiles/teachers/{userId}` и `/students/{userId}` возвращают публичный профиль активного пользователя или `404`. Связь и login не требуются. В ответе есть возраст, `contactDetails`, выбранные предметы и указанный контактный email.
+Карточка репетитора содержит `userId`, возраст, имя, фото, выбранные предметы, город и короткий фрагмент описания до 200 символов. Карточка ученика содержит `userId`, возраст, имя, фото и выбранные предметы. Клиент показывает названия предметов из каталога. `userId` используется для открытия полного профиля отдельным запросом.
+
+`GET /api/v1/tutoring/profiles/teachers/{userId}` и `/students/{userId}` возвращают полный публичный профиль активного пользователя или `404`. Связь и login не требуются. В ответе есть возраст, `contactDetails`, выбранные предметы и указанный контактный email.
 
 ### Обновление профиля и почты
 
-`PUT /api/v1/tutoring/profiles/teacher` и `/student` требуют владельца, полностью заменяют обычные поля и отвечают `204`. Они не создают профиль и не меняют `contactEmail` или дату рождения; отсутствие собственного профиля — `404`. Для Teacher `subjectCodes` непустой, для Student может быть пустым.
+`PUT /api/v1/tutoring/profiles/teacher` и `/student` требуют владельца, полностью заменяют обычные поля вместе с обязательным `contactEmail` и отвечают `204`. Они не создают профиль и не меняют дату рождения; отсутствие собственного профиля — `404`. Для Teacher `subjectCodes` непустой, для Student может быть пустым.
 
-`PUT /api/v1/tutoring/profiles/{type}/contact-email` принимает `{newEmail}`, проверяет формат и сразу сохраняет новый контактный адрес. Ответ `204`; письмо для подтверждения профильного адреса не отправляется. Account email не изменяется.
+Контактный адрес проверяется по формату и сохраняется в том же запросе обновления профиля. Письмо для подтверждения профильного адреса не отправляется. Account email не изменяется.
 
 ### Приглашения и связи
 

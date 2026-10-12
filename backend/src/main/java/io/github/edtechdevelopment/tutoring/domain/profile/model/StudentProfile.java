@@ -4,6 +4,7 @@ import io.github.edtechdevelopment.tutoring.domain.profile.exception.InvalidProf
 import io.github.edtechdevelopment.tutoring.domain.subject.model.SubjectCode;
 
 import java.net.URI;
+import java.time.Instant;
 import java.util.List;
 import java.util.Objects;
 import java.util.Set;
@@ -12,6 +13,7 @@ import java.util.UUID;
 public final class StudentProfile {
 
     private final UUID userId;
+    private final Instant createdAt;
     private String displayName;
     private ProfileEmail contactEmail;
     private List<String> contactDetails;
@@ -20,9 +22,10 @@ public final class StudentProfile {
 
     private StudentProfile(
             UUID userId, String displayName, ProfileEmail contactEmail, List<String> contactDetails,
-            Set<SubjectCode> subjectCodes, URI photoUrl) {
+            Set<SubjectCode> subjectCodes, URI photoUrl, Instant createdAt) {
 
         this.userId = Objects.requireNonNull(userId, "User id must not be null");
+        this.createdAt = Objects.requireNonNull(createdAt, "Creation time must not be null");
         this.displayName = normalizeName(displayName);
         this.contactEmail = Objects.requireNonNull(contactEmail, "Contact email must not be null");
         this.contactDetails = List.copyOf(Objects.requireNonNull(contactDetails, "Contact details must not be null"));
@@ -32,16 +35,16 @@ public final class StudentProfile {
 
     public static StudentProfile create(
             UUID userId, String displayName, ProfileEmail contactEmail, List<String> contactDetails,
-            Set<SubjectCode> subjectCodes, URI photoUrl) {
+            Set<SubjectCode> subjectCodes, URI photoUrl, Instant createdAt) {
 
-        return new StudentProfile(userId, displayName, contactEmail, contactDetails, subjectCodes, photoUrl);
+        return new StudentProfile(userId, displayName, contactEmail, contactDetails, subjectCodes, photoUrl, createdAt);
     }
 
     public static StudentProfile reconstitute(
             UUID userId, String displayName, ProfileEmail contactEmail, List<String> contactDetails,
-            Set<SubjectCode> subjectCodes, URI photoUrl) {
+            Set<SubjectCode> subjectCodes, URI photoUrl, Instant createdAt) {
 
-        return new StudentProfile(userId, displayName, contactEmail, contactDetails, subjectCodes, photoUrl);
+        return new StudentProfile(userId, displayName, contactEmail, contactDetails, subjectCodes, photoUrl, createdAt);
     }
 
     public void updateDetails(String displayName, List<String> contactDetails, URI photoUrl) {
@@ -68,6 +71,10 @@ public final class StudentProfile {
 
     public UUID userId() {
         return userId;
+    }
+
+    public Instant createdAt() {
+        return createdAt;
     }
 
     public String displayName() {

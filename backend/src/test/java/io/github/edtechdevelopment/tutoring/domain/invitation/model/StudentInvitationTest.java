@@ -84,6 +84,28 @@ class StudentInvitationTest {
     }
 
     @Test
+    void statusAtReturnsStatusAsItWasAtRequestedTime() {
+        UUID studentId = UUID.randomUUID();
+        StudentInvitation invitation = invitation(UUID.randomUUID(), studentId);
+        Instant respondedAt = START.plusSeconds(60);
+        Instant deadline = invitation.expiresAt();
+
+        invitation.accept(studentId, respondedAt);
+
+        assertEquals(InvitationStatus.PENDING, invitation.statusAt(respondedAt.minusSeconds(1)));
+        assertEquals(InvitationStatus.ACCEPTED, invitation.statusAt(respondedAt));
+        assertEquals(InvitationStatus.ACCEPTED, invitation.statusAt(deadline));
+    }
+
+    @Test
+    void statusAtReportsPendingInvitationAsExpiredAfterDeadline() {
+        StudentInvitation invitation = invitation(UUID.randomUUID(), null);
+
+        assertEquals(InvitationStatus.PENDING, invitation.statusAt(invitation.expiresAt().minusNanos(1)));
+        assertEquals(InvitationStatus.EXPIRED, invitation.statusAt(invitation.expiresAt()));
+    }
+
+    @Test
     void rejectsResponseBeforeAttachment() {
         UUID studentId = UUID.randomUUID();
         StudentInvitation invitation = invitation(UUID.randomUUID(), null);
