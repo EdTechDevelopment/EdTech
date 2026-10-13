@@ -1,12 +1,8 @@
 # API-контракты v1.2.0
 
-Текстовое описание целевого API Identity, Tutoring, Workflows и Scheduling. Машиночитаемая форма тех же контрактов: `scheduling.openapi.json`.
+Текстовое описание целевого API Identity, Tutoring, Workflows и Scheduling. Машиночитаемый целевой составной контракт: scheduling.openapi.json. Реализованный HTTP Tutoring: [tutoring.openapi.json](tutoring.openapi.json); для этих маршрутов точные DTO и статусы берутся из отдельной спецификации.
 
-Текущий backend реализует Identity как частичный MVP-фундамент. Реализованы
-`POST /auth/register`, verification/resend, login/refresh/logout и `PATCH /me`.
-Составной `GET /me`, регистрация с обязательными Tutoring profiles, `birthDate`
-и role onboarding отложены до модулей Tutoring/Workflows. Целевые профильные
-схемы ниже не означают, что соответствующие endpoint уже реализованы.
+На 2026-10-13 реализованы Identity, Tutoring HTTP и утверждённый Workflows MVP: регистрация с обязательными профилями, добавление второй роли и GET /me. Точные реализованные контракты: [tutoring.openapi.json](tutoring.openapi.json) и [workflows.openapi.json](workflows.openapi.json). Scheduling, HTTP-отвязка и составная карточка со статистикой отложены пользователем. scheduling.openapi.json остаётся целевым общим контрактом для будущих Scheduling-сценариев.
 
 ## Общие соглашения
 
@@ -17,12 +13,12 @@
 - Запросы с Bearer access token не используют отдельный CSRF-токен. Защита refresh-cookie endpoint'ов обеспечивается согласованными `SameSite`, CORS и проверкой Origin на сервере.
 - Время: RFC 3339 с offset, ответы в UTC.
 - Деньги: decimal-строка в RUB, например `"1500.00"`.
-- Пагинация: `cursor + limit`, по умолчанию 50, максимум 100.
+- Пагинация для endpoint-ов со свободным размером страницы: `cursor + limit`, по умолчанию 50, максимум 100. Публичный поиск профилей возвращает фиксированные 20 карточек и принимает только `cursor`.
 - Ошибка: `{code, message, fieldErrors, requestId}`.
 
 ## Endpoint'ы
 
-Base URL: `/api/v1`. Ниже целевой составной API; существующий код Identity MVP ещё не реализует RegistrationWorkflow, Tutoring и Scheduling.
+Base URL: `/api/v1`. Ниже целевой составной API. Маршруты /tutoring реализованы в этапе 5; RegistrationWorkflow, составной /me и onboarding реализованы. Unlink/статистика и Scheduling отложены.
 
 | Метод | URL | Назначение |
 |---|---|---|
@@ -35,9 +31,6 @@ Base URL: `/api/v1`. Ниже целевой составной API; сущес�
 | `GET` | `/tutoring/profiles/teachers`, `/tutoring/profiles/students` | Публичный поиск активных профилей |
 | `GET` | `/tutoring/profiles/teachers/{userId}`, `/tutoring/profiles/students/{userId}` | Публичная карточка активного профиля |
 | `PUT` | `/tutoring/profiles/teacher`, `/tutoring/profiles/student` | Полностью обновить свой существующий профиль |
-| `PUT` | `/tutoring/profiles/{type}/contact-email` | Запросить смену профильной почты |
-| `POST` | `/tutoring/profiles/{type}/contact-email/confirmation-requests` | Повторить подтверждение current/pending |
-| `POST` | `/tutoring/profile-email-confirmations` | Подтвердить профильный email токеном |
 | `POST` | `/tutoring/invitations` | Пригласить по email; `Idempotency-Key` |
 | `GET` | `/tutoring/invitations/sent`, `/tutoring/invitations/incoming` | Свои отправленные/входящие приглашения |
 | `POST` | `/tutoring/invitations/{invitationId}/accept`, `/reject` | Ответить на приглашение; `Idempotency-Key` |
@@ -49,14 +42,14 @@ Base URL: `/api/v1`. Ниже целевой составной API; сущес�
 
 - Пользователь может иметь одну или обе роли. Для каждой роли существует ровно один соответствующий профиль; регистрация и добавление роли создают их атомарно.
 - Регистрация содержит `birthDate`, обязательный профиль для каждой роли и отвечает `202 VerificationPendingResponse` без токенов до подтверждения account email.
-- `Identity.User.birthDate` — первоисточник; при создании профиль Tutoring сохраняет копию. В публичной карточке активного профиля дата доступна без связи. Отдельного `BirthDateVisibility` нет.
-- Публичный профиль показывает `displayName`, описание и обычные поля, `contactDetails`, выбранные предметы и только подтверждённый current `contactEmail`; pending и неподтверждённый адрес видит лишь владелец. Account email не подставляется.
+- `Identity.User.birthDate` хранится только в Identity и видна владельцу в данных аккаунта. Учебные профили показывают вычисленный возраст; Tutoring не хранит дату рождения или возраст.
+- Публичный профиль показывает `displayName`, возраст, описание и обычные поля, `contactDetails`, выбранные предметы и указанный владельцем `contactEmail`. Контактный адрес проверяется по формату и не требует подтверждения; account email не подставляется.
 - Справочник предметов используется для выбора и проверки кода. Выбранные предметы конкретного преподавателя/ученика хранятся и читаются только в его профиле. Учителю нужен минимум один, ученику разрешён пустой список.
 - Приглашение остаётся `PENDING` до явного ответа. В отправленном списке не раскрывается ID адресата или факт регистрации.
 - Публичность профиля не раскрывает чужие связи, уроки или статистику. Отвязка обрабатывает будущие уроки Scheduling до удаления связи Tutoring.
 - Изменяющие межмодульные запросы и операции приглашения принимают стабильный `Idempotency-Key: UUID`; совпавший ключ с другим содержимым даёт `409`.
 - Пароль принимается только в регистрации/login, 8–72 символа ASCII `!`…`~` без пробелов. Refresh token остаётся в HttpOnly cookie; access JWT в ответе после подтверждения account email/login.
-- Ответ ошибки: `{code,message,fieldErrors,requestId}`. Время — RFC 3339 UTC, дата рождения — `YYYY-MM-DD`. Страницы — `cursor + limit` (50 по умолчанию, 1…100).
+- Ответ ошибки: `{code,message,fieldErrors,requestId}`. Время — RFC 3339 UTC, дата рождения — `YYYY-MM-DD`. Для страниц с `limit` действует диапазон 1…100 и значение по умолчанию 50; поиск профилей возвращает фиксированные 20 карточек.
 
 ## Публичные схемы
 
@@ -66,11 +59,11 @@ Base URL: `/api/v1`. Ниже целевой составной API; сущес�
 | `UserResponse` | account-поля Identity, включая `birthDate`, роли и статус |
 | `MeResponse` | `user`, nullable `teacherProfile`, nullable `studentProfile`; роль без профиля — ошибка целостности |
 | `TeacherProfileInput` / `StudentProfileInput` | `displayName`, `contactEmail`, `contactDetails`, `subjectCodes`, допустимые поля преподавателя/фото; без `birthDateVisibility` |
-| `TeacherProfileUpdateRequest` / `StudentProfileUpdateRequest` | обычные поля, без изменения email и `birthDate` |
-| `PublicTeacherProfileResponse` / `PublicStudentProfileResponse` | `userId`, `birthDate`, `displayName`, `contactDetails`, предметы, подтверждённый nullable `contactEmail`, фото и обычные поля роли |
-| `PublicTeacherProfilePage` / `PublicStudentProfilePage` | `{items,nextCursor}` |
+| `TeacherProfileUpdateRequest` / `StudentProfileUpdateRequest` | обычные поля и обязательный `contactEmail`; даты рождения в профиле нет |
+| `PublicTeacherProfileResponse` / `PublicStudentProfileResponse` | `userId`, `age`, `displayName`, `contactDetails`, предметы, указанный `contactEmail`, фото и обычные поля роли |
+| `TeacherProfileCardView` / `StudentProfileCardView` | Короткие элементы поиска; не содержат контакты или подробные поля профиля |
+| `PublicTeacherProfilePage` / `PublicStudentProfilePage` | `{items,nextCursor}`, до 20 поисковых карточек |
 | `SubjectResponse` | `{subjectCode,name}`; `GET /tutoring/subjects` возвращает массив |
-| `ProfileEmailChangeRequest` / `ProfileEmailConfirmationRequest` | `{newEmail}` / `{target: CURRENT\|PENDING}` |
 | `SentInvitation` / `IncomingInvitation` | Отправленная запись не содержит recipient ID; входящая содержит краткое имя преподавателя |
 | `InvitationDecisionResult` | `{invitationId,status}` после accept/reject |
 | `LinkedStudentItem` / `LinkedTeacherItem` | `linkedAt` и публичные поля профиля; доступен только участникам связи |
@@ -81,7 +74,7 @@ Base URL: `/api/v1`. Ниже целевой составной API; сущес�
 
 ### `RegisterRequest`
 
-Обязательные поля аккаунта: `email`, `password`, `firstName`, `lastName`, `birthDate`, `roles`. Для `TEACHER` обязателен `teacherProfile`, для `STUDENT` — `studentProfile`; при обеих ролях нужны оба. Лишний профиль или отсутствующий профиль для роли дают `ROLE_PROFILE_MISMATCH`. Выбранные предметы находятся в данных соответствующего профиля. Дата рождения передаётся один раз на уровне аккаунта и копируется в профиль доверенным workflow.
+Обязательные поля аккаунта: `email`, `password`, `firstName`, `lastName`, `birthDate`, `roles`. Для `TEACHER` обязателен `teacherProfile`, для `STUDENT` — `studentProfile`; при обеих ролях нужны оба. Лишний профиль или отсутствующий профиль для роли дают `ROLE_PROFILE_MISMATCH`. Выбранные предметы находятся в данных соответствующего профиля. Дата рождения передаётся один раз на уровне аккаунта и остаётся только в Identity.
 
 Повтор регистрации использует тот же `Idempotency-Key: UUID`. Успех — `202 VerificationPendingResponse`; никакого `201 MeResponse` или токенов на этом шаге нет.
 
@@ -132,7 +125,7 @@ Refresh token отсутствует в JSON и доступен frontend тол
 
 ### Профили
 
-`MeResponse.user` содержит данные аккаунта Identity. `teacherProfile` и `studentProfile` содержат self-view Tutoring без вложенного `user`; `null` допустим лишь при отсутствии соответствующей роли. Публичные карточки отличаются от self-view: в них нет pending email и неподтверждённого current email, зато дата рождения, обычные сведения и `contactDetails` доступны любому посетителю для ACTIVE профиля.
+`MeResponse.user` содержит данные аккаунта Identity, включая точную дату рождения, текущую и ожидающую подтверждения почту аккаунта. `teacherProfile` и `studentProfile` содержат self-view Tutoring без вложенного `user`; `null` допустим лишь при отсутствии соответствующей роли. Self и public-карточки профилей показывают вычисленный возраст, обычные сведения, указанный `contactEmail` и `contactDetails`; точной даты рождения и почты аккаунта в них нет. Публичная карточка доступна любому посетителю для ACTIVE профиля.
 
 ## Операции
 
@@ -322,17 +315,17 @@ cookie, и удаляет cookie. Отсутствующая, неизвестн
 
 `GET /api/v1/tutoring/subjects` доступен без login и отвечает `200` массивом `{subjectCode,name}`. Пустой справочник — внутренняя ошибка. Это список допустимых кодов, а не выбранные предметы конкретного человека.
 
-`GET /api/v1/tutoring/profiles/teachers` и `/students` доступны без login. Фильтры: `subjectCode`, `minAge`, `maxAge`, `cursor`, `limit`. Возраст вычисляется по `birthDate` на дату запроса UTC; ответ `200 {items,nextCursor}` с ACTIVE профилями, сортировка `createdAt DESC,userId DESC`. Неверный фильтр/курсор — `400`. Фильтр предмета проверяет предметы, выбранные в самом профиле.
+`GET /api/v1/tutoring/profiles/teachers` и `/students` доступны без login. Фильтры: `subjectCode`, `minAge`, `maxAge`, `cursor`. Размер страницы фиксирован — до 20 карточек; клиент не отправляет `limit`. Identity пакетно вычисляет возраст на дату запроса UTC; ответ `200 {items,nextCursor}` содержит ACTIVE профили в порядке `createdAt DESC,userId DESC`. Неверный фильтр/курсор — `400`. Фильтр предмета проверяет предметы, выбранные в самом профиле.
 
-`GET /api/v1/tutoring/profiles/teachers/{userId}` и `/students/{userId}` возвращают публичный профиль активного пользователя или `404`. Связь и login не требуются. В ответе есть точная дата рождения, `contactDetails`, выбранные предметы и подтверждённый профильный email либо `null`.
+Карточка репетитора содержит `userId`, возраст, имя, фото, выбранные предметы, город и короткий фрагмент описания до 200 символов. Карточка ученика содержит `userId`, возраст, имя, фото и выбранные предметы. Клиент показывает названия предметов из каталога. `userId` используется для открытия полного профиля отдельным запросом.
+
+`GET /api/v1/tutoring/profiles/teachers/{userId}` и `/students/{userId}` возвращают полный публичный профиль активного пользователя или `404`. Связь и login не требуются. В ответе есть возраст, `contactDetails`, выбранные предметы и указанный контактный email.
 
 ### Обновление профиля и почты
 
-`PUT /api/v1/tutoring/profiles/teacher` и `/student` требуют владельца, полностью заменяют обычные поля и отвечают `204`. Они не создают профиль, не меняют email-state или `birthDate`; отсутствие собственного профиля — `404`. Для Teacher `subjectCodes` непустой, для Student может быть пустым.
+`PUT /api/v1/tutoring/profiles/teacher` и `/student` требуют владельца, полностью заменяют обычные поля вместе с обязательным `contactEmail` и отвечают `204`. Они не создают профиль и не меняют дату рождения; отсутствие собственного профиля — `404`. Для Teacher `subjectCodes` непустой, для Student может быть пустым.
 
-`PUT /api/v1/tutoring/profiles/{type}/contact-email` принимает `{newEmail}` и отвечает `200` состоянием смены. `POST /api/v1/tutoring/profiles/{type}/contact-email/confirmation-requests` принимает `{target:"CURRENT"|"PENDING"}` и отвечает `200`. Профильные письма ограничены пятью новыми письмами за скользящие 24 часа на пользователя; превышение — `429` с `Retry-After`.
-
-`POST /api/v1/tutoring/profile-email-confirmations` без обязательного login принимает `{token}` в теле и отвечает `204`. Недействительный, использованный или истёкший токен даёт одинаковый `400`.
+Контактный адрес проверяется по формату и сохраняется в том же запросе обновления профиля. Письмо для подтверждения профильного адреса не отправляется. Account email не изменяется.
 
 ### Приглашения и связи
 
@@ -538,3 +531,22 @@ cookie, и удаляет cookie. Отсутствующая, неизвестн
 ## Примеры и TypeScript-типы
 
 Готовые JSON-примеры находятся в `examples.json`, TypeScript DTO — в `contracts.ts`. Полные поля, ограничения, ответы и ошибки каждого endpoint'а описаны в `scheduling.openapi.json` и отображаются в Swagger UI.
+
+
+## Уточнения реализованного Tutoring этапа 5
+
+- HTTP DTO принадлежат Presentation. API Java-контракты backend не являются HTTP endpoint или HTTP body.
+- photoUrl — абсолютный http/https URI с хостом; null/отсутствие необязательного поля PUT очищают фото, пустая строка даёт 400.
+- POST/PUT Tutoring ограничены tutoring.http.max-request-bytes, по умолчанию 1 MiB; превышение даёт 413.
+- Статусы ошибок приглашений: SELF_INVITATION, ALREADY_PENDING, ALREADY_LINKED, EXPIRED, ALREADY_RESPONDED, STUDENT_PROFILE_REQUIRED; конфликт ключа — IDEMPOTENCY_CONFLICT. Отсутствующее и чужое приглашение дают одинаковый 404.
+- Поиск возвращает 20 карточек и проверяет 21-го подходящего кандидата для nextCursor; следующая страница повторно читает lookahead. Это согласованное MVP-допущение.
+- События account email и приглашения имеют durable delivery. Открытие URL/регистрация не вызывают accept автоматически; UI страницы приглашения ещё не реализован.
+
+
+## Реализованный Workflows MVP этапов 6–7
+
+POST /auth/register требует ключ и точное соответствие ролей/профилей, отвечает 202 без токенов. POST /me/roles/teacher и /student требуют ACTIVE аккаунт и отвечают 201 MeResponse; клиент затем вызывает refresh. GET /me читает только владельца из principal. PATCH /me остаётся операцией Identity и отвечает UserResponse.
+
+Idempotency-Key глобально уникален для операций Workflows. Другой сценарий, аккаунт/email или данные с тем же UUID дают 409 IDEMPOTENCY_CONFLICT. Replay регистрационного 202 или onboarding 201 возвращает сохранённый результат; новый актуальный /me читается отдельным GET. FieldErrors Workflows/Identity содержат code; в Tutoring он необязателен.
+
+Все упоминания DELETE /teachers/me/students/{studentUserId}, StudentCardQueryFacade и обработки уроков выше — будущий контракт, не реализованный endpoint MVP. Зависимость зафиксирована прямым решением пользователя 2026-10-13.

@@ -1,0 +1,2258 @@
+{
+  "openapi": "3.1.0",
+  "info": {
+    "title": "Tutoring HTTP API",
+    "version": "1.0.0",
+    "description": "Реализован этап 5. Actor определяется только по Bearer JWT; защищённые запросы требуют актуальный ACTIVE аккаунт. Создание и изменение teacher требуют TEACHER, изменение student требует STUDENT. Регистрация с профилями, /me, onboarding и unlink относятся к этапу 6 Workflows. Возраст вычисляет Identity; birthDate не выдаётся. Публичный поиск использует 21-го кандидата для определения nextCursor. Необязательные поля PUT, отсутствующие или null, очищаются. Ссылка приглашения не даёт права принятия: нужны подтверждённый account email, привязка и отдельный POST accept."
+  },
+  "servers": [
+    {
+      "url": "/api/v1/tutoring"
+    }
+  ],
+  "paths": {
+    "/subjects": {
+      "get": {
+        "operationId": "getSubjects",
+        "summary": "Справочник предметов",
+        "security": [],
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "Список предметов",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/Subject"
+                  }
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Внутренняя ошибка",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Временная недоступность хранилища или Identity",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/profiles/teachers": {
+      "get": {
+        "operationId": "searchTeachers",
+        "summary": "До 20 коротких карточек активных преподавателей",
+        "security": [],
+        "parameters": [
+          {
+            "name": "subjectCode",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "pattern": "^[A-Z][A-Z0-9_]*$",
+              "maxLength": 32
+            }
+          },
+          {
+            "name": "minAge",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "minimum": 0
+            }
+          },
+          {
+            "name": "maxAge",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "minimum": 0
+            }
+          },
+          {
+            "name": "cursor",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 4096
+            },
+            "description": "Непрозрачная подписанная строка. Передать без разбора с теми же фильтрами."
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Успешно",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TeacherProfilePage"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Неверные данные, неизвестный предмет или курсор",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Ресурс отсутствует или недоступен",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Внутренняя ошибка",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Временная недоступность хранилища или Identity",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/profiles/students": {
+      "get": {
+        "operationId": "searchStudents",
+        "summary": "До 20 коротких карточек активных учеников",
+        "security": [],
+        "parameters": [
+          {
+            "name": "subjectCode",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "pattern": "^[A-Z][A-Z0-9_]*$",
+              "maxLength": 32
+            }
+          },
+          {
+            "name": "minAge",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "minimum": 0
+            }
+          },
+          {
+            "name": "maxAge",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "minimum": 0
+            }
+          },
+          {
+            "name": "cursor",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 4096
+            },
+            "description": "Непрозрачная подписанная строка. Передать без разбора с теми же фильтрами."
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Успешно",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/StudentProfilePage"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Неверные данные, неизвестный предмет или курсор",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Ресурс отсутствует или недоступен",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Внутренняя ошибка",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Временная недоступность хранилища или Identity",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/profiles/teachers/{userId}": {
+      "get": {
+        "operationId": "getTeacherProfile",
+        "summary": "Полный профиль активного преподавателя",
+        "security": [],
+        "parameters": [
+          {
+            "name": "userId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Успешно",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TeacherProfile"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Неверные данные, неизвестный предмет или курсор",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Ресурс отсутствует или недоступен",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Внутренняя ошибка",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Временная недоступность хранилища или Identity",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/profiles/students/{userId}": {
+      "get": {
+        "operationId": "getStudentProfile",
+        "summary": "Полный профиль активного ученика",
+        "security": [],
+        "parameters": [
+          {
+            "name": "userId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Успешно",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/StudentProfile"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Неверные данные, неизвестный предмет или курсор",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Ресурс отсутствует или недоступен",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Внутренняя ошибка",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Временная недоступность хранилища или Identity",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/profiles/teacher": {
+      "put": {
+        "operationId": "updateTeacherProfile",
+        "summary": "Полностью заменить поля своего существующего профиля преподавателя",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [],
+        "responses": {
+          "204": {
+            "description": "Успешно"
+          },
+          "400": {
+            "description": "Неверные данные, неизвестный предмет или курсор",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Требуется Bearer JWT",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Нет доступа по актуальному аккаунту/роли",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Ресурс отсутствует или недоступен",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Конфликт операции, приглашения или отсутствие StudentProfile",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "413": {
+            "description": "HTTP-тело превышает tutoring.http.max-request-bytes (по умолчанию 1 MiB)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Внутренняя ошибка",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Временная недоступность хранилища или Identity",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          }
+        },
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateTeacherProfile"
+              }
+            }
+          }
+        }
+      }
+    },
+    "/profiles/student": {
+      "put": {
+        "operationId": "updateStudentProfile",
+        "summary": "Полностью заменить поля своего существующего профиля ученика",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [],
+        "responses": {
+          "204": {
+            "description": "Успешно"
+          },
+          "400": {
+            "description": "Неверные данные, неизвестный предмет или курсор",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Требуется Bearer JWT",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Нет доступа по актуальному аккаунту/роли",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Ресурс отсутствует или недоступен",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Конфликт операции, приглашения или отсутствие StudentProfile",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "413": {
+            "description": "HTTP-тело превышает tutoring.http.max-request-bytes (по умолчанию 1 MiB)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Внутренняя ошибка",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Временная недоступность хранилища или Identity",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          }
+        },
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateStudentProfile"
+              }
+            }
+          }
+        }
+      }
+    },
+    "/invitations": {
+      "post": {
+        "operationId": "createInvitation",
+        "summary": "Создать приглашение и поставить письмо в очередь",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "Idempotency-Key",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "description": "Один ключ на одну бизнес-операцию; повтор с тем же содержимым возвращает сохранённый результат."
+          }
+        ],
+        "responses": {
+          "201": {
+            "description": "Успешно",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/InvitationCreated"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Неверные данные, неизвестный предмет или курсор",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Требуется Bearer JWT",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Нет доступа по актуальному аккаунту/роли",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Ресурс отсутствует или недоступен",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Конфликт операции, приглашения или отсутствие StudentProfile",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "413": {
+            "description": "HTTP-тело превышает tutoring.http.max-request-bytes (по умолчанию 1 MiB)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Внутренняя ошибка",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Временная недоступность хранилища или Identity",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          }
+        },
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateInvitation"
+              }
+            }
+          }
+        }
+      }
+    },
+    "/invitations/sent": {
+      "get": {
+        "operationId": "listSentInvitations",
+        "summary": "Свои отправленные приглашения без recipient userId",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "status",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "enum": [
+                "PENDING",
+                "ACCEPTED",
+                "REJECTED",
+                "EXPIRED"
+              ]
+            }
+          },
+          {
+            "name": "cursor",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 4096
+            },
+            "description": "Непрозрачная подписанная строка. Передать без разбора с теми же фильтрами."
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 100,
+              "default": 50
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Успешно",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SentInvitationPage"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Неверные данные, неизвестный предмет или курсор",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Требуется Bearer JWT",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Нет доступа по актуальному аккаунту/роли",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Ресурс отсутствует или недоступен",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Конфликт операции, приглашения или отсутствие StudentProfile",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Внутренняя ошибка",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Временная недоступность хранилища или Identity",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/invitations/incoming": {
+      "get": {
+        "operationId": "listIncomingInvitations",
+        "summary": "Свои привязанные приглашения, StudentProfile не обязателен",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "status",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "enum": [
+                "PENDING",
+                "ACCEPTED",
+                "REJECTED",
+                "EXPIRED"
+              ]
+            }
+          },
+          {
+            "name": "cursor",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 4096
+            },
+            "description": "Непрозрачная подписанная строка. Передать без разбора с теми же фильтрами."
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 100,
+              "default": 50
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Успешно",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/IncomingInvitationPage"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Неверные данные, неизвестный предмет или курсор",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Требуется Bearer JWT",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Нет доступа по актуальному аккаунту/роли",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Ресурс отсутствует или недоступен",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Конфликт операции, приглашения или отсутствие StudentProfile",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Внутренняя ошибка",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Временная недоступность хранилища или Identity",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/invitations/{id}/accept": {
+      "post": {
+        "operationId": "acceptInvitation",
+        "summary": "Принять приглашение и создать связь; требуется StudentProfile",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "Idempotency-Key",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "description": "Один ключ на одну бизнес-операцию; повтор с тем же содержимым возвращает сохранённый результат."
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Успешно",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/InvitationAccepted"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Неверные данные, неизвестный предмет или курсор",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Требуется Bearer JWT",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Нет доступа по актуальному аккаунту/роли",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Ресурс отсутствует или недоступен",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Конфликт операции, приглашения или отсутствие StudentProfile",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "413": {
+            "description": "HTTP-тело превышает tutoring.http.max-request-bytes (по умолчанию 1 MiB)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Внутренняя ошибка",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Временная недоступность хранилища или Identity",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/invitations/{id}/reject": {
+      "post": {
+        "operationId": "rejectInvitation",
+        "summary": "Отказать; StudentProfile не требуется",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "Idempotency-Key",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "description": "Один ключ на одну бизнес-операцию; повтор с тем же содержимым возвращает сохранённый результат."
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Успешно",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/InvitationRejected"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Неверные данные, неизвестный предмет или курсор",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Требуется Bearer JWT",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Нет доступа по актуальному аккаунту/роли",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Ресурс отсутствует или недоступен",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Конфликт операции, приглашения или отсутствие StudentProfile",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "413": {
+            "description": "HTTP-тело превышает tutoring.http.max-request-bytes (по умолчанию 1 MiB)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Внутренняя ошибка",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Временная недоступность хранилища или Identity",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/relationships/students": {
+      "get": {
+        "operationId": "listTeacherStudents",
+        "summary": "Свои ученики с профилями",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "cursor",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 4096
+            },
+            "description": "Непрозрачная подписанная строка. Передать без разбора с теми же фильтрами."
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 100,
+              "default": 50
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Успешно",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/StudentRelationshipPage"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Неверные данные, неизвестный предмет или курсор",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Требуется Bearer JWT",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Нет доступа по актуальному аккаунту/роли",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Ресурс отсутствует или недоступен",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Конфликт операции, приглашения или отсутствие StudentProfile",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Внутренняя ошибка",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Временная недоступность хранилища или Identity",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/relationships/teachers": {
+      "get": {
+        "operationId": "listStudentTeachers",
+        "summary": "Свои преподаватели с профилями",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "cursor",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 4096
+            },
+            "description": "Непрозрачная подписанная строка. Передать без разбора с теми же фильтрами."
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 100,
+              "default": 50
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Успешно",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TeacherRelationshipPage"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Неверные данные, неизвестный предмет или курсор",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Требуется Bearer JWT",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Нет доступа по актуальному аккаунту/роли",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Ресурс отсутствует или недоступен",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Конфликт операции, приглашения или отсутствие StudentProfile",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Внутренняя ошибка",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Временная недоступность хранилища или Identity",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "components": {
+    "securitySchemes": {
+      "bearerAuth": {
+        "type": "http",
+        "scheme": "bearer",
+        "bearerFormat": "JWT RS256"
+      }
+    },
+    "schemas": {
+      "Subject": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "subjectCode": {
+            "type": "string",
+            "pattern": "^[A-Z][A-Z0-9_]*$",
+            "maxLength": 32
+          },
+          "name": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "subjectCode",
+          "name"
+        ]
+      },
+      "TeacherProfile": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "userId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "age": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "displayName": {
+            "type": "string",
+            "minLength": 1
+          },
+          "contactEmail": {
+            "type": "string",
+            "maxLength": 254,
+            "description": "Пользовательский контактный адрес, не account email. Проверяется формат; подтверждение не требуется."
+          },
+          "contactDetails": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "subjectCodes": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "pattern": "^[A-Z][A-Z0-9_]*$",
+              "maxLength": 32
+            },
+            "uniqueItems": true
+          },
+          "photoUrl": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "format": "uri",
+            "description": "Абсолютная http/https ссылка с хостом. null очищает фото, пустая строка недопустима."
+          },
+          "description": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "education": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "experienceYears": {
+            "type": [
+              "integer",
+              "null"
+            ],
+            "minimum": 0
+          },
+          "city": {
+            "type": [
+              "string",
+              "null"
+            ]
+          }
+        },
+        "required": [
+          "userId",
+          "age",
+          "displayName",
+          "contactEmail",
+          "contactDetails",
+          "subjectCodes",
+          "photoUrl",
+          "description",
+          "education",
+          "experienceYears",
+          "city"
+        ]
+      },
+      "StudentProfile": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "userId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "age": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "displayName": {
+            "type": "string",
+            "minLength": 1
+          },
+          "contactEmail": {
+            "type": "string",
+            "maxLength": 254,
+            "description": "Пользовательский контактный адрес, не account email. Проверяется формат; подтверждение не требуется."
+          },
+          "contactDetails": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "subjectCodes": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "pattern": "^[A-Z][A-Z0-9_]*$",
+              "maxLength": 32
+            },
+            "uniqueItems": true
+          },
+          "photoUrl": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "format": "uri",
+            "description": "Абсолютная http/https ссылка с хостом. null очищает фото, пустая строка недопустима."
+          }
+        },
+        "required": [
+          "userId",
+          "age",
+          "displayName",
+          "contactEmail",
+          "contactDetails",
+          "subjectCodes",
+          "photoUrl"
+        ]
+      },
+      "TeacherProfileCard": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "userId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "displayName": {
+            "type": "string"
+          },
+          "age": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "photoUrl": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "format": "uri",
+            "description": "Абсолютная http/https ссылка с хостом. null очищает фото, пустая строка недопустима."
+          },
+          "subjectCodes": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "pattern": "^[A-Z][A-Z0-9_]*$",
+              "maxLength": 32
+            },
+            "uniqueItems": true
+          },
+          "city": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "descriptionPreview": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "maxLength": 200
+          }
+        },
+        "required": [
+          "userId",
+          "displayName",
+          "age",
+          "photoUrl",
+          "subjectCodes",
+          "city",
+          "descriptionPreview"
+        ]
+      },
+      "StudentProfileCard": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "userId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "displayName": {
+            "type": "string"
+          },
+          "age": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "photoUrl": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "format": "uri",
+            "description": "Абсолютная http/https ссылка с хостом. null очищает фото, пустая строка недопустима."
+          },
+          "subjectCodes": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "pattern": "^[A-Z][A-Z0-9_]*$",
+              "maxLength": 32
+            },
+            "uniqueItems": true
+          }
+        },
+        "required": [
+          "userId",
+          "displayName",
+          "age",
+          "photoUrl",
+          "subjectCodes"
+        ]
+      },
+      "UpdateTeacherProfile": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "displayName": {
+            "type": "string",
+            "minLength": 1
+          },
+          "contactEmail": {
+            "type": "string",
+            "maxLength": 254,
+            "description": "Пользовательский контактный адрес, не account email. Проверяется формат; подтверждение не требуется."
+          },
+          "contactDetails": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "subjectCodes": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "pattern": "^[A-Z][A-Z0-9_]*$",
+              "maxLength": 32
+            },
+            "uniqueItems": true,
+            "minItems": 1
+          },
+          "photoUrl": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "format": "uri",
+            "description": "Абсолютная http/https ссылка с хостом. null очищает фото, пустая строка недопустима."
+          },
+          "description": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "education": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "experienceYears": {
+            "type": [
+              "integer",
+              "null"
+            ],
+            "minimum": 0
+          },
+          "city": {
+            "type": [
+              "string",
+              "null"
+            ]
+          }
+        },
+        "required": [
+          "displayName",
+          "contactEmail",
+          "contactDetails",
+          "subjectCodes"
+        ]
+      },
+      "UpdateStudentProfile": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "displayName": {
+            "type": "string",
+            "minLength": 1
+          },
+          "contactEmail": {
+            "type": "string",
+            "maxLength": 254,
+            "description": "Пользовательский контактный адрес, не account email. Проверяется формат; подтверждение не требуется."
+          },
+          "contactDetails": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "subjectCodes": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "pattern": "^[A-Z][A-Z0-9_]*$",
+              "maxLength": 32
+            },
+            "uniqueItems": true
+          },
+          "photoUrl": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "format": "uri",
+            "description": "Абсолютная http/https ссылка с хостом. null очищает фото, пустая строка недопустима."
+          }
+        },
+        "required": [
+          "displayName",
+          "contactEmail",
+          "contactDetails",
+          "subjectCodes"
+        ]
+      },
+      "CreateInvitation": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "studentEmail": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 254,
+            "description": "Адрес account email ученика. Может ещё не иметь аккаунта."
+          }
+        },
+        "required": [
+          "studentEmail"
+        ]
+      },
+      "InvitationCreated": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "invitationId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "expiresAt": {
+            "type": "string",
+            "format": "date-time"
+          }
+        },
+        "required": [
+          "invitationId",
+          "expiresAt"
+        ]
+      },
+      "InvitationAccepted": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "invitationId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "teacherUserId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "studentUserId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "linkedAt": {
+            "type": "string",
+            "format": "date-time"
+          }
+        },
+        "required": [
+          "invitationId",
+          "teacherUserId",
+          "studentUserId",
+          "linkedAt"
+        ]
+      },
+      "InvitationRejected": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "invitationId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "status": {
+            "type": "string",
+            "const": "REJECTED"
+          }
+        },
+        "required": [
+          "invitationId",
+          "status"
+        ]
+      },
+      "SentInvitation": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "invitationId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "studentEmail": {
+            "type": "string"
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "PENDING",
+              "ACCEPTED",
+              "REJECTED",
+              "EXPIRED"
+            ]
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "expiresAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "respondedAt": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "format": "date-time"
+          }
+        },
+        "required": [
+          "invitationId",
+          "studentEmail",
+          "status",
+          "createdAt",
+          "expiresAt",
+          "respondedAt"
+        ]
+      },
+      "TeacherSummary": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "userId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "displayName": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "userId",
+          "displayName"
+        ]
+      },
+      "IncomingInvitation": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "invitationId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "teacher": {
+            "$ref": "#/components/schemas/TeacherSummary"
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "PENDING",
+              "ACCEPTED",
+              "REJECTED",
+              "EXPIRED"
+            ]
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "expiresAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "respondedAt": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "format": "date-time"
+          }
+        },
+        "required": [
+          "invitationId",
+          "teacher",
+          "status",
+          "createdAt",
+          "expiresAt",
+          "respondedAt"
+        ]
+      },
+      "StudentRelationship": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "linkedAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "student": {
+            "$ref": "#/components/schemas/StudentProfile"
+          }
+        },
+        "required": [
+          "linkedAt",
+          "student"
+        ]
+      },
+      "TeacherRelationship": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "linkedAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "teacher": {
+            "$ref": "#/components/schemas/TeacherProfile"
+          }
+        },
+        "required": [
+          "linkedAt",
+          "teacher"
+        ]
+      },
+      "ApiError": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "code": {
+            "type": "string"
+          },
+          "message": {
+            "type": "string"
+          },
+          "fieldErrors": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "additionalProperties": false,
+              "properties": {
+                "field": {
+                  "type": "string"
+                },
+                "message": {
+                  "type": "string"
+                }
+              },
+              "required": [
+                "field",
+                "message"
+              ]
+            }
+          },
+          "requestId": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "code",
+          "message",
+          "fieldErrors",
+          "requestId"
+        ]
+      },
+      "TeacherProfilePage": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "items": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/TeacherProfileCard"
+            },
+            "maxItems": 20
+          },
+          "nextCursor": {
+            "type": [
+              "string",
+              "null"
+            ]
+          }
+        },
+        "required": [
+          "items",
+          "nextCursor"
+        ]
+      },
+      "StudentProfilePage": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "items": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/StudentProfileCard"
+            },
+            "maxItems": 20
+          },
+          "nextCursor": {
+            "type": [
+              "string",
+              "null"
+            ]
+          }
+        },
+        "required": [
+          "items",
+          "nextCursor"
+        ]
+      },
+      "SentInvitationPage": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "items": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/SentInvitation"
+            },
+            "maxItems": 100
+          },
+          "nextCursor": {
+            "type": [
+              "string",
+              "null"
+            ]
+          }
+        },
+        "required": [
+          "items",
+          "nextCursor"
+        ]
+      },
+      "IncomingInvitationPage": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "items": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/IncomingInvitation"
+            },
+            "maxItems": 100
+          },
+          "nextCursor": {
+            "type": [
+              "string",
+              "null"
+            ]
+          }
+        },
+        "required": [
+          "items",
+          "nextCursor"
+        ]
+      },
+      "StudentRelationshipPage": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "items": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/StudentRelationship"
+            },
+            "maxItems": 100
+          },
+          "nextCursor": {
+            "type": [
+              "string",
+              "null"
+            ]
+          }
+        },
+        "required": [
+          "items",
+          "nextCursor"
+        ]
+      },
+      "TeacherRelationshipPage": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "items": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/TeacherRelationship"
+            },
+            "maxItems": 100
+          },
+          "nextCursor": {
+            "type": [
+              "string",
+              "null"
+            ]
+          }
+        },
+        "required": [
+          "items",
+          "nextCursor"
+        ]
+      }
+    }
+  }
+}

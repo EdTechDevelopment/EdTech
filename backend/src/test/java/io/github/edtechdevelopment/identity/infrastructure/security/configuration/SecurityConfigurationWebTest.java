@@ -33,6 +33,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 @WebMvcTest(controllers = SecurityTestController.class)
 @ImportAutoConfiguration(ServletWebSecurityAutoConfiguration.class)
 @Import({
+        SecurityTestController.class,
         SecurityConfiguration.class,
         IdentityJwtAuthenticationConverter.class,
         RestAuthenticationEntryPoint.class,

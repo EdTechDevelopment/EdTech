@@ -18,6 +18,7 @@ import java.security.KeyPairGenerator;
 import java.security.interfaces.RSAPrivateKey;
 import java.security.interfaces.RSAPublicKey;
 import java.time.Duration;
+import java.time.LocalDate;
 import java.time.Instant;
 import java.time.temporal.ChronoUnit;
 import java.util.List;
@@ -72,6 +73,7 @@ class SpringJwtAccessTokenIssuerTest {
                 new PasswordHash("encoded-password"),
                 "Student",
                 "Example",
+                LocalDate.of(2000, 1, 1),
                 Set.of(UserRole.TEACHER, UserRole.STUDENT),
                 UserStatus.ACTIVE,
                 createdAt,

@@ -1,8 +1,8 @@
 package io.github.edtechdevelopment.identity.application.service.account;
 
 import io.github.edtechdevelopment.identity.api.event.UserRegisteredEvent;
-import io.github.edtechdevelopment.identity.application.command.account.RegistrationRole;
 import io.github.edtechdevelopment.identity.application.command.account.RegisterUserCommand;
+import io.github.edtechdevelopment.identity.application.command.account.RegistrationRole;
 import io.github.edtechdevelopment.identity.application.exception.EmailAlreadyExistsException;
 import io.github.edtechdevelopment.identity.application.exception.InvalidUseCaseInputException;
 import io.github.edtechdevelopment.identity.application.mapper.IdentityApiMapper;
@@ -29,6 +29,7 @@ import org.mockito.ArgumentCaptor;
 
 import java.time.Duration;
 import java.time.Instant;
+import java.time.LocalDate;
 import java.util.Set;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -94,6 +95,7 @@ class RegisterUserServiceTest {
         assertEquals(PASSWORD_HASH, savedUser.passwordHash());
         assertEquals("Anna", savedUser.firstName());
         assertEquals("Petrova", savedUser.lastName());
+        assertEquals(LocalDate.of(2000, 1, 1), savedUser.birthDate());
         assertEquals(Set.of(UserRole.STUDENT), savedUser.roles());
         assertEquals(UserStatus.PENDING_EMAIL_VERIFICATION, savedUser.status());
         assertEquals(REGISTERED_AT, savedUser.createdAt());
@@ -132,6 +134,7 @@ class RegisterUserServiceTest {
         assertEquals(REGISTERED_AT, publishedEvent.occurredAt());
 
         assertEquals("anna@example.com", result.email());
+        assertEquals(savedUser.id(), result.userId());
         assertEquals(EXPIRES_AT, result.verificationExpiresAt());
     }
 
@@ -224,6 +227,7 @@ class RegisterUserServiceTest {
                 password,
                 "Anna",
                 "Petrova",
+                LocalDate.of(2000, 1, 1),
                 Set.of(RegistrationRole.STUDENT)
         );
     }

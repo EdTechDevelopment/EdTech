@@ -11,14 +11,27 @@
 ```java
 public interface IdentityQuery {
     Optional<UserSummary> findUserById(UUID userId);
+    Map<UUID, UserSummary> findUsersByIds(Set<UUID> userIds);
+    Optional<UserSummary> findUserByVerifiedEmail(String normalizedEmail);
+    Set<UUID> findActiveUserIds(Set<UUID> userIds);
+    Map<UUID, Integer> findAgesByIds(Set<UUID> userIds, LocalDate asOf);
 }
 ```
 
 Реализация: `identity.application.service.account.IdentityQueryService`.
 
-На текущем этапе реализован только `findUserById(UUID)`. Batch-чтение и поиск по
-подтверждённому email остаются частью целевой архитектуры и добавляются по
-реальным use case модуля Tutoring.
+Все пять методов реализованы и используются для чтения данных Identity без
+доступа к его внутренним пакетам.
+
+### `identity.api.IdentityRegistrationGateway` и `IdentityRoleGateway`
+
+Эти публичные контракты используют только Workflows. Их адаптеры вызывают
+внутренние application-порты; бизнес-логика в адаптерах не дублируется.
+
+```java
+RegistrationReceipt IdentityRegistrationGateway.register(RegistrationData data);
+void IdentityRoleGateway.addRole(AddUserRoleCommand command);
+```
 
 ## Входные порты Application
 
@@ -31,6 +44,16 @@ public interface RegisterUserUseCase {
 ```
 
 Реализация: `identity.application.service.account.RegisterUserService`.
+
+### `identity.application.port.in.account.AddUserRoleUseCase`
+
+```java
+public interface AddUserRoleUseCase {
+    void addRole(AssignRoleCommand command);
+}
+```
+
+Реализация: `identity.application.service.account.AddUserRoleService`.
 
 ### `identity.application.port.in.account.GetCurrentUserUseCase`
 

@@ -25,7 +25,7 @@ class SpringIntegrationEventPublisherTest {
     @BeforeEach
     void setUp() {
         applicationEventPublisher = mock(ApplicationEventPublisher.class);
-        integrationEventPublisher = new SpringIntegrationEventPublisher(applicationEventPublisher);
+        integrationEventPublisher = new SpringIntegrationEventPublisher(applicationEventPublisher, mock(AccountEmailEventOutbox.class));
     }
 
     @Test

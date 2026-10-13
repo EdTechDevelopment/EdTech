@@ -11,6 +11,7 @@ import io.github.edtechdevelopment.identity.domain.user.model.UserStatus;
 import org.junit.jupiter.api.Test;
 
 import java.time.Instant;
+import java.time.LocalDate;
 import java.util.Set;
 import java.util.UUID;
 
@@ -32,6 +33,7 @@ class IdentityApiMapperTest {
                 new PasswordHash("stored-password-hash"),
                 "Anna",
                 "Petrova",
+                LocalDate.of(2000, 1, 1),
                 Set.of(UserRole.TEACHER, UserRole.STUDENT),
                 UserStatus.ACTIVE,
                 CREATED_AT,

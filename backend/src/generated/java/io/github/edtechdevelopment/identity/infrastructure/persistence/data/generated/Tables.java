@@ -4,6 +4,7 @@
 package io.github.edtechdevelopment.identity.infrastructure.persistence.data.generated;
 
 
+import io.github.edtechdevelopment.identity.infrastructure.persistence.data.generated.tables.IdentityAccountEmailEventOutbox;
 import io.github.edtechdevelopment.identity.infrastructure.persistence.data.generated.tables.IdentityEmailVerifications;
 import io.github.edtechdevelopment.identity.infrastructure.persistence.data.generated.tables.IdentityRefreshTokens;
 import io.github.edtechdevelopment.identity.infrastructure.persistence.data.generated.tables.IdentityUserEmails;
@@ -16,6 +17,11 @@ import io.github.edtechdevelopment.identity.infrastructure.persistence.data.gene
  */
 @SuppressWarnings({ "all", "unchecked", "rawtypes", "this-escape" })
 public class Tables {
+
+    /**
+     * The table <code>public.identity_account_email_event_outbox</code>.
+     */
+    public static final IdentityAccountEmailEventOutbox IDENTITY_ACCOUNT_EMAIL_EVENT_OUTBOX = IdentityAccountEmailEventOutbox.IDENTITY_ACCOUNT_EMAIL_EVENT_OUTBOX;
 
     /**
      * The table <code>public.identity_email_verifications</code>.

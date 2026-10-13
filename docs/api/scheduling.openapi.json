@@ -3,7 +3,7 @@
   "info": {
     "title": "EdTech tutoring API",
     "version": "1.2.0",
-    "description": "Целевой контракт регистрации, JWT-аутентификации, профилей, приглашений и расписания. Access JWT передаётся как Bearer token, refresh token — только в HttpOnly cookie. Tutoring и составные Workflows ещё предстоит реализовать поверх существующего Identity/Notifications MVP; Scheduling реализуется отдельным этапом. Публичные данные активного учебного профиля доступны без связи."
+    "description": "Общий целевой контракт, включая будущий Scheduling. Identity, Tutoring и Workflows MVP регистрации/onboarding/me реализованы; точные реализованные HTTP-схемы находятся в tutoring.openapi.json и workflows.openapi.json. Scheduling, unlink и составная статистика отложены пользователем. Access JWT — Bearer; refresh token — HttpOnly cookie. Дата рождения видна только владельцу в account-данных; активный профиль публично показывает возраст и указанные контакты."
   },
   "servers": [
     {
@@ -1589,6 +1589,7 @@
           "Tutoring"
         ],
         "summary": "Публичный поиск профилей teachers",
+        "description": "Возвращает до 20 коротких карточек. Размер страницы фиксирован.",
         "security": [],
         "parameters": [
           {
@@ -1621,9 +1622,6 @@
           },
           {
             "$ref": "#/components/parameters/Cursor"
-          },
-          {
-            "$ref": "#/components/parameters/Limit"
           }
         ],
         "responses": {
@@ -1834,6 +1832,7 @@
           "Tutoring"
         ],
         "summary": "Публичный поиск профилей students",
+        "description": "Возвращает до 20 коротких карточек. Размер страницы фиксирован.",
         "security": [],
         "parameters": [
           {
@@ -1866,9 +1865,6 @@
           },
           {
             "$ref": "#/components/parameters/Cursor"
-          },
-          {
-            "$ref": "#/components/parameters/Limit"
           }
         ],
         "responses": {
@@ -2061,291 +2057,6 @@
           },
           "500": {
             "description": "Ошибка 500.",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ApiError"
-                }
-              }
-            }
-          }
-        }
-      }
-    },
-    "/tutoring/profiles/{type}/contact-email": {
-      "put": {
-        "operationId": "changeProfileContactEmail",
-        "tags": [
-          "Tutoring"
-        ],
-        "summary": "Изменить профильный email",
-        "parameters": [
-          {
-            "name": "type",
-            "in": "path",
-            "required": true,
-            "schema": {
-              "type": "string",
-              "enum": [
-                "teacher",
-                "student"
-              ]
-            }
-          }
-        ],
-        "requestBody": {
-          "required": true,
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/ProfileEmailChangeRequest"
-              }
-            }
-          }
-        },
-        "responses": {
-          "200": {
-            "description": "Изменить профильный email",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ProfileEmailRequestResult"
-                }
-              }
-            }
-          },
-          "400": {
-            "description": "Ошибка 400.",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ApiError"
-                }
-              }
-            }
-          },
-          "401": {
-            "description": "Ошибка 401.",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ApiError"
-                }
-              }
-            }
-          },
-          "403": {
-            "description": "Ошибка 403.",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ApiError"
-                }
-              }
-            }
-          },
-          "404": {
-            "description": "Ошибка 404.",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ApiError"
-                }
-              }
-            }
-          },
-          "429": {
-            "description": "Ошибка 429.",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ApiError"
-                }
-              }
-            }
-          },
-          "500": {
-            "description": "Ошибка 500.",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ApiError"
-                }
-              }
-            }
-          },
-          "503": {
-            "description": "Ошибка 503.",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ApiError"
-                }
-              }
-            }
-          }
-        }
-      }
-    },
-    "/tutoring/profiles/{type}/contact-email/confirmation-requests": {
-      "post": {
-        "operationId": "requestProfileEmailConfirmation",
-        "tags": [
-          "Tutoring"
-        ],
-        "summary": "Повторить подтверждение профильной почты",
-        "parameters": [
-          {
-            "name": "type",
-            "in": "path",
-            "required": true,
-            "schema": {
-              "type": "string",
-              "enum": [
-                "teacher",
-                "student"
-              ]
-            }
-          }
-        ],
-        "requestBody": {
-          "required": true,
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/ProfileEmailConfirmationRequest"
-              }
-            }
-          }
-        },
-        "responses": {
-          "200": {
-            "description": "Повторить подтверждение профильной почты",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ProfileEmailRequestResult"
-                }
-              }
-            }
-          },
-          "400": {
-            "description": "Ошибка 400.",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ApiError"
-                }
-              }
-            }
-          },
-          "401": {
-            "description": "Ошибка 401.",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ApiError"
-                }
-              }
-            }
-          },
-          "403": {
-            "description": "Ошибка 403.",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ApiError"
-                }
-              }
-            }
-          },
-          "404": {
-            "description": "Ошибка 404.",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ApiError"
-                }
-              }
-            }
-          },
-          "429": {
-            "description": "Ошибка 429.",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ApiError"
-                }
-              }
-            }
-          },
-          "500": {
-            "description": "Ошибка 500.",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ApiError"
-                }
-              }
-            }
-          },
-          "503": {
-            "description": "Ошибка 503.",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ApiError"
-                }
-              }
-            }
-          }
-        }
-      }
-    },
-    "/tutoring/profile-email-confirmations": {
-      "post": {
-        "operationId": "confirmProfileEmail",
-        "tags": [
-          "Tutoring"
-        ],
-        "summary": "Подтвердить профильную почту",
-        "security": [],
-        "requestBody": {
-          "required": true,
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/ProfileEmailTokenRequest"
-              }
-            }
-          }
-        },
-        "responses": {
-          "204": {
-            "description": "Подтвердить профильную почту"
-          },
-          "400": {
-            "description": "Ошибка 400.",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ApiError"
-                }
-              }
-            }
-          },
-          "500": {
-            "description": "Ошибка 500.",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ApiError"
-                }
-              }
-            }
-          },
-          "503": {
-            "description": "Ошибка 503.",
             "content": {
               "application/json": {
                 "schema": {
@@ -3710,10 +3421,6 @@
             "type": "string",
             "format": "uuid"
           },
-          "birthDate": {
-            "type": "string",
-            "format": "date"
-          },
           "displayName": {
             "type": "string"
           },
@@ -3754,20 +3461,14 @@
             "type": "string",
             "nullable": true
           },
-          "pendingContactEmail": {
-            "type": "string",
-            "format": "email",
-            "nullable": true
-          },
-          "contactEmailVerifiedAt": {
-            "type": "string",
-            "format": "date-time",
-            "nullable": true
+          "age": {
+            "type": "integer",
+            "minimum": 0
           }
         },
         "required": [
           "userId",
-          "birthDate",
+          "age",
           "displayName",
           "contactEmail",
           "contactDetails",
@@ -3776,9 +3477,7 @@
           "description",
           "education",
           "experienceYears",
-          "city",
-          "pendingContactEmail",
-          "contactEmailVerifiedAt"
+          "city"
         ]
       },
       "StudentProfileResponse": {
@@ -3788,10 +3487,6 @@
           "userId": {
             "type": "string",
             "format": "uuid"
-          },
-          "birthDate": {
-            "type": "string",
-            "format": "date"
           },
           "displayName": {
             "type": "string"
@@ -3816,27 +3511,19 @@
             "type": "string",
             "nullable": true
           },
-          "pendingContactEmail": {
-            "type": "string",
-            "format": "email",
-            "nullable": true
-          },
-          "contactEmailVerifiedAt": {
-            "type": "string",
-            "format": "date-time",
-            "nullable": true
+          "age": {
+            "type": "integer",
+            "minimum": 0
           }
         },
         "required": [
           "userId",
-          "birthDate",
+          "age",
           "displayName",
           "contactEmail",
           "contactDetails",
           "subjectCodes",
-          "photoUrl",
-          "pendingContactEmail",
-          "contactEmailVerifiedAt"
+          "photoUrl"
         ]
       },
       "MeResponse": {
@@ -3899,17 +3586,12 @@
             "type": "string",
             "format": "uuid"
           },
-          "birthDate": {
-            "type": "string",
-            "format": "date"
-          },
           "displayName": {
             "type": "string"
           },
           "contactEmail": {
             "type": "string",
-            "format": "email",
-            "nullable": true
+            "format": "email"
           },
           "contactDetails": {
             "type": "array",
@@ -3926,11 +3608,15 @@
           "photoUrl": {
             "type": "string",
             "nullable": true
+          },
+          "age": {
+            "type": "integer",
+            "minimum": 0
           }
         },
         "required": [
           "userId",
-          "birthDate",
+          "age",
           "displayName",
           "contactEmail",
           "contactDetails",
@@ -6147,17 +5833,12 @@
             "type": "string",
             "format": "uuid"
           },
-          "birthDate": {
-            "type": "string",
-            "format": "date"
-          },
           "displayName": {
             "type": "string"
           },
           "contactEmail": {
             "type": "string",
-            "format": "email",
-            "nullable": true
+            "format": "email"
           },
           "contactDetails": {
             "type": "array",
@@ -6191,11 +5872,15 @@
           "city": {
             "type": "string",
             "nullable": true
+          },
+          "age": {
+            "type": "integer",
+            "minimum": 0
           }
         },
         "required": [
           "userId",
-          "birthDate",
+          "age",
           "displayName",
           "contactEmail",
           "contactDetails",
@@ -6215,17 +5900,12 @@
             "type": "string",
             "format": "uuid"
           },
-          "birthDate": {
-            "type": "string",
-            "format": "date"
-          },
           "displayName": {
             "type": "string"
           },
           "contactEmail": {
             "type": "string",
-            "format": "email",
-            "nullable": true
+            "format": "email"
           },
           "contactDetails": {
             "type": "array",
@@ -6242,16 +5922,99 @@
           "photoUrl": {
             "type": "string",
             "nullable": true
+          },
+          "age": {
+            "type": "integer",
+            "minimum": 0
           }
         },
         "required": [
           "userId",
-          "birthDate",
+          "age",
           "displayName",
           "contactEmail",
           "contactDetails",
           "subjectCodes",
           "photoUrl"
+        ]
+      },
+      "TeacherProfileCardView": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "userId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "displayName": {
+            "type": "string"
+          },
+          "age": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "photoUrl": {
+            "type": "string",
+            "nullable": true
+          },
+          "subjectCodes": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "city": {
+            "type": "string",
+            "nullable": true
+          },
+          "descriptionPreview": {
+            "type": "string",
+            "maxLength": 200,
+            "nullable": true
+          }
+        },
+        "required": [
+          "userId",
+          "displayName",
+          "age",
+          "photoUrl",
+          "subjectCodes",
+          "city",
+          "descriptionPreview"
+        ]
+      },
+      "StudentProfileCardView": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "userId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "displayName": {
+            "type": "string"
+          },
+          "age": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "photoUrl": {
+            "type": "string",
+            "nullable": true
+          },
+          "subjectCodes": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          }
+        },
+        "required": [
+          "userId",
+          "displayName",
+          "age",
+          "photoUrl",
+          "subjectCodes"
         ]
       },
       "TeacherProfileUpdateRequest": {
@@ -6260,6 +6023,10 @@
         "properties": {
           "displayName": {
             "type": "string"
+          },
+          "contactEmail": {
+            "type": "string",
+            "format": "email"
           },
           "contactDetails": {
             "type": "array",
@@ -6298,6 +6065,7 @@
         },
         "required": [
           "displayName",
+          "contactEmail",
           "contactDetails",
           "subjectCodes"
         ]
@@ -6308,6 +6076,10 @@
         "properties": {
           "displayName": {
             "type": "string"
+          },
+          "contactEmail": {
+            "type": "string",
+            "format": "email"
           },
           "contactDetails": {
             "type": "array",
@@ -6328,6 +6100,7 @@
         },
         "required": [
           "displayName",
+          "contactEmail",
           "contactDetails",
           "subjectCodes"
         ]
@@ -6338,8 +6111,9 @@
         "properties": {
           "items": {
             "type": "array",
+            "maxItems": 20,
             "items": {
-              "$ref": "#/components/schemas/PublicTeacherProfileResponse"
+              "$ref": "#/components/schemas/TeacherProfileCardView"
             }
           },
           "nextCursor": {
@@ -6358,8 +6132,9 @@
         "properties": {
           "items": {
             "type": "array",
+            "maxItems": 20,
             "items": {
-              "$ref": "#/components/schemas/PublicStudentProfileResponse"
+              "$ref": "#/components/schemas/StudentProfileCardView"
             }
           },
           "nextCursor": {
@@ -6370,64 +6145,6 @@
         "required": [
           "items",
           "nextCursor"
-        ]
-      },
-      "ProfileEmailChangeRequest": {
-        "type": "object",
-        "additionalProperties": false,
-        "properties": {
-          "newEmail": {
-            "type": "string",
-            "format": "email"
-          }
-        },
-        "required": [
-          "newEmail"
-        ]
-      },
-      "ProfileEmailConfirmationRequest": {
-        "type": "object",
-        "additionalProperties": false,
-        "properties": {
-          "target": {
-            "type": "string",
-            "enum": [
-              "CURRENT",
-              "PENDING"
-            ]
-          }
-        },
-        "required": [
-          "target"
-        ]
-      },
-      "ProfileEmailTokenRequest": {
-        "type": "object",
-        "additionalProperties": false,
-        "properties": {
-          "token": {
-            "type": "string"
-          }
-        },
-        "required": [
-          "token"
-        ]
-      },
-      "ProfileEmailRequestResult": {
-        "type": "object",
-        "additionalProperties": false,
-        "properties": {
-          "state": {
-            "type": "string",
-            "enum": [
-              "CONFIRMED",
-              "AWAITING_ACCOUNT_VERIFICATION",
-              "EMAIL_QUEUED"
-            ]
-          }
-        },
-        "required": [
-          "state"
         ]
       },
       "CreatedInvitationResponse": {

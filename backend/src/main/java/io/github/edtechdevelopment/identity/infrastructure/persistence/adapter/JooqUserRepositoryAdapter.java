@@ -10,9 +10,12 @@ import io.github.edtechdevelopment.identity.infrastructure.persistence.mapper.Us
 import org.springframework.dao.DuplicateKeyException;
 import org.springframework.stereotype.Repository;
 
+import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
+import java.util.Set;
 import java.util.UUID;
+import java.util.stream.Collectors;
 
 @Repository
 public class JooqUserRepositoryAdapter implements UserRepository {
@@ -32,6 +35,13 @@ public class JooqUserRepositoryAdapter implements UserRepository {
     }
 
     @Override
+    public Map<UUID, User> findByIds(Set<UUID> userIds) {
+        Objects.requireNonNull(userIds, "User ids must not be null");
+        return repository.findByIds(userIds).entrySet().stream()
+                .collect(Collectors.toUnmodifiableMap(Map.Entry::getKey, entry -> mapper.toDomain(entry.getValue())));
+    }
+
+    @Override
     public Optional<User> findByIdForUpdate(UUID userId) {
         Objects.requireNonNull(userId, "userId must not be null");
         return repository.findByIdForUpdate(userId).map(mapper::toDomain);
@@ -41,6 +51,17 @@ public class JooqUserRepositoryAdapter implements UserRepository {
     public Optional<User> findByEmail(Email email) {
         Objects.requireNonNull(email, "Email must not be null");
         return repository.findByCurrentEmail(email.value()).map(mapper::toDomain);
+    }
+
+    @Override
+    public Optional<User> findByVerifiedEmail(Email email) {
+        Objects.requireNonNull(email, "Email must not be null");
+        return repository.findByVerifiedEmail(email.value()).map(mapper::toDomain);
+    }
+
+    @Override
+    public Set<UUID> findActiveUserIds(Set<UUID> userIds) {
+        return repository.findActiveUserIds(userIds);
     }
 
     @Override

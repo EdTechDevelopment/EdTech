@@ -1,5 +1,6 @@
 package io.github.edtechdevelopment.identity.application.command.account;
 
+import java.time.LocalDate;
 import java.util.Set;
 
 public record RegisterUserCommand(
@@ -7,6 +8,7 @@ public record RegisterUserCommand(
         String rawPassword,
         String firstName,
         String lastName,
+        LocalDate birthDate,
         Set<RegistrationRole> roles
 ) {
 

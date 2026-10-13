@@ -156,7 +156,7 @@ class LoginFlowIntegrationTest {
     }
 
     private void registerUser(String email) throws Exception {
-        mockMvc.perform(post("/api/v1/auth/register")
+        mockMvc.perform(post("/api/v1/auth/register").header("Idempotency-Key", UUID.randomUUID())
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("""
                                 {
@@ -164,7 +164,9 @@ class LoginFlowIntegrationTest {
                                   "password": "%s",
                                   "firstName": "Test",
                                   "lastName": "User",
-                                  "roles": ["STUDENT"]
+                                  "birthDate": "2000-01-01",
+                                  "roles": ["STUDENT"],
+                                  "studentProfile": {"displayName":"Student","contactEmail":"contact@example.test","contactDetails":[],"subjectCodes":[]}
                                 }
                                 """.formatted(email, RAW_PASSWORD)))
                 .andExpect(status().isAccepted());

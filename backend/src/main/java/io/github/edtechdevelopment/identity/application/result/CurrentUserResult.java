@@ -4,6 +4,7 @@ import io.github.edtechdevelopment.identity.domain.user.model.UserRole;
 import io.github.edtechdevelopment.identity.domain.user.model.UserStatus;
 
 import java.time.Instant;
+import java.time.LocalDate;
 import java.util.Set;
 import java.util.UUID;
 
@@ -13,6 +14,7 @@ public record CurrentUserResult(
         String pendingEmail,
         String firstName,
         String lastName,
+        LocalDate birthDate,
         Set<UserRole> roles,
         UserStatus status,
         Instant emailVerifiedAt,

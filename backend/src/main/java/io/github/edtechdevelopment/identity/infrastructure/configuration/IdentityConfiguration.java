@@ -1,10 +1,15 @@
 package io.github.edtechdevelopment.identity.infrastructure.configuration;
 
+import io.github.edtechdevelopment.identity.api.IdentityRegistrationGateway;
+import io.github.edtechdevelopment.identity.api.IdentityRoleGateway;
+import io.github.edtechdevelopment.identity.api.query.OwnAccountQuery;
+import io.github.edtechdevelopment.identity.application.service.account.OwnAccountQueryService;
 import io.github.edtechdevelopment.identity.application.mapper.IdentityApiMapper;
 import io.github.edtechdevelopment.identity.application.mapper.UserResultMapper;
 import io.github.edtechdevelopment.identity.api.query.IdentityQuery;
-import io.github.edtechdevelopment.identity.application.port.in.account.RegisterUserUseCase;
 import io.github.edtechdevelopment.identity.application.port.in.account.UpdateCurrentUserUseCase;
+import io.github.edtechdevelopment.identity.application.port.in.account.RegisterUserUseCase;
+import io.github.edtechdevelopment.identity.application.port.in.account.AddUserRoleUseCase;
 import io.github.edtechdevelopment.identity.application.port.in.authentication.LoginUseCase;
 import io.github.edtechdevelopment.identity.application.port.in.authentication.LogoutUseCase;
 import io.github.edtechdevelopment.identity.application.port.in.authentication.RefreshTokenUseCase;
@@ -23,6 +28,7 @@ import io.github.edtechdevelopment.identity.application.port.out.security.Refres
 import io.github.edtechdevelopment.identity.application.port.out.security.VerificationTokenGenerator;
 import io.github.edtechdevelopment.identity.application.port.out.security.VerificationTokenHasher;
 import io.github.edtechdevelopment.identity.application.service.account.RegisterUserService;
+import io.github.edtechdevelopment.identity.application.service.account.AddUserRoleService;
 import io.github.edtechdevelopment.identity.application.service.account.IdentityQueryService;
 import io.github.edtechdevelopment.identity.application.service.account.UpdateCurrentUserService;
 import io.github.edtechdevelopment.identity.application.service.authentication.LoginService;
@@ -33,6 +39,8 @@ import io.github.edtechdevelopment.identity.application.service.verification.Con
 import io.github.edtechdevelopment.identity.application.service.verification.ResendEmailVerificationService;
 import io.github.edtechdevelopment.identity.infrastructure.messaging.email.IdentityNotificationProperties;
 import io.github.edtechdevelopment.identity.infrastructure.messaging.email.NotificationVerificationEmailAdapter;
+import io.github.edtechdevelopment.identity.infrastructure.integration.RegistrationGatewayAdapter;
+import io.github.edtechdevelopment.identity.infrastructure.integration.RoleGatewayAdapter;
 import io.github.edtechdevelopment.identity.infrastructure.security.configuration.IdentityTokenProperties;
 import io.github.edtechdevelopment.notifications.api.NotificationGateway;
 import org.springframework.context.annotation.Bean;
@@ -40,6 +48,11 @@ import org.springframework.context.annotation.Configuration;
 
 @Configuration(proxyBeanMethods = false)
 public class IdentityConfiguration {
+
+    @Bean
+    OwnAccountQuery ownAccountQuery(UserRepository userRepository) {
+        return new OwnAccountQueryService(userRepository);
+    }
 
     @Bean
     IdentityApiMapper identityApiMapper() {
@@ -158,6 +171,24 @@ public class IdentityConfiguration {
                 identityApiMapper,
                 tokenProperties.verificationTtl()
         );
+    }
+
+    @Bean
+    AddUserRoleUseCase addUserRoleUseCase(
+            UserRepository userRepository,
+            TimeProvider timeProvider
+    ) {
+        return new AddUserRoleService(userRepository, timeProvider);
+    }
+
+    @Bean
+    IdentityRegistrationGateway identityRegistrationGateway(RegisterUserUseCase registerUserUseCase) {
+        return new RegistrationGatewayAdapter(registerUserUseCase);
+    }
+
+    @Bean
+    IdentityRoleGateway identityRoleGateway(AddUserRoleUseCase addUserRoleUseCase) {
+        return new RoleGatewayAdapter(addUserRoleUseCase);
     }
 
     @Bean

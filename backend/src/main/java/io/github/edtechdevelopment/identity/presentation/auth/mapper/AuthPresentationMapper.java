@@ -1,26 +1,21 @@
 package io.github.edtechdevelopment.identity.presentation.auth.mapper;
 
-import io.github.edtechdevelopment.identity.application.command.account.RegisterUserCommand;
 import io.github.edtechdevelopment.identity.application.command.authentication.LoginCommand;
 import io.github.edtechdevelopment.identity.application.command.authentication.LogoutCommand;
 import io.github.edtechdevelopment.identity.application.command.authentication.RefreshTokenCommand;
 import io.github.edtechdevelopment.identity.application.command.verification.ConfirmEmailCommand;
 import io.github.edtechdevelopment.identity.application.command.verification.ResendEmailVerificationCommand;
 import io.github.edtechdevelopment.identity.application.result.AuthenticationResult;
-import io.github.edtechdevelopment.identity.application.result.RegistrationResult;
 import io.github.edtechdevelopment.identity.presentation.auth.model.request.ConfirmEmailRequest;
 import io.github.edtechdevelopment.identity.presentation.auth.model.request.LoginRequest;
-import io.github.edtechdevelopment.identity.presentation.auth.model.request.RegisterRequest;
 import io.github.edtechdevelopment.identity.presentation.auth.model.request.ResendEmailVerificationRequest;
 import io.github.edtechdevelopment.identity.presentation.auth.model.response.TokenResponse;
-import io.github.edtechdevelopment.identity.presentation.auth.model.response.VerificationPendingResponse;
 import org.springframework.stereotype.Component;
 
 import java.time.Clock;
 import java.time.Duration;
 import java.time.Instant;
 import java.util.Objects;
-import java.util.Set;
 
 @Component
 public final class AuthPresentationMapper {
@@ -31,22 +26,6 @@ public final class AuthPresentationMapper {
 
     public AuthPresentationMapper(Clock clock) {
         this.clock = Objects.requireNonNull(clock, "Clock must not be null");
-    }
-
-    public RegisterUserCommand toCommand(RegisterRequest request) {
-        Objects.requireNonNull(request, "Register request must not be null");
-        return new RegisterUserCommand(
-                request.email(),
-                request.password(),
-                request.firstName(),
-                request.lastName(),
-                Set.copyOf(request.roles())
-        );
-    }
-
-    public VerificationPendingResponse toResponse(RegistrationResult result) {
-        Objects.requireNonNull(result, "Registration result must not be null");
-        return new VerificationPendingResponse(result.email(), result.verificationExpiresAt());
     }
 
     public LoginCommand toCommand(LoginRequest request) {

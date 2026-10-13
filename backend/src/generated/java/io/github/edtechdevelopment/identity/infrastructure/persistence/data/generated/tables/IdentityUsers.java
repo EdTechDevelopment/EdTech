@@ -12,6 +12,7 @@ import io.github.edtechdevelopment.identity.infrastructure.persistence.data.gene
 import io.github.edtechdevelopment.identity.infrastructure.persistence.data.generated.tables.IdentityUserRoles.IdentityUserRolesPath;
 import io.github.edtechdevelopment.identity.infrastructure.persistence.data.generated.tables.records.IdentityUsersRecord;
 
+import java.time.LocalDate;
 import java.time.OffsetDateTime;
 import java.util.Arrays;
 import java.util.Collection;
@@ -102,6 +103,11 @@ public class IdentityUsers extends TableImpl<IdentityUsersRecord> {
      * The column <code>public.identity_users.updated_at</code>.
      */
     public final TableField<IdentityUsersRecord, OffsetDateTime> UPDATED_AT = createField(DSL.name("updated_at"), SQLDataType.TIMESTAMPWITHTIMEZONE(6).nullable(false), this, "");
+
+    /**
+     * The column <code>public.identity_users.birth_date</code>.
+     */
+    public final TableField<IdentityUsersRecord, LocalDate> BIRTH_DATE = createField(DSL.name("birth_date"), SQLDataType.LOCALDATE.nullable(false), this, "");
 
     private IdentityUsers(Name alias, Table<IdentityUsersRecord> aliased) {
         this(alias, aliased, (Field<?>[]) null, null);

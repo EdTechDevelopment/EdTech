@@ -1,8 +1,8 @@
 package io.github.edtechdevelopment.identity.application.service.account;
 
 import io.github.edtechdevelopment.identity.api.event.UserRegisteredEvent;
-import io.github.edtechdevelopment.identity.application.command.account.RegistrationRole;
 import io.github.edtechdevelopment.identity.application.command.account.RegisterUserCommand;
+import io.github.edtechdevelopment.identity.application.command.account.RegistrationRole;
 import io.github.edtechdevelopment.identity.application.exception.EmailAlreadyExistsException;
 import io.github.edtechdevelopment.identity.application.exception.InvalidUseCaseInputException;
 import io.github.edtechdevelopment.identity.application.mapper.IdentityApiMapper;
@@ -31,6 +31,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.time.Duration;
 import java.time.Instant;
+import java.time.LocalDate;
 import java.util.List;
 import java.util.Objects;
 import java.util.Set;
@@ -69,25 +70,20 @@ public class RegisterUserService implements RegisterUserUseCase {
     ) {
         this.userRepository = Objects.requireNonNull(userRepository, "User repository must not be null");
         this.emailVerificationRepository = Objects.requireNonNull(
-                emailVerificationRepository,
-                "Email verification repository must not be null"
+                emailVerificationRepository, "Email verification repository must not be null"
         );
         this.passwordHasher = Objects.requireNonNull(passwordHasher, "Password hasher must not be null");
         this.verificationTokenGenerator = Objects.requireNonNull(
-                verificationTokenGenerator,
-                "Verification token generator must not be null"
+                verificationTokenGenerator, "Verification token generator must not be null"
         );
         this.verificationTokenHasher = Objects.requireNonNull(
-                verificationTokenHasher,
-                "Verification token hasher must not be null"
+                verificationTokenHasher, "Verification token hasher must not be null"
         );
         this.verificationEmailSender = Objects.requireNonNull(
-                verificationEmailSender,
-                "Verification email sender must not be null"
+                verificationEmailSender, "Verification email sender must not be null"
         );
         this.integrationEventPublisher = Objects.requireNonNull(
-                integrationEventPublisher,
-                "Integration event publisher must not be null"
+                integrationEventPublisher, "Integration event publisher must not be null"
         );
         this.timeProvider = Objects.requireNonNull(timeProvider, "Time provider must not be null");
         this.identityApiMapper = Objects.requireNonNull(identityApiMapper, "Identity API mapper must not be null");
@@ -107,46 +103,30 @@ public class RegisterUserService implements RegisterUserUseCase {
         Instant registeredAt = timeProvider.now();
         Instant verificationExpiresAt = registeredAt.plus(verificationTokenTtl);
         PasswordHash passwordHash = passwordHasher.hash(command.rawPassword());
-
         UUID userId = UUID.randomUUID();
         User user = createUser(
-                userId,
-                email,
-                passwordHash,
-                command.firstName(),
-                command.lastName(),
-                toDomainRoles(command.roles()),
-                registeredAt
+                userId, email, passwordHash, command.firstName(), command.lastName(),
+                command.birthDate(), toDomainRoles(command.roles()), registeredAt
         );
 
         String rawVerificationToken = verificationTokenGenerator.generate();
         VerificationTokenHash verificationTokenHash = verificationTokenHasher.hash(rawVerificationToken);
         EmailVerification verification = EmailVerification.create(
-                UUID.randomUUID(),
-                userId,
-                email,
-                verificationTokenHash,
-                VerificationPurpose.REGISTRATION,
-                registeredAt,
-                verificationExpiresAt
+                UUID.randomUUID(), userId, email, verificationTokenHash,
+                VerificationPurpose.REGISTRATION, registeredAt, verificationExpiresAt
         );
 
         UserRegisteredDomainEvent domainEvent = pullRegistrationEvent(user);
-
         userRepository.save(user);
         emailVerificationRepository.save(verification);
-
         verificationEmailSender.sendVerificationEmail(
-                email,
-                rawVerificationToken,
-                VerificationPurpose.REGISTRATION,
-                verificationExpiresAt
+                email, rawVerificationToken, VerificationPurpose.REGISTRATION, verificationExpiresAt
         );
 
         UserRegisteredEvent integrationEvent = identityApiMapper.toIntegrationEvent(domainEvent);
         integrationEventPublisher.publish(integrationEvent);
 
-        return new RegistrationResult(email.value(), verificationExpiresAt);
+        return new RegistrationResult(userId, email.value(), verificationExpiresAt);
     }
 
     private static void validateCommand(RegisterUserCommand command) {
@@ -169,6 +149,9 @@ public class RegisterUserService implements RegisterUserUseCase {
         if (command.roles() == null || command.roles().isEmpty()) {
             throw new InvalidUseCaseInputException("At least one registration role must be provided");
         }
+        if (command.firstName() == null || command.lastName() == null || command.birthDate() == null) {
+            throw new InvalidUseCaseInputException("Name and birth date must not be null");
+        }
     }
 
     private static boolean containsForbiddenPasswordCharacter(String rawPassword) {
@@ -186,23 +169,12 @@ public class RegisterUserService implements RegisterUserUseCase {
     }
 
     private static User createUser(
-            UUID userId,
-            Email email,
-            PasswordHash passwordHash,
-            String firstName,
-            String lastName,
-            Set<UserRole> roles,
-            Instant registeredAt
+            UUID userId, Email email, PasswordHash passwordHash, String firstName,
+            String lastName, LocalDate birthDate, Set<UserRole> roles, Instant registeredAt
     ) {
         try {
             return User.register(
-                    userId,
-                    email,
-                    passwordHash,
-                    firstName,
-                    lastName,
-                    roles,
-                    registeredAt
+                    userId, email, passwordHash, firstName, lastName, birthDate, roles, registeredAt
             );
         } catch (InvalidUserDataException exception) {
             throw new InvalidUseCaseInputException(exception.getMessage(), exception);
@@ -210,24 +182,13 @@ public class RegisterUserService implements RegisterUserUseCase {
     }
 
     private static Set<UserRole> toDomainRoles(Set<RegistrationRole> roles) {
-        if (roles == null) {
-            return null;
-        }
         return roles.stream()
-                .map(RegisterUserService::toDomainRole)
+                .map(role -> UserRole.valueOf(role.name()))
                 .collect(Collectors.toUnmodifiableSet());
-    }
-
-    private static UserRole toDomainRole(RegistrationRole role) {
-        return switch (role) {
-            case TEACHER -> UserRole.TEACHER;
-            case STUDENT -> UserRole.STUDENT;
-        };
     }
 
     private static UserRegisteredDomainEvent pullRegistrationEvent(User user) {
         List<UserDomainEvent> domainEvents = user.pullDomainEvents();
-
         if (domainEvents.size() != 1 || !(domainEvents.getFirst() instanceof UserRegisteredDomainEvent event)) {
             throw new IllegalStateException("A newly registered user must contain one registration event");
         }

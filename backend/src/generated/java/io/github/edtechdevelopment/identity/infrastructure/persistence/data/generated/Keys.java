@@ -4,11 +4,13 @@
 package io.github.edtechdevelopment.identity.infrastructure.persistence.data.generated;
 
 
+import io.github.edtechdevelopment.identity.infrastructure.persistence.data.generated.tables.IdentityAccountEmailEventOutbox;
 import io.github.edtechdevelopment.identity.infrastructure.persistence.data.generated.tables.IdentityEmailVerifications;
 import io.github.edtechdevelopment.identity.infrastructure.persistence.data.generated.tables.IdentityRefreshTokens;
 import io.github.edtechdevelopment.identity.infrastructure.persistence.data.generated.tables.IdentityUserEmails;
 import io.github.edtechdevelopment.identity.infrastructure.persistence.data.generated.tables.IdentityUserRoles;
 import io.github.edtechdevelopment.identity.infrastructure.persistence.data.generated.tables.IdentityUsers;
+import io.github.edtechdevelopment.identity.infrastructure.persistence.data.generated.tables.records.IdentityAccountEmailEventOutboxRecord;
 import io.github.edtechdevelopment.identity.infrastructure.persistence.data.generated.tables.records.IdentityEmailVerificationsRecord;
 import io.github.edtechdevelopment.identity.infrastructure.persistence.data.generated.tables.records.IdentityRefreshTokensRecord;
 import io.github.edtechdevelopment.identity.infrastructure.persistence.data.generated.tables.records.IdentityUserEmailsRecord;
@@ -34,6 +36,7 @@ public class Keys {
     // UNIQUE and PRIMARY KEY definitions
     // -------------------------------------------------------------------------
 
+    public static final UniqueKey<IdentityAccountEmailEventOutboxRecord> PK_IDENTITY_ACCOUNT_EMAIL_EVENT_OUTBOX = Internal.createUniqueKey(IdentityAccountEmailEventOutbox.IDENTITY_ACCOUNT_EMAIL_EVENT_OUTBOX, DSL.name("pk_identity_account_email_event_outbox"), new TableField[] { IdentityAccountEmailEventOutbox.IDENTITY_ACCOUNT_EMAIL_EVENT_OUTBOX.EVENT_ID }, true);
     public static final UniqueKey<IdentityEmailVerificationsRecord> PK_IDENTITY_EMAIL_VERIFICATIONS = Internal.createUniqueKey(IdentityEmailVerifications.IDENTITY_EMAIL_VERIFICATIONS, DSL.name("pk_identity_email_verifications"), new TableField[] { IdentityEmailVerifications.IDENTITY_EMAIL_VERIFICATIONS.ID }, true);
     public static final UniqueKey<IdentityEmailVerificationsRecord> UQ_IDENTITY_EMAIL_VERIFICATIONS_TOKEN_HASH = Internal.createUniqueKey(IdentityEmailVerifications.IDENTITY_EMAIL_VERIFICATIONS, DSL.name("uq_identity_email_verifications_token_hash"), new TableField[] { IdentityEmailVerifications.IDENTITY_EMAIL_VERIFICATIONS.TOKEN_HASH }, true);
     public static final UniqueKey<IdentityRefreshTokensRecord> PK_IDENTITY_REFRESH_TOKENS = Internal.createUniqueKey(IdentityRefreshTokens.IDENTITY_REFRESH_TOKENS, DSL.name("pk_identity_refresh_tokens"), new TableField[] { IdentityRefreshTokens.IDENTITY_REFRESH_TOKENS.ID }, true);

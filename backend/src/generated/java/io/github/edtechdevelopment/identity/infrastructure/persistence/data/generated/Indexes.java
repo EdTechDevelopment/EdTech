@@ -4,6 +4,7 @@
 package io.github.edtechdevelopment.identity.infrastructure.persistence.data.generated;
 
 
+import io.github.edtechdevelopment.identity.infrastructure.persistence.data.generated.tables.IdentityAccountEmailEventOutbox;
 import io.github.edtechdevelopment.identity.infrastructure.persistence.data.generated.tables.IdentityEmailVerifications;
 import io.github.edtechdevelopment.identity.infrastructure.persistence.data.generated.tables.IdentityRefreshTokens;
 
@@ -23,6 +24,7 @@ public class Indexes {
     // INDEX definitions
     // -------------------------------------------------------------------------
 
+    public static final Index IDX_IDENTITY_ACCOUNT_EMAIL_EVENT_OUTBOX_PENDING = Internal.createIndex(DSL.name("idx_identity_account_email_event_outbox_pending"), IdentityAccountEmailEventOutbox.IDENTITY_ACCOUNT_EMAIL_EVENT_OUTBOX, new OrderField[] { IdentityAccountEmailEventOutbox.IDENTITY_ACCOUNT_EMAIL_EVENT_OUTBOX.NEXT_ATTEMPT_AT, IdentityAccountEmailEventOutbox.IDENTITY_ACCOUNT_EMAIL_EVENT_OUTBOX.EVENT_ID }, false);
     public static final Index IDX_IDENTITY_EMAIL_VERIFICATIONS_EXPIRES_AT = Internal.createIndex(DSL.name("idx_identity_email_verifications_expires_at"), IdentityEmailVerifications.IDENTITY_EMAIL_VERIFICATIONS, new OrderField[] { IdentityEmailVerifications.IDENTITY_EMAIL_VERIFICATIONS.EXPIRES_AT }, false);
     public static final Index IDX_IDENTITY_EMAIL_VERIFICATIONS_USER_PURPOSE = Internal.createIndex(DSL.name("idx_identity_email_verifications_user_purpose"), IdentityEmailVerifications.IDENTITY_EMAIL_VERIFICATIONS, new OrderField[] { IdentityEmailVerifications.IDENTITY_EMAIL_VERIFICATIONS.USER_ID, IdentityEmailVerifications.IDENTITY_EMAIL_VERIFICATIONS.PURPOSE }, false);
     public static final Index IDX_IDENTITY_REFRESH_TOKENS_EXPIRES_AT = Internal.createIndex(DSL.name("idx_identity_refresh_tokens_expires_at"), IdentityRefreshTokens.IDENTITY_REFRESH_TOKENS, new OrderField[] { IdentityRefreshTokens.IDENTITY_REFRESH_TOKENS.EXPIRES_AT }, false);

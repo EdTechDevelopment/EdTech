@@ -1,17 +1,13 @@
 package io.github.edtechdevelopment.identity.presentation.auth.controller;
 
-import io.github.edtechdevelopment.identity.application.port.in.account.RegisterUserUseCase;
 import io.github.edtechdevelopment.identity.application.port.in.authentication.LoginUseCase;
 import io.github.edtechdevelopment.identity.application.port.in.authentication.LogoutUseCase;
 import io.github.edtechdevelopment.identity.application.port.in.authentication.RefreshTokenUseCase;
 import io.github.edtechdevelopment.identity.application.result.AuthenticationResult;
-import io.github.edtechdevelopment.identity.application.result.RegistrationResult;
 import io.github.edtechdevelopment.identity.presentation.auth.cookie.RefreshTokenCookieFactory;
 import io.github.edtechdevelopment.identity.presentation.auth.mapper.AuthPresentationMapper;
 import io.github.edtechdevelopment.identity.presentation.auth.model.request.LoginRequest;
-import io.github.edtechdevelopment.identity.presentation.auth.model.request.RegisterRequest;
 import io.github.edtechdevelopment.identity.presentation.auth.model.response.TokenResponse;
-import io.github.edtechdevelopment.identity.presentation.auth.model.response.VerificationPendingResponse;
 import jakarta.validation.Valid;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.ResponseCookie;
@@ -28,7 +24,6 @@ import java.util.Objects;
 @RequestMapping("/api/v1/auth")
 public final class AuthController {
 
-    private final RegisterUserUseCase registerUserUseCase;
     private final LoginUseCase loginUseCase;
     private final RefreshTokenUseCase refreshTokenUseCase;
     private final LogoutUseCase logoutUseCase;
@@ -36,17 +31,12 @@ public final class AuthController {
     private final RefreshTokenCookieFactory refreshTokenCookieFactory;
 
     public AuthController(
-            RegisterUserUseCase registerUserUseCase,
             LoginUseCase loginUseCase,
             RefreshTokenUseCase refreshTokenUseCase,
             LogoutUseCase logoutUseCase,
             AuthPresentationMapper mapper,
             RefreshTokenCookieFactory refreshTokenCookieFactory
     ) {
-        this.registerUserUseCase = Objects.requireNonNull(
-                registerUserUseCase,
-                "Register user use case must not be null"
-        );
         this.loginUseCase = Objects.requireNonNull(loginUseCase, "Login use case must not be null");
         this.refreshTokenUseCase = Objects.requireNonNull(
                 refreshTokenUseCase,
@@ -58,12 +48,6 @@ public final class AuthController {
                 refreshTokenCookieFactory,
                 "Refresh token cookie factory must not be null"
         );
-    }
-
-    @PostMapping("/register")
-    public ResponseEntity<VerificationPendingResponse> register(@Valid @RequestBody RegisterRequest request) {
-        RegistrationResult result = registerUserUseCase.register(mapper.toCommand(request));
-        return ResponseEntity.accepted().body(mapper.toResponse(result));
     }
 
     @PostMapping("/login")

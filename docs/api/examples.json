@@ -179,6 +179,7 @@
   },
   "TeacherProfileUpdateRequest": {
     "displayName": "Анна Петрова",
+    "contactEmail": "anna@example.com",
     "contactDetails": [
       "@anna_tutor"
     ],
@@ -193,28 +194,50 @@
   },
   "StudentProfileUpdateRequest": {
     "displayName": "Илья",
+    "contactEmail": "ilya@example.com",
     "contactDetails": [
       "@ilya_study"
     ],
     "subjectCodes": [],
     "photoUrl": null
   },
-  "ProfileEmailChangeRequest": {
-    "newEmail": "new.teacher@example.com"
-  },
-  "ProfileEmailConfirmationRequest": {
-    "target": "PENDING"
-  },
-  "ProfileEmailTokenRequest": {
-    "token": "opaque-verification-token"
-  },
   "CreatedInvitationResponse": {
     "invitationId": "6d06625c-6974-44ef-9e1b-14c31c573d78",
     "expiresAt": "2026-11-01T12:00:00Z"
   },
+  "PublicTeacherProfileSearchPage": {
+    "items": [
+      {
+        "userId": "22b0872b-ecfb-4227-befb-154725b14d5f",
+        "age": 31,
+        "displayName": "Анна Петрова",
+        "photoUrl": null,
+        "subjectCodes": [
+          "MATH"
+        ],
+        "city": "Москва",
+        "descriptionPreview": "Помогаю готовиться к экзаменам"
+      }
+    ],
+    "nextCursor": "opaque-cursor"
+  },
+  "PublicStudentProfileSearchPage": {
+    "items": [
+      {
+        "userId": "0b062d88-adb9-487e-b982-1b10553e2ab5",
+        "age": 18,
+        "displayName": "Илья",
+        "photoUrl": null,
+        "subjectCodes": [
+          "MATH"
+        ]
+      }
+    ],
+    "nextCursor": null
+  },
   "PublicTeacherProfileResponse": {
     "userId": "22b0872b-ecfb-4227-befb-154725b14d5f",
-    "birthDate": "1995-05-12",
+    "age": 31,
     "displayName": "Анна Петрова",
     "contactEmail": "anna.teacher@example.com",
     "contactDetails": [
@@ -231,9 +254,9 @@
   },
   "PublicStudentProfileResponse": {
     "userId": "0b062d88-adb9-487e-b982-1b10553e2ab5",
-    "birthDate": "2008-03-07",
+    "age": 18,
     "displayName": "Илья",
-    "contactEmail": null,
+    "contactEmail": "ilya.contact@example.com",
     "contactDetails": [
       "@ilya_study"
     ],

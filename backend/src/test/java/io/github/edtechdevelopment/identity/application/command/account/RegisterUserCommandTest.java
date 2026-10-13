@@ -2,6 +2,7 @@ package io.github.edtechdevelopment.identity.application.command.account;
 
 import org.junit.jupiter.api.Test;
 
+import java.time.LocalDate;
 import java.util.EnumSet;
 import java.util.Set;
 
@@ -54,6 +55,7 @@ class RegisterUserCommandTest {
                 "secret-password",
                 "Anna",
                 "Petrova",
+                LocalDate.of(2000, 1, 1),
                 roles);
     }
 }

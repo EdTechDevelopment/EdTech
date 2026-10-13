@@ -14,6 +14,7 @@ import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.Instant;
+import java.time.LocalDate;
 import java.time.OffsetDateTime;
 import java.time.ZoneOffset;
 import java.util.ArrayList;
@@ -57,10 +58,30 @@ class UserJooqRepositoryIntegrationTest {
                 () -> assertEquals(USER_ID, loadedData.user().getId()),
                 () -> assertEquals("Anna", loadedData.user().getFirstName()),
                 () -> assertEquals("ACTIVE", loadedData.user().getStatus()),
+                () -> assertEquals(LocalDate.of(2000, 1, 1), loadedData.user().getBirthDate()),
                 () -> assertEquals(Set.of(CURRENT_EMAIL, PENDING_EMAIL), emails(loadedData)),
                 () -> assertEquals(Set.of("STUDENT", "TEACHER"), roles(loadedData)),
                 () -> assertEquals(Optional.empty(), repository.findById(SECOND_USER_ID))
         );
+    }
+
+    @Test
+    void readsBatchActiveUsersAndOnlyVerifiedCurrentEmail() {
+        repository.save(userData(USER_ID, CURRENT_EMAIL, PENDING_EMAIL, List.of("STUDENT")));
+        UserPersistenceData pending = userData(SECOND_USER_ID, "pending@example.com", null, List.of("STUDENT"));
+        pending.user().setStatus("PENDING_EMAIL_VERIFICATION");
+        pending.user().setEmailVerifiedAt(null);
+        repository.save(pending);
+
+        assertEquals(Set.of(USER_ID, SECOND_USER_ID),
+                repository.findByIds(Set.of(USER_ID, SECOND_USER_ID)).keySet());
+        assertEquals(Set.of(USER_ID), repository.findActiveUserIds(Set.of(USER_ID, SECOND_USER_ID)));
+        assertEquals(Optional.of(USER_ID), repository.findByVerifiedEmail(CURRENT_EMAIL)
+                .map(data -> data.user().getId()));
+        assertTrue(repository.findByVerifiedEmail(PENDING_EMAIL).isEmpty());
+        assertTrue(repository.findByVerifiedEmail("pending@example.com").isEmpty());
+        assertTrue(repository.findByIds(Set.of()).isEmpty());
+        assertTrue(repository.findActiveUserIds(Set.of()).isEmpty());
     }
 
     @Test
@@ -163,7 +184,8 @@ class UserJooqRepositoryIntegrationTest {
                 "ACTIVE",
                 toOffsetDateTime(UPDATED_AT),
                 toOffsetDateTime(CREATED_AT),
-                toOffsetDateTime(UPDATED_AT)
+                toOffsetDateTime(UPDATED_AT),
+                java.time.LocalDate.of(2000, 1, 1)
         );
 
         List<IdentityUserEmailsRecord> emailRecords = new ArrayList<>();

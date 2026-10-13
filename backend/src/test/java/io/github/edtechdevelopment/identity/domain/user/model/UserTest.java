@@ -5,6 +5,7 @@ import io.github.edtechdevelopment.identity.domain.user.exception.InvalidUserDat
 import org.junit.jupiter.api.Test;
 
 import java.time.Instant;
+import java.time.LocalDate;
 import java.util.EnumSet;
 import java.util.HashSet;
 import java.util.Set;
@@ -31,6 +32,7 @@ class UserTest {
                 PASSWORD_HASH,
                 "  Anna  ",
                 "  Petrova  ",
+                LocalDate.of(2000, 1, 1),
                 Set.of(UserRole.STUDENT),
                 REGISTERED_AT
         );
@@ -78,6 +80,7 @@ class UserTest {
                 PASSWORD_HASH,
                 "Anna",
                 "Petrova",
+                LocalDate.of(2000, 1, 1),
                 sourceRoles,
                 REGISTERED_AT
         );
@@ -101,6 +104,7 @@ class UserTest {
                 PASSWORD_HASH,
                 "Anna",
                 "Petrova",
+                LocalDate.of(2000, 1, 1),
                 Set.of(UserRole.TEACHER, UserRole.STUDENT),
                 UserStatus.ACTIVE,
                 verifiedAt,
@@ -123,23 +127,23 @@ class UserTest {
         assertAll(
                 () -> assertThrows(
                         InvalidUserDataException.class,
-                        () -> User.register(null, EMAIL, PASSWORD_HASH, "Anna", "Petrova", Set.of(UserRole.STUDENT), REGISTERED_AT)
+                        () -> User.register(null, EMAIL, PASSWORD_HASH, "Anna", "Petrova", LocalDate.of(2000, 1, 1), Set.of(UserRole.STUDENT), REGISTERED_AT)
                 ),
                 () -> assertThrows(
                         InvalidUserDataException.class,
-                        () -> User.register(USER_ID, null, PASSWORD_HASH, "Anna", "Petrova", Set.of(UserRole.STUDENT), REGISTERED_AT)
+                        () -> User.register(USER_ID, null, PASSWORD_HASH, "Anna", "Petrova", LocalDate.of(2000, 1, 1), Set.of(UserRole.STUDENT), REGISTERED_AT)
                 ),
                 () -> assertThrows(
                         InvalidUserDataException.class,
-                        () -> User.register(USER_ID, EMAIL, null, "Anna", "Petrova", Set.of(UserRole.STUDENT), REGISTERED_AT)
+                        () -> User.register(USER_ID, EMAIL, null, "Anna", "Petrova", LocalDate.of(2000, 1, 1), Set.of(UserRole.STUDENT), REGISTERED_AT)
                 ),
                 () -> assertThrows(
                         InvalidUserDataException.class,
-                        () -> User.register(USER_ID, EMAIL, PASSWORD_HASH, "Anna", "Petrova", Set.of(), REGISTERED_AT)
+                        () -> User.register(USER_ID, EMAIL, PASSWORD_HASH, "Anna", "Petrova", LocalDate.of(2000, 1, 1), Set.of(), REGISTERED_AT)
                 ),
                 () -> assertThrows(
                         InvalidUserDataException.class,
-                        () -> User.register(USER_ID, EMAIL, PASSWORD_HASH, "Anna", "Petrova", Set.of(UserRole.STUDENT), null)
+                        () -> User.register(USER_ID, EMAIL, PASSWORD_HASH, "Anna", "Petrova", LocalDate.of(2000, 1, 1), Set.of(UserRole.STUDENT), null)
                 )
         );
     }
@@ -151,19 +155,19 @@ class UserTest {
         assertAll(
                 () -> assertThrows(
                         InvalidUserDataException.class,
-                        () -> User.register(USER_ID, EMAIL, PASSWORD_HASH, null, "Petrova", Set.of(UserRole.STUDENT), REGISTERED_AT)
+                        () -> User.register(USER_ID, EMAIL, PASSWORD_HASH, null, "Petrova", LocalDate.of(2000, 1, 1), Set.of(UserRole.STUDENT), REGISTERED_AT)
                 ),
                 () -> assertThrows(
                         InvalidUserDataException.class,
-                        () -> User.register(USER_ID, EMAIL, PASSWORD_HASH, "   ", "Petrova", Set.of(UserRole.STUDENT), REGISTERED_AT)
+                        () -> User.register(USER_ID, EMAIL, PASSWORD_HASH, "   ", "Petrova", LocalDate.of(2000, 1, 1), Set.of(UserRole.STUDENT), REGISTERED_AT)
                 ),
                 () -> assertThrows(
                         InvalidUserDataException.class,
-                        () -> User.register(USER_ID, EMAIL, PASSWORD_HASH, nameOverLimit, "Petrova", Set.of(UserRole.STUDENT), REGISTERED_AT)
+                        () -> User.register(USER_ID, EMAIL, PASSWORD_HASH, nameOverLimit, "Petrova", LocalDate.of(2000, 1, 1), Set.of(UserRole.STUDENT), REGISTERED_AT)
                 ),
                 () -> assertThrows(
                         InvalidUserDataException.class,
-                        () -> User.register(USER_ID, EMAIL, PASSWORD_HASH, "Anna", "\t", Set.of(UserRole.STUDENT), REGISTERED_AT)
+                        () -> User.register(USER_ID, EMAIL, PASSWORD_HASH, "Anna", "\t", LocalDate.of(2000, 1, 1), Set.of(UserRole.STUDENT), REGISTERED_AT)
                 )
         );
     }
@@ -175,8 +179,39 @@ class UserTest {
 
         assertThrows(
                 InvalidUserDataException.class,
-                () -> User.register(USER_ID, EMAIL, PASSWORD_HASH, "Anna", "Petrova", roles, REGISTERED_AT)
+                () -> User.register(USER_ID, EMAIL, PASSWORD_HASH, "Anna", "Petrova", LocalDate.of(2000, 1, 1), roles, REGISTERED_AT)
         );
+    }
+
+    @Test
+    void rejectsMissingOrFutureBirthDate() {
+        assertAll(
+                () -> assertThrows(InvalidUserDataException.class, () -> User.register(
+                        USER_ID, EMAIL, PASSWORD_HASH, "Anna", "Petrova", null,
+                        Set.of(UserRole.STUDENT), REGISTERED_AT
+                )),
+                () -> assertThrows(InvalidUserDataException.class, () -> User.register(
+                        USER_ID, EMAIL, PASSWORD_HASH, "Anna", "Petrova",
+                        LocalDate.of(2026, 9, 14), Set.of(UserRole.STUDENT), REGISTERED_AT
+                ))
+        );
+    }
+
+    @Test
+    void addsSecondRoleOnlyOnceToActiveUser() {
+        User user = registeredUser();
+        Instant activatedAt = REGISTERED_AT.plusSeconds(60);
+
+        assertThrows(io.github.edtechdevelopment.identity.domain.user.exception.InvalidUserStateException.class,
+                () -> user.addRole(UserRole.TEACHER, activatedAt));
+
+        user.verifyRegistrationEmail(EMAIL, activatedAt);
+        user.addRole(UserRole.TEACHER, activatedAt.plusSeconds(60));
+
+        assertEquals(Set.of(UserRole.STUDENT, UserRole.TEACHER), user.roles());
+        assertEquals(activatedAt.plusSeconds(60), user.updatedAt());
+        assertThrows(io.github.edtechdevelopment.identity.domain.user.exception.InvalidUserStateException.class,
+                () -> user.addRole(UserRole.TEACHER, activatedAt.plusSeconds(120)));
     }
 
     @Test
@@ -190,6 +225,7 @@ class UserTest {
                         PASSWORD_HASH,
                         "Anna",
                         "Petrova",
+                        LocalDate.of(2000, 1, 1),
                         Set.of(UserRole.STUDENT),
                         UserStatus.ACTIVE,
                         REGISTERED_AT,
@@ -213,6 +249,7 @@ class UserTest {
                                 PASSWORD_HASH,
                                 "Anna",
                                 "Petrova",
+                                LocalDate.of(2000, 1, 1),
                                 Set.of(UserRole.STUDENT),
                                 UserStatus.ACTIVE,
                                 REGISTERED_AT,
@@ -229,6 +266,7 @@ class UserTest {
                                 PASSWORD_HASH,
                                 "Anna",
                                 "Petrova",
+                                LocalDate.of(2000, 1, 1),
                                 Set.of(UserRole.STUDENT),
                                 UserStatus.ACTIVE,
                                 beforeRegistration,
@@ -246,6 +284,7 @@ class UserTest {
                 PASSWORD_HASH,
                 "Anna",
                 "Petrova",
+                LocalDate.of(2000, 1, 1),
                 Set.of(UserRole.STUDENT),
                 REGISTERED_AT
         );

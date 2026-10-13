@@ -4,8 +4,7 @@
 
 Visual Paradigm source, сгенерированные HTML, каталоги и изображения отражают
 исторический снимок Identity и ещё не переэкспортированы после решений Tutoring.
-В частности, старый `IdentityPersonalDataQuery` для карточек и закрытая
-`birthDate` в них не являются целевым контрактом. Актуальные публичные профили
+В частности, старый `IdentityPersonalDataQuery` для карточек не является целевым контрактом. Точная `birthDate` остаётся только в Identity; для профилей модуль отдаёт вычисленный возраст. Актуальные публичные профили
 описаны в [архитектуре Tutoring](../tutoring/TUTORING_ARCHITECTURE.md).
 
 ## Состав комплекта
@@ -42,15 +41,7 @@ Visual Paradigm source, сгенерированные HTML, каталоги и
 
 ## Статус реализации
 
-Identity завершён как самостоятельный MVP-фундамент, но не как весь целевой
-модуль. Реализованы регистрация аккаунта, verification/resend, authentication,
-refresh rotation/logout, изменение account-данных, persistence/security,
-доставка писем и `IdentityQuery.findUserById`.
-
-До полной готовности нужны Tutoring и Workflows: они позволят добавить
-`birthDate`, атомарную регистрацию с обязательными профилями, onboarding второй
-роли и составной `GET /me`. Production-hardening и актуальные открытые решения
-перечислены в [реестре решений](../../decisions/README.md).
+На 2026-10-13 Identity подключён к завершённому MVP Tutoring/Workflows: HTTP-регистрацию с профилями координирует RegistrationWorkflow; onboarding добавляет роль и профиль атомарно; GET /me собирает собственный аккаунт и профили. Внутренний RegisterUserUseCase и RegisterUserService остаются в Identity. Login, refresh, logout, verification/resend и PATCH /me сохраняют свои пути. OwnAccountQuery/OwnAccountView предназначены сборке account-данных владельца; Tutoring продолжает получать только возраст. Открытые эксплуатационные решения остаются в [реестре](../../decisions/README.md).
 
 ## Границы модуля
 
@@ -74,15 +65,13 @@ Infrastructure реализует выходные порты Application. Appli
 1. `User` и `EmailVerification` являются отдельными aggregate roots.
 2. Текущий и ожидающий подтверждения email принадлежат агрегату `User`, но сохраняются в отдельной таблице `identity_user_emails`.
 3. Конкурентное резервирование email защищено ограничением `UNIQUE(email)` в PostgreSQL.
-4. Access token — короткоживущий JWT RS256. Входящий JWT проверяет Spring Security без обращения к базе на каждый запрос.
+4. Access token — короткоживущий JWT RS256. Подпись входящего JWT проверяет Spring Security. Для защищённых Tutoring-запросов дополнительно проверяются актуальные ACTIVE-статус и нужные роли через IdentityQuery.
 5. Refresh token и verification token выдаются как случайные URL-safe значения; в таблицах Identity хранится только SHA-256 hash в lowercase hex-формате.
    Verification token использует 32 байта случайности и URL-safe Base64 без padding.
 6. Refresh token передаётся в cookie с `HttpOnly`, `SameSite=Lax`, ограниченным путём `/api/v1/auth` и `Secure` в production.
 7. После подтверждения email `ConfirmEmailUseCase` возвращает `AuthenticationResult`, а контроллер устанавливает refresh cookie.
 8. Отправка email выполняется через публичный API Notifications. Identity не импортирует внутренние пакеты Notifications; запрос доставки атомарно сохраняется в `notification_email_deliveries`.
-9. Публичное событие передаётся в Spring внутри транзакционного use case;
-   подписчики, которым нужны зафиксированные данные, обрабатывают его через
-   `@TransactionalEventListener(AFTER_COMMIT)`. Durable delivery требует outbox.
+9. AccountEmailVerifiedEvent сохраняется в identity_account_email_event_outbox в транзакции подтверждения email. После commit диспетчер доставляет его Tutoring с retry; published_at, receipt и привязка фиксируются атомарно. Остальные Identity events сохраняют прежнюю Spring-публикацию. [ADR delivery](../../decisions/tutoring-durable-delivery.md) описывает границы.
 10. Ошибки контроллеров и Spring Security преобразуются в единый формат `ApiError`.
 11. Refresh сначала неблокирующе находит владельца token, затем блокирует User и
     повторно загружает token через `findByTokenHashForUpdate`. Единый порядок
@@ -120,3 +109,10 @@ Infrastructure реализует выходные порты Application. Appli
 - ошибки Spring Security имеют тот же контракт `ApiError`, что и ошибки REST-контроллеров;
 - нет горизонтальных зависимостей между `service.account`, `service.verification` и `service.authentication`;
 - ArchUnit и Spring Modulith подтверждают описанные границы пакетов и модулей.
+
+
+## Изменения публичных контрактов этапов 6–7
+
+OwnAccountQuery реализует OwnAccountQueryService через собственный UserRepository; возвращает OwnAccountView без Domain types. RegistrationGatewayAdapter и RoleGatewayAdapter преобразуют ожидаемые внутренние ошибки в IdentityCommandException публичного API. Workflows не импортирует Identity Domain/Application и не повторяет регистрацию или бизнес-валидацию.
+
+Старый HTTP RegisterRequest и registration-метод AuthController перенесены в ответственность Workflows с его собственными DTO. AuthPresentationMapper обслуживает оставшиеся Identity auth-запросы. Исторические UML-каталоги могут содержать GetCurrentUserUseCase/GetCurrentUserService: реализованный составной GET /me вызывает GetMeUseCase/MeQueryFacade в Workflows и OwnAccountQuery в Identity.

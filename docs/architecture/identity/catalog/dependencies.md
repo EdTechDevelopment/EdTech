@@ -44,6 +44,10 @@ identity.infrastructure.messaging.event
 
 identity.infrastructure.time
     ..> identity.application.port.out.TimeProvider
+
+identity.infrastructure.integration
+    ..> identity.api
+    ..> identity.application.port.in.account
 ```
 
 Запрещённые направления:
@@ -65,6 +69,17 @@ identity                      -X-> notifications.internal
 ```text
 application.service.account.RegisterUserService
     ..|> application.port.in.account.RegisterUserUseCase
+
+application.service.account.AddUserRoleService
+    ..|> application.port.in.account.AddUserRoleUseCase
+
+infrastructure.integration.RegistrationGatewayAdapter
+    ..|> api.IdentityRegistrationGateway
+    --> application.port.in.account.RegisterUserUseCase
+
+infrastructure.integration.RoleGatewayAdapter
+    ..|> api.IdentityRoleGateway
+    --> application.port.in.account.AddUserRoleUseCase
 
 application.service.account.GetCurrentUserService [PLANNED]
     ..|> application.port.in.account.GetCurrentUserUseCase

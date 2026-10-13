@@ -7,9 +7,9 @@
 | Модуль | Документация | Состояние документации |
 |---|---|---|
 | Identity | [identity/README.md](identity/README.md) | Детальная спецификация, каталоги и исторический экспорт модели. |
-| Tutoring | [tutoring/README.md](tutoring/README.md) | Итоговая архитектура и согласованные этапы проектирования; реализация впереди. |
+| Tutoring | [tutoring/README.md](tutoring/README.md) | MVP реализован и проверен в этапах 1–7; Scheduling-зависимая отвязка/статистика отложены. |
 | Notifications | [notifications/README.md](notifications/README.md) | Граница модуля и ссылки на утверждённые межмодульные требования. |
 | Scheduling | [scheduling/README.md](scheduling/README.md) | Граница модуля и требования к интеграции с Tutoring. |
-| Workflows | [workflows/README.md](workflows/README.md) | Составные сценарии и их транзакционные границы. |
+| Workflows | [workflows/README.md](workflows/README.md) | Регистрация с профилями, onboarding и /me реализованы; транзакции и журнал операций описаны. |
 
 Детальные документы модулей имеют приоритет для внутренних контрактов соответствующего модуля; общие правила и владение данными остаются в [BACKEND_ARCHITECTURE.md](BACKEND_ARCHITECTURE.md). Исторический экспорт Visual Paradigm относится к Identity и хранится только в `identity/`. Наличие документации не означает, что описанное уже реализовано в коде.

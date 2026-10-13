@@ -82,7 +82,7 @@ class RegistrationFlowIntegrationTest {
     void registersUserThroughHttpAndPersistsTheWholeRegistrationFlow() throws Exception {
         String requestEmail = testEmail.toUpperCase();
 
-        MvcResult mvcResult = mockMvc.perform(post("/api/v1/auth/register")
+        MvcResult mvcResult = mockMvc.perform(post("/api/v1/auth/register").header("Idempotency-Key", UUID.randomUUID())
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(validRegistrationJson(requestEmail)))
                 .andExpect(status().isAccepted())
@@ -127,6 +127,7 @@ class RegistrationFlowIntegrationTest {
                 () -> assertEquals("CURRENT", emailRecord.getKind()),
                 () -> assertEquals("Test", userRecord.getFirstName()),
                 () -> assertEquals("User", userRecord.getLastName()),
+                () -> assertEquals(java.time.LocalDate.of(2000, 1, 1), userRecord.getBirthDate()),
                 () -> assertEquals("PENDING_EMAIL_VERIFICATION", userRecord.getStatus()),
                 () -> assertNull(userRecord.getEmailVerifiedAt()),
                 () -> assertNotEquals(RAW_PASSWORD, userRecord.getPasswordHash()),
@@ -171,7 +172,7 @@ class RegistrationFlowIntegrationTest {
 
     @Test
     void returnsValidationErrorWithoutCreatingDatabaseRecords() throws Exception {
-        mockMvc.perform(post("/api/v1/auth/register")
+        mockMvc.perform(post("/api/v1/auth/register").header("Idempotency-Key", UUID.randomUUID())
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(validRegistrationJson(testEmail).replace(RAW_PASSWORD, "Password 42")))
                 .andExpect(status().isBadRequest())
@@ -184,11 +185,25 @@ class RegistrationFlowIntegrationTest {
     }
 
     @Test
+    void requiresBirthDateInRegistrationRequest() throws Exception {
+        String requestBody = validRegistrationJson(testEmail)
+                .replace("\"birthDate\": \"2000-01-01\",", "");
+
+        mockMvc.perform(post("/api/v1/auth/register").header("Idempotency-Key", UUID.randomUUID())
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(requestBody))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.fieldErrors[0].field").value("birthDate"));
+
+        assertNoTestRecordsRemain();
+    }
+
+    @Test
     void rejectsDuplicateRoles() throws Exception {
         String requestBody = validRegistrationJson(testEmail)
                 .replace("[\"STUDENT\", \"TEACHER\"]", "[\"STUDENT\", \"STUDENT\"]");
 
-        mockMvc.perform(post("/api/v1/auth/register")
+        mockMvc.perform(post("/api/v1/auth/register").header("Idempotency-Key", UUID.randomUUID())
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(requestBody))
                 .andExpect(status().isBadRequest())
@@ -204,7 +219,7 @@ class RegistrationFlowIntegrationTest {
         String requestBody = validRegistrationJson(testEmail)
                 .replace("[\"STUDENT\", \"TEACHER\"]", "[\"STUDENT\", null]");
 
-        mockMvc.perform(post("/api/v1/auth/register")
+        mockMvc.perform(post("/api/v1/auth/register").header("Idempotency-Key", UUID.randomUUID())
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(requestBody))
                 .andExpect(status().isBadRequest())
@@ -219,7 +234,7 @@ class RegistrationFlowIntegrationTest {
         String requestBody = validRegistrationJson(testEmail)
                 .replace("\n}", ",\n  \"unexpectedField\": true\n}");
 
-        mockMvc.perform(post("/api/v1/auth/register")
+        mockMvc.perform(post("/api/v1/auth/register").header("Idempotency-Key", UUID.randomUUID())
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(requestBody))
                 .andExpect(status().isBadRequest())
@@ -233,14 +248,14 @@ class RegistrationFlowIntegrationTest {
 
     @Test
     void returnsConflictWhenEmailIsAlreadyRegistered() throws Exception {
-        mockMvc.perform(post("/api/v1/auth/register")
+        mockMvc.perform(post("/api/v1/auth/register").header("Idempotency-Key", UUID.randomUUID())
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(validRegistrationJson(testEmail)))
                 .andExpect(status().isAccepted());
 
         createdUserId = requireCurrentEmailRecord().getUserId();
 
-        mockMvc.perform(post("/api/v1/auth/register")
+        mockMvc.perform(post("/api/v1/auth/register").header("Idempotency-Key", UUID.randomUUID())
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(validRegistrationJson(testEmail.toUpperCase())))
                 .andExpect(status().isConflict())
@@ -303,7 +318,10 @@ class RegistrationFlowIntegrationTest {
                   "password": "%s",
                   "firstName": "  Test  ",
                   "lastName": "  User  ",
-                  "roles": ["STUDENT", "TEACHER"]
+                  "birthDate": "2000-01-01",
+                  "roles": ["STUDENT", "TEACHER"],
+                  "studentProfile": {"displayName":"Student","contactEmail":"contact@example.test","contactDetails":[],"subjectCodes":[]},
+                  "teacherProfile": {"displayName":"Teacher","contactEmail":"contact@example.test","contactDetails":[],"subjectCodes":["MATH"]}
                 }
                 """.formatted(email, RAW_PASSWORD);
     }
