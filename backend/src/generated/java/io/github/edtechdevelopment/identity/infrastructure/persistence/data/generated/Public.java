@@ -4,6 +4,7 @@
 package io.github.edtechdevelopment.identity.infrastructure.persistence.data.generated;
 
 
+import io.github.edtechdevelopment.identity.infrastructure.persistence.data.generated.tables.IdentityAccountEmailEventOutbox;
 import io.github.edtechdevelopment.identity.infrastructure.persistence.data.generated.tables.IdentityEmailVerifications;
 import io.github.edtechdevelopment.identity.infrastructure.persistence.data.generated.tables.IdentityRefreshTokens;
 import io.github.edtechdevelopment.identity.infrastructure.persistence.data.generated.tables.IdentityUserEmails;
@@ -31,6 +32,11 @@ public class Public extends SchemaImpl {
      * The reference instance of <code>public</code>
      */
     public static final Public PUBLIC = new Public();
+
+    /**
+     * The table <code>public.identity_account_email_event_outbox</code>.
+     */
+    public final IdentityAccountEmailEventOutbox IDENTITY_ACCOUNT_EMAIL_EVENT_OUTBOX = IdentityAccountEmailEventOutbox.IDENTITY_ACCOUNT_EMAIL_EVENT_OUTBOX;
 
     /**
      * The table <code>public.identity_email_verifications</code>.
@@ -73,6 +79,7 @@ public class Public extends SchemaImpl {
     @Override
     public final List<Table<?>> getTables() {
         return Arrays.asList(
+            IdentityAccountEmailEventOutbox.IDENTITY_ACCOUNT_EMAIL_EVENT_OUTBOX,
             IdentityEmailVerifications.IDENTITY_EMAIL_VERIFICATIONS,
             IdentityRefreshTokens.IDENTITY_REFRESH_TOKENS,
             IdentityUserEmails.IDENTITY_USER_EMAILS,

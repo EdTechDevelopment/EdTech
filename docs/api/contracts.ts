@@ -1,6 +1,3 @@
-// Synchronized with scheduling.openapi.json, contract v1.2.0.
-// Date/time/date values are JSON strings. IDs and cursors are opaque.
-
 export type UserRole = "TEACHER" | "STUDENT";
 export type UserStatus = "PENDING_EMAIL_VERIFICATION" | "ACTIVE" | "SUSPENDED" | "DEACTIVATED";
 
@@ -155,9 +152,10 @@ export type SentInvitation = {
   expiresAt: string;
   respondedAt: string | null;
 };
+export type IncomingTeacherSummary = { userId: string; displayName: string };
 export type IncomingInvitation = {
   invitationId: string;
-  teacher: TeacherSummary;
+  teacher: IncomingTeacherSummary;
   status: InvitationStatus;
   createdAt: string;
   expiresAt: string;
@@ -165,10 +163,12 @@ export type IncomingInvitation = {
 };
 export type SentInvitationPage = { items: Array<SentInvitation>; nextCursor: string | null };
 export type IncomingInvitationPage = { items: Array<IncomingInvitation>; nextCursor: string | null };
-export type InvitationDecisionResult = { invitationId: string; status: "ACCEPTED" | "REJECTED" };
+export type AcceptedInvitationResponse = { invitationId: string; teacherUserId: string; studentUserId: string; linkedAt: string };
+export type RejectedInvitationResponse = { invitationId: string; status: "REJECTED" };
+export type InvitationDecisionResult = AcceptedInvitationResponse | RejectedInvitationResponse;
 
-export type LinkedStudentItem = { linkedAt: string; profile: PublicStudentProfileResponse };
-export type LinkedTeacherItem = { linkedAt: string; profile: PublicTeacherProfileResponse };
+export type LinkedStudentItem = { linkedAt: string; student: PublicStudentProfileResponse };
+export type LinkedTeacherItem = { linkedAt: string; teacher: PublicTeacherProfileResponse };
 export type LinkedStudentsPage = { items: Array<LinkedStudentItem>; nextCursor: string | null };
 export type LinkedTeachersPage = { items: Array<LinkedTeacherItem>; nextCursor: string | null };
 
@@ -440,11 +440,11 @@ export type SetLessonStatusRequest = {
 
 export type FieldError = {
   field: string;
-  code: string;
+  code?: string;
   message: string;
 };
 
-export type ErrorCode = "VALIDATION_ERROR" | "UNKNOWN_SUBJECT" | "UNAUTHENTICATED" | "INVALID_CREDENTIALS" | "EMAIL_NOT_VERIFIED" | "INVALID_REFRESH_TOKEN" | "FORBIDDEN" | "NOT_FOUND" | "PROFILE_NOT_FOUND" | "EMAIL_ALREADY_EXISTS" | "INVALID_VERIFICATION_TOKEN" | "INVITATION_ALREADY_PENDING" | "INVITATION_EXPIRED" | "INVALID_INVITATION_STATE" | "ALREADY_LINKED" | "STUDENT_NOT_LINKED" | "LESSON_OVERLAP" | "INVALID_LESSON_STATE" | "RATE_LIMIT_EXCEEDED" | "ROLE_ALREADY_ASSIGNED" | "ROLE_PROFILE_MISMATCH" | "IDEMPOTENCY_CONFLICT" | "PROFILE_EMAIL_VERIFICATION_REQUIRED" | "INVALID_PROFILE_EMAIL_VERIFICATION_TOKEN" | "INTERNAL_ERROR";
+export type ErrorCode = "ROLE_ALREADY_ENABLED" | "ACCOUNT_STATE_CONFLICT" | "ACCOUNT_NOT_ACTIVE" | "ACCOUNT_UNAVAILABLE" | "PROFILE_INCONSISTENCY" | "UNKNOWN_SUBJECTS" | "INVALID_CURSOR" | "REQUEST_TOO_LARGE" | "SELF_INVITATION" | "ALREADY_PENDING" | "EXPIRED" | "ALREADY_RESPONDED" | "STUDENT_PROFILE_REQUIRED" | "PROFILE_ALREADY_EXISTS" | "VALIDATION_ERROR" | "UNKNOWN_SUBJECT" | "UNAUTHENTICATED" | "INVALID_CREDENTIALS" | "EMAIL_NOT_VERIFIED" | "INVALID_REFRESH_TOKEN" | "FORBIDDEN" | "NOT_FOUND" | "PROFILE_NOT_FOUND" | "EMAIL_ALREADY_EXISTS" | "INVALID_VERIFICATION_TOKEN" | "INVITATION_ALREADY_PENDING" | "INVITATION_EXPIRED" | "INVALID_INVITATION_STATE" | "ALREADY_LINKED" | "STUDENT_NOT_LINKED" | "LESSON_OVERLAP" | "INVALID_LESSON_STATE" | "RATE_LIMIT_EXCEEDED" | "ROLE_ALREADY_ASSIGNED" | "ROLE_PROFILE_MISMATCH" | "IDEMPOTENCY_CONFLICT" | "INTERNAL_ERROR";
 
 export type ApiError = {
   code: ErrorCode;
@@ -456,3 +456,8 @@ export type ApiError = {
 export type PageQuery = { cursor?: string; limit?: number };
 export type TeacherScheduleQuery = PageQuery & { from: string; to: string; studentUserId?: string; subjectCode?: string; status?: LessonStatus; sortOrder?: "ASC" | "DESC" };
 export type StudentScheduleQuery = PageQuery & { from: string; to: string; teacherUserId?: string; status?: LessonStatus; sortOrder?: "ASC" | "DESC" };
+
+
+export type AddTeacherRoleRequest = TeacherProfileInput;
+export type AddStudentRoleRequest = StudentProfileInput;
+export type RoleOnboardingResponse = MeResponse;

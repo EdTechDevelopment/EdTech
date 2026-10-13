@@ -159,7 +159,7 @@ class RefreshTokenFlowIntegrationTest {
     }
 
     private void registerUser(String email) throws Exception {
-        mockMvc.perform(post("/api/v1/auth/register")
+        mockMvc.perform(post("/api/v1/auth/register").header("Idempotency-Key", UUID.randomUUID())
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("""
                                 {
@@ -168,7 +168,8 @@ class RefreshTokenFlowIntegrationTest {
                                   "firstName": "Test",
                                   "lastName": "User",
                                   "birthDate": "2000-01-01",
-                                  "roles": ["STUDENT"]
+                                  "roles": ["STUDENT"],
+                                  "studentProfile": {"displayName":"Student","contactEmail":"contact@example.test","contactDetails":[],"subjectCodes":[]}
                                 }
                                 """.formatted(email, RAW_PASSWORD)))
                 .andExpect(status().isAccepted());

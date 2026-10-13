@@ -19,18 +19,7 @@ Package paths приведены относительно корневого Jav
 
 ### Текущий статус реализации
 
-Этот документ описывает целевую, зафиксированную архитектуру Identity. На
-2026-09-24 реализован самостоятельный MVP-фундамент: account-only регистрация,
-verification/resend, login, access/refresh/logout, изменение основных данных и
-account email, Notifications delivery и `IdentityQuery`.
-
-Identity пока реализован частично относительно этой целевой схемы. На шаге 1
-добавлены `birthDate`, единый application `RegisterUserUseCase`, публичные gateways для Workflows и
-потребные Tutoring запросы `IdentityQuery`. `RegistrationWorkflow`, атомарное
-создание Tutoring profiles, составной `GET /me` и подключение role onboarding
-появятся на следующих шагах. До этого прямой `POST /auth/register` является
-осознанным временным account-only входом, а не окончательной реализацией
-регистрационной архитектуры.
+На 2026-10-13 MVP Identity и его интеграция с Tutoring/Workflows реализованы. POST /auth/register принадлежит Workflows и атомарно создаёт аккаунт с обязательными профилями; onboarding создаёт вторую роль с профилем; GET /me собирает account/profile данные. RegisterUserUseCase/RegisterUserService остаются в Identity, публичные gateways вызывают существующие use cases. OwnAccountQuery/OwnAccountView дают закрытые данные только для составного ответа владельцу; Tutoring получает возраст без birthDate. Миграции V1–V8 применены; общий backend test run: 450 успешных тестов.
 
 ## 2. Источники истины
 
@@ -1355,3 +1344,10 @@ Integration:
 - `docs/architecture/identity/architecture.vpp` — исходная модель Visual Paradigm.
 - `docs/architecture/identity/catalog` — каталоги предыдущего UML-снимка.
 - `docs/api` — HTTP-контракты, которые должны быть синхронизированы до реализации endpoint.
+
+
+## 15. Уточнения реализованного MVP 2026-10-13
+
+В старых деревьях этого документа GetCurrentUserUseCase/GetCurrentUserService обозначали чтение account-данных. В реализованном составном /me входной порт GetMeUseCase и MeQueryFacade принадлежат Workflows, а Identity реализует OwnAccountQueryService. Порты остаются в port.in, публичные межмодульные контракты — в api.
+
+HTTP регистрация больше не account-only; регистрации нужны Idempotency-Key и профиль на каждую роль. Login/refresh/logout, verification и PATCH /me остаются Identity endpoints. RegistrationWorkflow вызывает существующий RegisterUserService через gateway. RegistrationGatewayAdapter/RoleGatewayAdapter переводят ожидаемые ошибки в публичный IdentityCommandException. Подробности в [Workflows](../workflows/README.md).

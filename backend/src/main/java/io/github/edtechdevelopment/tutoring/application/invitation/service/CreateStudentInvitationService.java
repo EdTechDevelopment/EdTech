@@ -74,7 +74,11 @@ public class CreateStudentInvitationService implements CreateStudentInvitationUs
     @Transactional
     public InvitationCreatedResult execute(CreateStudentInvitationCommand command) {
         Objects.requireNonNull(command, "Create invitation command must not be null");
-        InvitationEmail studentEmail = new InvitationEmail(command.studentEmail());
+        InvitationEmail studentEmail;
+        try { studentEmail = new InvitationEmail(command.studentEmail()); }
+        catch (io.github.edtechdevelopment.tutoring.domain.invitation.exception.InvalidInvitationEmailException exception) {
+            throw new IllegalArgumentException("Invitation email is invalid");
+        }
         PayloadFingerprint fingerprint = PayloadFingerprint.from(
                 command.teacherUserId() + "\n" + studentEmail.value());
 

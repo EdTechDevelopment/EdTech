@@ -1,6 +1,5 @@
 package io.github.edtechdevelopment.tutoring.application.invitation.model.result;
 
-import io.github.edtechdevelopment.tutoring.domain.invitation.model.InvitationStatus;
 
 import java.time.Instant;
 import java.util.Objects;
@@ -9,7 +8,7 @@ import java.util.UUID;
 public record SentInvitationResult(
         UUID invitationId,
         String studentEmail,
-        InvitationStatus status,
+        String status,
         Instant createdAt,
         Instant expiresAt,
         Instant respondedAt

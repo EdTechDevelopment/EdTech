@@ -108,7 +108,7 @@ class StudentInvitationResponseServiceTest {
         InvitationRejectedResult result = service.execute(command);
 
         assertEquals(InvitationStatus.REJECTED, invitation.status());
-        assertEquals(InvitationStatus.REJECTED, result.status());
+        assertEquals("REJECTED", result.status());
         verify(invitations).update(invitation);
         verify(idempotency).complete(OPERATION_ID, STUDENT_ID, OperationType.REJECT_STUDENT_INVITATION,
                 fingerprint, result, NOW);

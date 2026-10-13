@@ -115,6 +115,47 @@ jooq {
                 }
             }
         }
+
+        create("tutoring") {
+            configuration {
+                generator {
+                    database {
+                        name = "org.jooq.meta.postgres.PostgresDatabase"
+                        inputSchema = "public"
+                        includes = "tutoring_.*"
+                        excludes = "flyway_schema_history"
+                    }
+
+                    target {
+                        packageName = "io.github.edtechdevelopment.tutoring.infrastructure.persistence.data.generated"
+                        directory = "src/generated/java"
+                        encoding = "UTF-8"
+                        locale = "en"
+                        clean = true
+                    }
+                }
+            }
+        }
+        create("workflows") {
+            configuration {
+                generator {
+                    database {
+                        name = "org.jooq.meta.postgres.PostgresDatabase"
+                        inputSchema = "public"
+                        includes = "workflows_.*"
+                        excludes = "flyway_schema_history"
+                    }
+
+                    target {
+                        packageName = "io.github.edtechdevelopment.workflows.infrastructure.persistence.data.generated"
+                        directory = "src/generated/java"
+                        encoding = "UTF-8"
+                        locale = "en"
+                        clean = true
+                    }
+                }
+            }
+        }
     }
 }
 
@@ -129,4 +170,9 @@ dependencyManagement {
 tasks.withType<Test> {
     useJUnitPlatform()
     systemProperty("notifications.delivery.scheduler-enabled", "false")
+    systemProperty("identity.events.scheduler-enabled", "false")
+}
+
+tasks.named("compileJava") {
+    mustRunAfter("jooqCodegenIdentity", "jooqCodegenNotifications", "jooqCodegenTutoring", "jooqCodegenWorkflows")
 }

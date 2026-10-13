@@ -5,7 +5,9 @@ package io.github.edtechdevelopment.notifications.infrastructure.persistence.dat
 
 
 import io.github.edtechdevelopment.notifications.infrastructure.persistence.data.generated.tables.NotificationEmailDeliveries;
+import io.github.edtechdevelopment.notifications.infrastructure.persistence.data.generated.tables.NotificationInvitationEmailDeliveries;
 import io.github.edtechdevelopment.notifications.infrastructure.persistence.data.generated.tables.records.NotificationEmailDeliveriesRecord;
+import io.github.edtechdevelopment.notifications.infrastructure.persistence.data.generated.tables.records.NotificationInvitationEmailDeliveriesRecord;
 
 import org.jooq.TableField;
 import org.jooq.UniqueKey;
@@ -25,4 +27,7 @@ public class Keys {
     // -------------------------------------------------------------------------
 
     public static final UniqueKey<NotificationEmailDeliveriesRecord> PK_NOTIFICATION_EMAIL_DELIVERIES = Internal.createUniqueKey(NotificationEmailDeliveries.NOTIFICATION_EMAIL_DELIVERIES, DSL.name("pk_notification_email_deliveries"), new TableField[] { NotificationEmailDeliveries.NOTIFICATION_EMAIL_DELIVERIES.ID }, true);
+    public static final UniqueKey<NotificationInvitationEmailDeliveriesRecord> PK_NOTIFICATION_INVITATION_EMAIL_DELIVERIES = Internal.createUniqueKey(NotificationInvitationEmailDeliveries.NOTIFICATION_INVITATION_EMAIL_DELIVERIES, DSL.name("pk_notification_invitation_email_deliveries"), new TableField[] { NotificationInvitationEmailDeliveries.NOTIFICATION_INVITATION_EMAIL_DELIVERIES.ID }, true);
+    public static final UniqueKey<NotificationInvitationEmailDeliveriesRecord> UQ_NOTIFICATION_INVITATION_EMAIL_DELIVERIES_INVITATION = Internal.createUniqueKey(NotificationInvitationEmailDeliveries.NOTIFICATION_INVITATION_EMAIL_DELIVERIES, DSL.name("uq_notification_invitation_email_deliveries_invitation"), new TableField[] { NotificationInvitationEmailDeliveries.NOTIFICATION_INVITATION_EMAIL_DELIVERIES.INVITATION_ID }, true);
+    public static final UniqueKey<NotificationInvitationEmailDeliveriesRecord> UQ_NOTIFICATION_INVITATION_EMAIL_DELIVERIES_KEY = Internal.createUniqueKey(NotificationInvitationEmailDeliveries.NOTIFICATION_INVITATION_EMAIL_DELIVERIES, DSL.name("uq_notification_invitation_email_deliveries_key"), new TableField[] { NotificationInvitationEmailDeliveries.NOTIFICATION_INVITATION_EMAIL_DELIVERIES.DEDUPLICATION_KEY }, true);
 }

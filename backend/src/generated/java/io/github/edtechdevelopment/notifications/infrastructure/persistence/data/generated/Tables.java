@@ -5,6 +5,7 @@ package io.github.edtechdevelopment.notifications.infrastructure.persistence.dat
 
 
 import io.github.edtechdevelopment.notifications.infrastructure.persistence.data.generated.tables.NotificationEmailDeliveries;
+import io.github.edtechdevelopment.notifications.infrastructure.persistence.data.generated.tables.NotificationInvitationEmailDeliveries;
 
 
 /**
@@ -17,4 +18,9 @@ public class Tables {
      * The table <code>public.notification_email_deliveries</code>.
      */
     public static final NotificationEmailDeliveries NOTIFICATION_EMAIL_DELIVERIES = NotificationEmailDeliveries.NOTIFICATION_EMAIL_DELIVERIES;
+
+    /**
+     * The table <code>public.notification_invitation_email_deliveries</code>.
+     */
+    public static final NotificationInvitationEmailDeliveries NOTIFICATION_INVITATION_EMAIL_DELIVERIES = NotificationInvitationEmailDeliveries.NOTIFICATION_INVITATION_EMAIL_DELIVERIES;
 }

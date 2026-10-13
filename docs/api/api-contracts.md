@@ -1,12 +1,8 @@
 # API-контракты v1.2.0
 
-Текстовое описание целевого API Identity, Tutoring, Workflows и Scheduling. Машиночитаемая форма тех же контрактов: `scheduling.openapi.json`.
+Текстовое описание целевого API Identity, Tutoring, Workflows и Scheduling. Машиночитаемый целевой составной контракт: scheduling.openapi.json. Реализованный HTTP Tutoring: [tutoring.openapi.json](tutoring.openapi.json); для этих маршрутов точные DTO и статусы берутся из отдельной спецификации.
 
-Текущий backend реализует Identity как частичный MVP-фундамент. Реализованы
-`POST /auth/register`, verification/resend, login/refresh/logout и `PATCH /me`.
-Составной `GET /me`, регистрация с обязательными Tutoring profiles
-и role onboarding отложены до модулей Tutoring/Workflows. `birthDate` уже добавлена в Identity. Целевые профильные
-схемы ниже не означают, что соответствующие endpoint уже реализованы.
+На 2026-10-13 реализованы Identity, Tutoring HTTP и утверждённый Workflows MVP: регистрация с обязательными профилями, добавление второй роли и GET /me. Точные реализованные контракты: [tutoring.openapi.json](tutoring.openapi.json) и [workflows.openapi.json](workflows.openapi.json). Scheduling, HTTP-отвязка и составная карточка со статистикой отложены пользователем. scheduling.openapi.json остаётся целевым общим контрактом для будущих Scheduling-сценариев.
 
 ## Общие соглашения
 
@@ -22,7 +18,7 @@
 
 ## Endpoint'ы
 
-Base URL: `/api/v1`. Ниже целевой составной API; существующий код Identity MVP ещё не реализует RegistrationWorkflow, Tutoring и Scheduling.
+Base URL: `/api/v1`. Ниже целевой составной API. Маршруты /tutoring реализованы в этапе 5; RegistrationWorkflow, составной /me и onboarding реализованы. Unlink/статистика и Scheduling отложены.
 
 | Метод | URL | Назначение |
 |---|---|---|
@@ -535,3 +531,22 @@ cookie, и удаляет cookie. Отсутствующая, неизвестн
 ## Примеры и TypeScript-типы
 
 Готовые JSON-примеры находятся в `examples.json`, TypeScript DTO — в `contracts.ts`. Полные поля, ограничения, ответы и ошибки каждого endpoint'а описаны в `scheduling.openapi.json` и отображаются в Swagger UI.
+
+
+## Уточнения реализованного Tutoring этапа 5
+
+- HTTP DTO принадлежат Presentation. API Java-контракты backend не являются HTTP endpoint или HTTP body.
+- photoUrl — абсолютный http/https URI с хостом; null/отсутствие необязательного поля PUT очищают фото, пустая строка даёт 400.
+- POST/PUT Tutoring ограничены tutoring.http.max-request-bytes, по умолчанию 1 MiB; превышение даёт 413.
+- Статусы ошибок приглашений: SELF_INVITATION, ALREADY_PENDING, ALREADY_LINKED, EXPIRED, ALREADY_RESPONDED, STUDENT_PROFILE_REQUIRED; конфликт ключа — IDEMPOTENCY_CONFLICT. Отсутствующее и чужое приглашение дают одинаковый 404.
+- Поиск возвращает 20 карточек и проверяет 21-го подходящего кандидата для nextCursor; следующая страница повторно читает lookahead. Это согласованное MVP-допущение.
+- События account email и приглашения имеют durable delivery. Открытие URL/регистрация не вызывают accept автоматически; UI страницы приглашения ещё не реализован.
+
+
+## Реализованный Workflows MVP этапов 6–7
+
+POST /auth/register требует ключ и точное соответствие ролей/профилей, отвечает 202 без токенов. POST /me/roles/teacher и /student требуют ACTIVE аккаунт и отвечают 201 MeResponse; клиент затем вызывает refresh. GET /me читает только владельца из principal. PATCH /me остаётся операцией Identity и отвечает UserResponse.
+
+Idempotency-Key глобально уникален для операций Workflows. Другой сценарий, аккаунт/email или данные с тем же UUID дают 409 IDEMPOTENCY_CONFLICT. Replay регистрационного 202 или onboarding 201 возвращает сохранённый результат; новый актуальный /me читается отдельным GET. FieldErrors Workflows/Identity содержат code; в Tutoring он необязателен.
+
+Все упоминания DELETE /teachers/me/students/{studentUserId}, StudentCardQueryFacade и обработки уроков выше — будущий контракт, не реализованный endpoint MVP. Зависимость зафиксирована прямым решением пользователя 2026-10-13.

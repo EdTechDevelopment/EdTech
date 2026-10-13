@@ -3,7 +3,7 @@
   "info": {
     "title": "EdTech tutoring API",
     "version": "1.2.0",
-    "description": "Целевой контракт регистрации, JWT-аутентификации, профилей, приглашений и расписания. Access JWT передаётся как Bearer token, refresh token — только в HttpOnly cookie. Tutoring и составные Workflows ещё предстоит реализовать поверх существующего Identity/Notifications MVP; Scheduling реализуется отдельным этапом. Публичные данные активного учебного профиля доступны без связи."
+    "description": "Общий целевой контракт, включая будущий Scheduling. Identity, Tutoring и Workflows MVP регистрации/onboarding/me реализованы; точные реализованные HTTP-схемы находятся в tutoring.openapi.json и workflows.openapi.json. Scheduling, unlink и составная статистика отложены пользователем. Access JWT — Bearer; refresh token — HttpOnly cookie. Дата рождения видна только владельцу в account-данных; активный профиль публично показывает возраст и указанные контакты."
   },
   "servers": [
     {

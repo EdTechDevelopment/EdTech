@@ -56,7 +56,7 @@ class InvitationQueryServiceTest {
         assertEquals(1, page.items().size());
         assertEquals(invitation.id(), page.items().getFirst().invitationId());
         assertEquals(TEACHER_ID, page.items().getFirst().teacher().userId());
-        assertEquals(InvitationStatus.PENDING, page.items().getFirst().status());
+        assertEquals("PENDING", page.items().getFirst().status());
         verify(invitations).findIncomingPage(STUDENT_ID, InvitationStatus.PENDING, NOW, null, 21);
         verifyNoInteractions(cursorCodec);
     }
@@ -73,7 +73,7 @@ class InvitationQueryServiceTest {
 
         assertEquals(1, page.items().size());
         assertEquals(invitation.id(), page.items().getFirst().invitationId());
-        assertEquals(InvitationStatus.PENDING, page.items().getFirst().status());
+        assertEquals("PENDING", page.items().getFirst().status());
         verify(teacherProfiles).existsByUserId(TEACHER_ID);
         verify(invitations).findSentPage(TEACHER_ID, InvitationStatus.PENDING, NOW, null, 21);
     }

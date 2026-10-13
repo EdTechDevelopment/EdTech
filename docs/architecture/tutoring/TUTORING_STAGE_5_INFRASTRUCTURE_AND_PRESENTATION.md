@@ -1,6 +1,6 @@
 # Tutoring — этап 5. Infrastructure, Persistence и Presentation
 
-Статус: зафиксированы решения, последовательно утверждённые пользователем 2026-09-24. Это проектная спецификация этапа 5; описанные здесь Infrastructure, SQL-миграции, HTTP-контроллеры и сквозные тесты ещё предстоит реализовать. Публичные Java-контракты, Domain и сценарии Application этапа 4.1–4.7 уже реализованы. Более поздние уточнения этого документа имеют приоритет над прежними общими формулировками этапов 1–4; предметные правила Domain и Application остаются их собственностью.
+Статус: весь этап 5 завершён 2026-10-13. Подэтап 5.1 создал девять таблиц Tutoring и справочник из десяти предметов; V7 добавила таблицы доставки в модулях Identity и Notifications. Реализованы persistence-адаптеры, интеграции, подписанные курсоры, HTTP, security и wiring. Миграции V1–V7 применены и валидированы Flyway. Итоговый прогон backend: 421 тест без ошибок и пропусков. Предметные правила Domain/Application и утверждённые публичные Java-контракты сохранены.
 
 ## 1. Граница этапа
 
@@ -52,7 +52,7 @@ tutoring.presentation
 
 `tutoring_teacher_profiles` и `tutoring_student_profiles` — независимые таблицы с `user_id UUID PRIMARY KEY` без FK на Identity. Общие поля: неизменяемый `created_at TIMESTAMPTZ NOT NULL`, `display_name TEXT NOT NULL`, `contact_email VARCHAR(254) NOT NULL`, `contact_details JSONB NOT NULL` как массив строк, `photo_url TEXT NULL`. TeacherProfile дополнительно содержит nullable `description TEXT`, `education TEXT`, `experience_years INTEGER CHECK (experience_years >= 0)`, `city TEXT`. Ноль лет опыта отличается от `NULL`; город необязателен.
 
-БД проверяет непустое имя, нормализованный email и JSON-массив. Domain дополнительно проверяет email, коллекции и остальные инварианты; Application разбирает синтаксис photoUrl как URI до изменения профиля. Разрешённые схемы и абсолютность URI пока не определены (OPEN-028). У профильного email нет уникальности: контактный адрес может совпадать у разных профилей. Дата рождения и возраст в Tutoring не сохраняются. Client-side `expectedVersion` в v1 не обещан; write-сценарии блокируют строку профиля.
+БД проверяет непустое имя, нормализованный email и JSON-массив. Domain дополнительно проверяет email, коллекции и остальные инварианты; Application проверяет photoUrl до изменения профиля: абсолютный URI http/https с хостом; null очищает фото, пустая строка недопустима. OPEN-028 закрыт прямым решением пользователя. У профильного email нет уникальности: контактный адрес может совпадать у разных профилей. Дата рождения и возраст в Tutoring не сохраняются. Client-side `expectedVersion` в v1 не обещан; write-сценарии блокируют строку профиля.
 
 Для публичного поиска обе профильные таблицы индексируются по `(created_at DESC, user_id DESC)`; таблицы выбранных предметов — по `(subject_code,user_id)`. Предметы конкретного человека читаются только из его профильной таблицы связей с предметами, а не из общего каталога. Возраст и статус ACTIVE получает Tutoring из Identity пакетами по ID кандидатов при выдаче страницы.
 
@@ -70,7 +70,28 @@ FK на собственный TeacherProfile без cascade; FK на Identity �
 
 `tutoring_command_operations`: `operation_id UUID PRIMARY KEY`, `user_id UUID` без FK Identity, `operation_type`, `payload_fingerprint CHAR(64)`, `result_type`, `result_schema_version > 0`, nullable `result_payload JSONB`, `created_at`, nullable `completed_at`. Результат существует тогда и только тогда, когда операция завершена; `completed_at >= created_at`. Незавершённая строка допустима лишь внутри транзакции и никогда не коммитится. Даже для `void` сохраняется явное JSON-значение, не SQL `NULL`. Срок очистки не утверждён: автоматического удаления в v1 нет.
 
-`tutoring_processed_identity_events`: `event_id UUID PRIMARY KEY`, стабильный `event_type` (`ACCOUNT_EMAIL_VERIFIED` в v1), `user_id UUID` без FK Identity, `payload_fingerprint CHAR(64)`, `fingerprint_version > 0`, nullable `processed_at` лишь до завершения текущей транзакции. Fingerprint строится из канонических eventType, userId, нормализованного verifiedEmail и verifiedAt; raw email в receipt не сохраняется. Очистки receipts в v1 нет. Дополнительные индексы сверх PK не нужны.
+`tutoring_processed_identity_events`: `event_id UUID PRIMARY KEY`, стабильный `event_type` (`ACCOUNT_EMAIL_VERIFIED` в v1), `user_id UUID` без FK Identity, `payload_fingerprint CHAR(64)`, `fingerprint_version > 0`, обязательный `processed_at TIMESTAMPTZ NOT NULL`. Это соответствует существующему `ProcessedIdentityEvent`: время задаётся сразу при вставке receipt, который фиксируется одной транзакцией с привязкой приглашений и откатывается при ошибке. Отдельное последующее обновление `processed_at` не требуется. Fingerprint строится из канонических eventType, userId, нормализованного verifiedEmail и verifiedAt; raw email в receipt не сохраняется. Очистки receipts в v1 нет. Дополнительные индексы сверх PK не нужны.
+
+### 2.6 Реализация подэтапа 5.1
+
+`V5__create_tutoring_tables.sql` создаёт все девять таблиц, ограничения и индексы. `V6__seed_tutoring_subjects.sql` заполняет справочник:
+
+| Код | Название |
+|---|---|
+| `MATH` | Математика |
+| `PHYSICS` | Физика |
+| `CHEMISTRY` | Химия |
+| `BIOLOGY` | Биология |
+| `RUSSIAN` | Русский язык |
+| `ENGLISH` | Английский язык |
+| `INFORMATICS` | Информатика |
+| `HISTORY` | История |
+| `SOCIAL_STUDIES` | Обществознание |
+| `GEOGRAPHY` | География |
+
+В `backend/build.gradle.kts` добавлено выполнение `tutoring`: задача `jooqCodegenTutoring` читает только `tutoring_.*` из схемы `public` и генерирует классы в `src/generated/java`, пакет `io.github.edtechdevelopment.tutoring.infrastructure.persistence.data.generated`. Generated-классы остаются техническими типами Infrastructure.
+
+После применения V5/V6 Flyway подтвердил версию 6 и корректность всех шести миграций. Проверены девять таблиц, десять строк справочника, обязательность `processed_at`, отсутствие межмодульных FK, ограничения уникальности, FK и CHECK. Проверочные записи откатились. Отдельная компиляция generated-классов Tutoring завершилась успешно; полный билд и сквозные тесты приложения этим не подтверждаются.
 
 ## 3. Контракты persistence-адаптеров
 
@@ -94,7 +115,7 @@ FK на собственный TeacherProfile без cascade; FK на Identity �
 
 ### 3.4 Command operation и Identity event receipt
 
-Оба адаптера резервируют уникальный ID через `INSERT ... ON CONFLICT DO NOTHING`; конкурент ждёт commit/rollback первой транзакции. При конфликте читается запись и сравниваются все поля идентичности операции/события. Точное завершённое совпадение — replay/no-op; иные данные с тем же ID — конфликт. Сохранённая незавершённая запись означает техническое нарушение, а не право выполнить команду повторно. `complete`/отметка `processedAt` условно обновляет только незавершённую строку в той же транзакции. Result JSON декодируется лишь для известных result types и поддерживаемых schema versions; произвольных имён Java-классов в payload нет. Устаревшее Identity-событие после успешной актуальной проверки Identity фиксируется обработанным no-op; недоступность Identity откатывает receipt.
+До чтения записи адаптер получает транзакционную PostgreSQL advisory lock по `operationId` или `eventId`; наличие строки для этой блокировки не требуется. Конкурент с тем же ID ждёт commit/rollback первой транзакции и затем читает журнал. При отсутствии записи выполняется вставка; существующая запись сравнивается по полям идентичности операции/события. Точное завершённое совпадение — replay/no-op; иные данные с тем же ID — конфликт. Сохранённая незавершённая command operation означает техническое нарушение, а не право выполнить команду повторно. `complete` обновляет только незавершённую command operation в той же транзакции. Receipt события вставляется сразу с `processedAt` и фиксируется атомарно с обработкой; отдельной отметки завершения receipt нет. Result JSON декодируется лишь для известных result types и поддерживаемых schema versions; произвольных имён Java-классов в payload нет. Устаревшее Identity-событие после успешной актуальной проверки Identity фиксируется обработанным no-op; недоступность Identity откатывает receipt.
 
 Ожидаемые уникальные нарушения переводятся в соответствующий конфликт сценария; неизвестные CHECK/FK, повреждённый JSON и enum — технические ошибки, не «не найдено».
 
@@ -102,7 +123,7 @@ FK на собственный TeacherProfile без cascade; FK на Identity �
 
 `NormalizedEmailLock` применяет транзакционную PostgreSQL advisory lock по нормализованному account email. Одинаковый механизм используют создание приглашения INV-01 и обработчик Identity event. Он требует действующей write-транзакции; возможное совпадение hash разных адресов вызывает лишь лишнюю сериализацию.
 
-Порядок для применимых операций: резервирование command/event ID → email lock → строки приглашений → заявка Notifications при создании приглашения. Ошибка enqueue откатывает записи, блокировки освобождаются с транзакцией. Смена контактного email профиля не использует эту блокировку и не отправляет письмо.
+Порядок для применимых операций: advisory lock по command/event ID → чтение или создание записи журнала → email lock → строки приглашений → заявка Notifications при создании приглашения. Ошибка enqueue откатывает записи, блокировки освобождаются с транзакцией. Смена контактного email профиля не использует эту блокировку и не отправляет письмо.
 
 ## 5. Интеграционные адаптеры
 
@@ -110,13 +131,13 @@ FK на собственный TeacherProfile без cascade; FK на Identity �
 
 Порт `IdentityAccountGateway` находится в Tutoring Application; его инфраструктурный adapter вызывает **публичный Java API Identity**, не SQL. Он предоставляет `requireRole(userId, ProfileType)`, `findAgesByIds(userIds, asOf)`, `findActiveUserIds(userIds)`, `findVerifiedAccountById(userId)` и `findByVerifiedEmail(normalizedEmail)`. Два последних запроса используются созданием приглашения и обработкой подтверждения почты; наружу передаются только userId и подтверждённый email. Публичное и linked-чтение требуют ACTIVE; собственное чтение использует возраст существующего аккаунта. Отсутствие пользователя отличается от технической недоступности API. Дата рождения остаётся только в Identity.
 
-Listener `AccountEmailVerifiedEvent` переводит событие в Application-команду с `eventId`, `userId`, `verifiedEmail`, `verifiedAt`; сам не изменяет профили. Application повторно спрашивает Identity об актуальном подтверждённом адресе и привязывает приглашения. Receipt события сохраняется атомарно с изменениями приглашений. `ProcessedIdentityEventRepositoryAdapter` находится в `tutoring.infrastructure.idempotency.persistence`, поскольку хранит собственный receipt Tutoring, а не данные Identity. Надёжная доставка с retry требует durable outbox на стороне Identity; текущая публикация Spring-события сама по себе недостаточна.
+Listener `AccountEmailVerifiedEvent` переводит событие в Application-команду с `eventId`, `userId`, `verifiedEmail`, `verifiedAt`; сам не изменяет профили. Application повторно спрашивает Identity об актуальном подтверждённом адресе и привязывает приглашения. Receipt события сохраняется атомарно с изменениями приглашений. `ProcessedIdentityEventRepositoryAdapter` находится в `tutoring.infrastructure.idempotency.persistence`, поскольку хранит собственный receipt Tutoring, а не данные Identity. Надёжная доставка реализована через identity_account_email_event_outbox. Диспетчер после исходного commit открывает транзакцию, синхронно вызывает listener и атомарно фиксирует published_at, receipt и привязку. При ошибке всё откатывается, retry назначается через десять секунд. Уже привязанные приглашения пропускаются и не меняют владельца при повторном использовании email другим аккаунтом.
 
 ### 5.2 Notifications
 
 `InvitationNotificationSenderAdapter` вызывает публичный API Notifications, не его repository. Заявка на приглашение содержит studentEmail, invitationId, teacherDisplayName, expiresAt и dedup key `INVITATION_CREATED:{invitationId}`; не содержит recipient userId или признак существования аккаунта. Notifications формирует ссылку, хранит URL в своей durable delivery и выполняет SMTP после commit. Первая отправка после expiresAt запрещена. Enqueue участвует в общей транзакции; SMTP-сбой после commit не откатывает Tutoring.
 
-Существующий Notifications API verification-only и не содержит dedup key или шаблон приглашения: его публичный контракт и очередь требуется расширить для приглашений.
+Verification API сохранён. Добавлены отдельный узкий InvitationNotificationGateway/SendStudentInvitationCommand и notification_invitation_email_deliveries. Claim выдаёт случайный claimId; acknowledgement старого claim не меняет повторно захваченную заявку. Временный SMTP-сбой повторяется через десять секунд, постоянный даёт FAILED. URL удаляется в терминальных статусах. После падения между SMTP и SENT возможно повторное письмо; dedup key защищает enqueue, но не обещает exactly-once SMTP. Подробности: [ADR delivery](../../decisions/tutoring-durable-delivery.md).
 
 ## 6. Технические адаптеры
 
@@ -143,13 +164,13 @@ Listener `AccountEmailVerifiedEvent` переводит событие в Applic
 | `POST /invitations/{id}/accept`, `POST /invitations/{id}/reject` | Обязательный `Idempotency-Key`; `200` с минимальным результатом; клиентский email не принимается. |
 | `GET /relationships/students`, `GET /relationships/teachers` | Необязательные cursor/limit; `200` `{items,nextCursor}`, без общего total. |
 
-HTTP DTO живут в соответствующем предметном пакете Presentation, не являются `tutoring.api` model. Teacher update: `displayName`, обязательный `contactEmail`, `contactDetails`, `subjectCodes`, nullable `description`, `education`, `experienceYears`, `city`, `photoUrl`. Student update: `displayName`, обязательный `contactEmail`, `contactDetails`, `subjectCodes`, nullable `photoUrl`. PUT заменяет перечисленные поля целиком; отсутствие необязательного поля и `null` означают очистку. Коллекции не могут быть `null`. Контактный email проверяется и сохраняется в том же PUT; дату рождения профили не содержат. Произвольные длины остальных строк не вводятся без отдельного решения; размер HTTP-тела ограничивается на транспортной границе.
+HTTP DTO живут в соответствующем предметном пакете Presentation, не являются `tutoring.api` model. Presentation mapper может читать собственные api.model, возвращённые входным портом Application, и переводит их в HTTP DTO; не вызывает api.command/api.query и не зависит от Domain. Статус приглашения в Application result — строка для внешнего ответа, доменный InvitationStatus остаётся внутри Application/Domain. Teacher update: `displayName`, обязательный `contactEmail`, `contactDetails`, `subjectCodes`, nullable `description`, `education`, `experienceYears`, `city`, `photoUrl`. Student update: `displayName`, обязательный `contactEmail`, `contactDetails`, `subjectCodes`, nullable `photoUrl`. PUT заменяет перечисленные поля целиком; отсутствие необязательного поля и `null` означают очистку. Коллекции не могут быть `null`. Контактный email проверяется и сохраняется в том же PUT; дату рождения профили не содержат. Произвольные длины остальных строк не вводятся без отдельного решения; размер HTTP-тела ограничивается на транспортной границе.
 
 Справочник, публичный просмотр/поиск активных профилей открыты без обязательного login. Остальные маршруты аутентифицированы, actorUserId всегда берётся из доверенного principal, не из HTTP-тела. Создание приглашения требует активного аккаунта с TEACHER-ролью на Identity/auth-границе и TeacherProfile в Tutoring. Входящие приглашения и отказ доступны привязанному пользователю до роли/профиля ученика; принятие требует StudentProfile. Списки связей возвращают общее представление профиля после проверки подтверждённой пары; те же публичные данные активного профиля можно прочитать без связи. Отправленный список не раскрывает recipient userId или факт его регистрации. Собственный профиль доступен через MeQueryFacade.
 
 Переход по ссылке приглашения без аккаунта открывает регистрационный сценарий с предзаполненным email адресата; поле email в этой форме заблокировано. Интерфейс заранее объясняет, что для этого приглашения нужно подтвердить указанный адрес. Блокировка поля сама по себе не является проверкой владения почтой: сервер связывает приглашение с аккаунтом только по актуальному подтверждённому account email Identity. Если пользователь зарегистрировался с другим адресом, исходное приглашение ему не принадлежит; нужен новый адресованный ему запрос от преподавателя. После подтверждения email интерфейс показывает ожидающее приглашение и предлагает отдельное принятие после создания StudentProfile. Открытие ссылки или регистрация не вызывают `POST /invitations/{id}/accept` автоматически.
 
-При реализации общий Spring Security/CORS config должен открыть публичные `GET` профилей/предметов, разрешить метод `PUT` и заголовок `Idempotency-Key` для browser-клиента. Текущая конфигурация Identity MVP этих правил ещё не содержит; это изменение кода выполняется вместе с HTTP-ручками.
+Общий Spring Security/CORS config открывает публичные GET профилей/предметов, разрешает PUT и Idempotency-Key. TutoringAccountAccessFilter проверяет актуальный ACTIVE-статус и необходимые роли через IdentityQuery. Входящие приглашения и reject не требуют STUDENT-роль/профиль. Actor всегда берётся из principal. TutoringBodyLimitFilter ограничивает POST/PUT параметром tutoring.http.max-request-bytes (по умолчанию 1048576), превышение даёт 413. [OpenAPI](../../api/tutoring.openapi.json) описывает все 14 HTTP-операций.
 
 Форма ошибки совместима по структуре с `ApiError`: `{code,message,fieldErrors,requestId}`, но Tutoring не импортирует `identity.presentation`. HTTP mapping: `400` — валидация, повреждённый cursor, отсутствующий/некорректный Idempotency-Key, неизвестный предмет или неверный формат контактного email; `401` — нет обязательной аутентификации; `403` — запрещённое действие, включая создание приглашения без TEACHER-роли; `404` — собственный отсутствующий профиль либо единый ответ для отсутствующего/чужого приглашения; `409` — конфликт приглашения/состояния, отсутствие StudentProfile при принятии или несовпавший replay; `500/503` — целостность либо техническая недоступность зависимого модуля/БД. Полные email и fingerprint не попадают в ответ или логи.
 
@@ -169,8 +190,17 @@ HTTP DTO живут в соответствующем предметном па�
 | Повторы и гонки | Exact replay operationId/eventId, конфликт изменённого payload и конкурентный accept/create. |
 | Архитектура | Tutoring API не импортирует HTTP/SQL/Identity Domain; Tutoring Infrastructure не читает чужие таблицы; workflow вызывает только публичный Tutoring API. |
 
-Для ограничений, блокировок и конкурентных сценариев требуются интеграционные тесты с реальным PostgreSQL; для времени — фиксируемый Clock. Перечисленные тесты являются критериями будущей реализации, а не уже выполненными проверками.
+SQL, курсоры, приглашения, связи, очереди и конкурентные сценарии проверены тестами этапа 5 на PostgreSQL; HTTP проверяется с реальными подписанными JWT. Тесты SMTP используют mock JavaMailSender и проверяют содержимое письма/ошибки/срок. RegistrationWorkflow и RoleOnboarding проверены в следующих объединённых этапах 6–7; Unlink со Scheduling остаётся отложенным требованием.
 
 ## 9. Зависимости перед реализацией
 
-Публичные Java-контракты, Domain и все сценарии Application этапа 4.1–4.7 реализованы. Впереди Infrastructure и Presentation: миграции, persistence-адаптеры, адаптеры Identity и Notifications, HTTP-контроллеры и сквозные проверки. Для полного запуска также потребуются durable outbox события подтверждения email в Identity; расширение Notifications API и delivery для приглашений с dedup key; внешний Registration/RoleOnboarding workflow и Scheduling guard для удаления связи; HTTP-auth граница с доверенным actorUserId. Эти изменения принадлежат соответствующим модулям/workflows, а не Tutoring Persistence. Политика хранения завершённых command operations и receipts не утверждена; v1 их автоматически не удаляет.
+Этап 5 реализован. В объединённых этапах 6–7 дополнительно реализованы Registration/RoleOnboarding workflows и MeQueryFacade. Scheduling guard и публичная отвязка отложены пользователем до разработки Scheduling. Durable Identity outbox, приглашения Notifications и HTTP-auth граница уже работают. Срок хранения completed operations, receipts и outbox не утверждён; автоматическая очистка в MVP не включена.
+
+
+## 10. Локальная конфигурация
+
+Локальный ключ HMAC: backend/.local/keys/tutoring-cursor.key, минимум 32 случайных байта. Он создан локально и игнорируется Git. На новом компьютере выполнить из корня репозитория `./backend/scripts/New-LocalCursorKey.ps1`; существующий корректный ключ сохраняется. Смена ключа инвалидирует старые курсоры. Для другого окружения задать TUTORING_CURSOR_SIGNING_KEY как путь Spring Resource к его отдельному ключу; ключ не встраивается в репозиторий и не совпадает с RSA-ключом JWT.
+
+identity.events.scheduler-enabled и notifications.delivery.scheduler-enabled включены в приложении; test task отключает фоновые задачи и вызывает обработчики явно. Интервал/начальная задержка по умолчанию — десять секунд. notifications.invitation.frontend-base-url задаёт базу ссылок приглашений; в локальной конфигурации указан frontend.example:3000. Это адрес будущего frontend, а не уже реализованная страница.
+
+Общие SQL/generated-классы принадлежат своему модулю; Tutoring не импортирует чужие persistence packages. [Технический отчёт](TUTORING_STAGE_5_IMPLEMENTATION_REPORT.md) содержит файлы, проверки и оставшиеся этапы.

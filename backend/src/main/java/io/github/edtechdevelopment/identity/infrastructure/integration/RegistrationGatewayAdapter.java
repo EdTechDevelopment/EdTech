@@ -1,6 +1,9 @@
 package io.github.edtechdevelopment.identity.infrastructure.integration;
 
 import io.github.edtechdevelopment.identity.api.IdentityRegistrationGateway;
+import io.github.edtechdevelopment.identity.api.exception.IdentityCommandException;
+import io.github.edtechdevelopment.identity.application.exception.EmailAlreadyExistsException;
+import io.github.edtechdevelopment.identity.application.exception.InvalidUseCaseInputException;
 import io.github.edtechdevelopment.identity.api.command.registration.RegistrationData;
 import io.github.edtechdevelopment.identity.api.command.registration.RegistrationReceipt;
 import io.github.edtechdevelopment.identity.application.command.account.RegisterUserCommand;
@@ -27,9 +30,14 @@ public final class RegistrationGatewayAdapter implements IdentityRegistrationGat
         Set<RegistrationRole> roles = data.roles() == null ? null : data.roles().stream()
                 .map(role -> RegistrationRole.valueOf(role.name()))
                 .collect(Collectors.toUnmodifiableSet());
-        RegistrationResult result = registerUserUseCase.register(new RegisterUserCommand(
-                data.email(), data.rawPassword(), data.firstName(), data.lastName(), data.birthDate(), roles
-        ));
-        return new RegistrationReceipt(result.userId(), result.email(), result.verificationExpiresAt());
+        try {
+            RegistrationResult result = registerUserUseCase.register(new RegisterUserCommand(
+                    data.email(), data.rawPassword(), data.firstName(), data.lastName(), data.birthDate(), roles));
+            return new RegistrationReceipt(result.userId(), result.email(), result.verificationExpiresAt());
+        } catch (EmailAlreadyExistsException exception) {
+            throw new IdentityCommandException(IdentityCommandException.Reason.EMAIL_ALREADY_EXISTS);
+        } catch (InvalidUseCaseInputException exception) {
+            throw new IdentityCommandException(IdentityCommandException.Reason.INVALID_DATA);
+        }
     }
 }

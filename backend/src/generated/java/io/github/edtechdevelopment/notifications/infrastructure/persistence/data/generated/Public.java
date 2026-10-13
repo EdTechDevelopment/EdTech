@@ -5,6 +5,7 @@ package io.github.edtechdevelopment.notifications.infrastructure.persistence.dat
 
 
 import io.github.edtechdevelopment.notifications.infrastructure.persistence.data.generated.tables.NotificationEmailDeliveries;
+import io.github.edtechdevelopment.notifications.infrastructure.persistence.data.generated.tables.NotificationInvitationEmailDeliveries;
 
 import java.util.Arrays;
 import java.util.List;
@@ -34,6 +35,11 @@ public class Public extends SchemaImpl {
     public final NotificationEmailDeliveries NOTIFICATION_EMAIL_DELIVERIES = NotificationEmailDeliveries.NOTIFICATION_EMAIL_DELIVERIES;
 
     /**
+     * The table <code>public.notification_invitation_email_deliveries</code>.
+     */
+    public final NotificationInvitationEmailDeliveries NOTIFICATION_INVITATION_EMAIL_DELIVERIES = NotificationInvitationEmailDeliveries.NOTIFICATION_INVITATION_EMAIL_DELIVERIES;
+
+    /**
      * No further instances allowed
      */
     private Public() {
@@ -49,7 +55,8 @@ public class Public extends SchemaImpl {
     @Override
     public final List<Table<?>> getTables() {
         return Arrays.asList(
-            NotificationEmailDeliveries.NOTIFICATION_EMAIL_DELIVERIES
+            NotificationEmailDeliveries.NOTIFICATION_EMAIL_DELIVERIES,
+            NotificationInvitationEmailDeliveries.NOTIFICATION_INVITATION_EMAIL_DELIVERIES
         );
     }
 }

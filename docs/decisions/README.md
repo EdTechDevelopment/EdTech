@@ -532,25 +532,12 @@ Mailpit является локальным SMTP-catcher и не отправл�
 единый внутренний порт регистрации и публичные gateways регистрации и добавления
 второй роли, а также
 пакетное чтение пользователей, поиск по подтверждённому account email, проверка
-ACTIVE ID и пакетное вычисление возраста без передачи даты рождения. Старая account-only регистрация
-временно принимает `birthDate`; она будет заменена составным workflow.
+ACTIVE ID и пакетное вычисление возраста без передачи даты рождения. Регистрация с birthDate и обязательными профилями подключена через Workflows в этапах 6–7.
 
-Модуль не считается полностью завершённым относительно целевой архитектуры.
-После появления Tutoring и Workflows необходимо:
-
-- заменить прямую account-only регистрацию на `RegistrationWorkflow`, который
-  атомарно создаёт Identity User и обязательные Tutoring profiles;
-- подключить публичный `IdentityRegistrationGateway` к
-  `RegistrationWorkflow` и создавать обязательные профили в той же транзакции;
-- подключить публичный `IdentityRoleGateway` к `RoleOnboardingWorkflow`
-  и создавать соответствующий профиль в той же транзакции;
-- завершить составной `GET /api/v1/me`, `MeResponse`, `MeQueryFacade` и
-  `GetCurrentUserUseCase` без временных `null`-профилей;
-- реализовать целевые registration/profile/age схемы OpenAPI и frontend DTO,
-  уже согласованные с этой архитектурой, в HTTP-слое приложения.
+На 2026-10-13 перечисленные составные сценарии реализованы: RegistrationWorkflow вызывает IdentityRegistrationGateway и TutoringProfileCreationCommands, RoleOnboardingWorkflow использует IdentityRoleGateway, GET /me реализован через GetMeUseCase/MeQueryFacade и OwnAccountQuery. OpenAPI и frontend DTO обновлены. UnlinkStudentWorkflow и статистика отложены до Scheduling прямым решением пользователя.
 
 До production также остаются открытые `OPEN-005`, `OPEN-009`,
-`OPEN-012`, `OPEN-017`, `OPEN-019`, `OPEN-020`, `OPEN-024` и `OPEN-025`.
+`OPEN-012`, `OPEN-017`, `OPEN-019`, `OPEN-020` и `OPEN-024`. OPEN-025 закрыт для утверждённого MVP.
 
 ### Контрольная проверка 2026-09-24
 
@@ -623,25 +610,25 @@ ACTIVE ID и пакетное вычисление возраста без пе�
 | `OPEN-007` | `RESOLVED` | Resend выбирает `REGISTRATION`, если адрес является CURRENT email пользователя в `PENDING_EMAIL_VERIFICATION`, и `EMAIL_CHANGE`, если адрес является PENDING email. Для подтверждённого CURRENT, неизвестного или неподходящего адреса письмо не создаётся; HTTP-ответ во всех случаях остаётся нейтральным `202`. |
 | `OPEN-008` | `RESOLVED` | SHA-256 hashes хранятся в каноническом lowercase hex-формате из 64 символов. |
 | `OPEN-009` | `OPEN` | Жизненный цикл hard delete пользователя, сроки хранения и требования аудита/персональных данных не определены. До решения бизнес-деактивация использует `DEACTIVATED`, а `ON DELETE CASCADE` относится только к физическому DELETE. |
-| `OPEN-010` | `RESOLVED` | Для MVP `SUSPENDED/DEACTIVATED` запрещают новые login/refresh, но уже выданный stateless access JWT действует до `exp` (не более 15 минут). SQL-проверка account status на каждом endpoint и access-token blacklist не вводятся. Решение пересматривается при появлении критичных операций с требованием мгновенного отзыва. |
-| `OPEN-011` | `PLANNED` | Identity сохраняет `AccountEmailVerifiedEvent` в PostgreSQL outbox в той же транзакции, что подтверждение email. Обработчик доставляет событие Tutoring как минимум один раз; Tutoring дедуплицирует по `eventId` и повторно проверяет текущий подтверждённый account email. `occurredAt` — фактическое время подтверждения. Формат таблицы, retry и мониторинг уточняются при реализации. Notification delivery остаётся отдельной очередью писем. |
+| `OPEN-010` | `RESOLVED` | SUSPENDED/DEACTIVATED запрещают новые login/refresh; подпись и exp JWT проверяются stateless без blacklist. Защищённые Tutoring-запросы дополнительно проверяют актуальный ACTIVE статус, а Workflows onboarding требует ACTIVE через IdentityQuery и Identity Domain. Остальные существующие auth-правила не заменяются глобальной SQL-проверкой каждого endpoint. |
+| `OPEN-011` | `RESOLVED` | В этапе 5 реализованы identity_account_email_event_outbox, dispatcher/retry и атомарная фиксация publishedAt, receipt Tutoring и привязки. Обработка события повторно проверяет актуальный подтверждённый email. Notifications delivery — отдельная очередь писем. Мониторинг/retention остаются будущей эксплуатационной задачей. |
 | `OPEN-012` | `OPEN` | Production deployment platform, secret storage, tracing backend и metrics storage ещё не выбраны. |
 | `OPEN-013` | `RESOLVED` | Для локальной разработки используется `axllent/mailpit:v1.31.1`: SMTP `localhost:1025`, Web UI `localhost:8025`. Mailpit запрещён в production; production использует внешний SMTP-провайдер и секреты окружения. |
 | `OPEN-014` | `RESOLVED` | Confirm атомарно находит активную verification через `SELECT ... FOR UPDATE`, изменяет агрегат и сохраняет `consumed_at` в той же внешней транзакции. `Propagation.MANDATORY` не позволяет освободить row lock раньше завершения use case. |
 | `OPEN-015` | `RESOLVED` | Для изменения существующего пользователя используется `findByIdForUpdate`: `SELECT ... FOR UPDATE` блокирует строку `identity_users` до чтения email/roles и последующего save. Все writer-ы сначала upsert-ят ту же головную строку. Locking read и save требуют внешнюю транзакцию через `Propagation.MANDATORY`. |
 | `OPEN-016` | `RESOLVED` | Все операции, изменяющие `User` и `EmailVerification`, получают locks в порядке `User → EmailVerification`. Confirm сначала неблокирующе читает verification, чтобы узнать `userId`, затем блокирует User, повторно читает verification с `FOR UPDATE` и заново валидирует её состояние. |
 | `OPEN-017` | `OPEN` | Для MVP confirmation URL временно хранится в чувствительном Notifications delivery payload и удаляется/затирается после отправки либо `expiresAt`. Перед production нужно решить, требуется ли application-level encryption at rest, и выбрать точный retention delivery metadata, включая срок хранения `recipient_email` как персональных данных. |
-| `OPEN-018` | `RESOLVED` | MVP worker использует `batch-size=10`, `poll-delay=10s`, `initial-delay=10s`, `processing-timeout=1m`, один scheduler и повторную попытку на общем цикле без `attempt_count`, `available_at`, `lease_until`. Ошибка подготовки письма постоянная; прочие известные Spring Mail transport/auth ошибки временные. Зависший `PROCESSING` восстанавливается по `updated_at`. При текущем малом объёме отдельный claim-индекс не добавляется; решение пересматривается перед несколькими instances или ростом очереди. |
+| `OPEN-018` | `RESOLVED` | Verification worker сохраняет MVP batch-size=10, poll/initial-delay=10s, processing-timeout=1m и восстановление по updated_at. Для приглашений этап 5 добавил отдельную очередь с available_at, claimId, retry через 10s и восстановлением lease; подробности в ADR durable delivery. Контракты и политики двух типов писем описаны раздельно. |
 | `OPEN-019` | `OPEN` | HTTP-контракт предусматривает `429`, но rate limiting для login, register и verification endpoints ещё не реализован. Нужно отдельно выбрать лимиты, ключи ограничения (IP/account/device), хранилище счётчиков и поведение за reverse proxy. |
 | `OPEN-020` | `OPEN` | Resend или замена `pendingEmail` через `PATCH /me` инвалидирует прежний verification token, но уже сохранённая `PENDING` delivery Notifications пока не отменяется. Worker может отправить старое письмо с уже недействительной ссылкой перед новым. Безопасность сохраняется, однако до production нужно выбрать deduplication/cancellation contract Notifications или закрыть окно согласованным rate limit. |
-| `OPEN-021` | `RESOLVED` | До реализации Tutoring не создаётся временный HTTP `GET /me` с одним `UserResponse` или `null`-профилями. Identity предоставляет межмодульный `IdentityQuery.findUserById(UUID) → Optional<UserSummary>`. Полный `GET /me`, `MeResponse`, `MeQueryFacade` и `GetCurrentUserUseCase` завершаются во время разработки Tutoring. |
+| `OPEN-021` | `RESOLVED` | В этапах 6–7 реализованы GET /api/v1/me и MeResponse через Workflows GetMeUseCase/MeQueryFacade. Identity отдаёт закрытые account-данные владельца через OwnAccountQuery; Tutoring возвращает профиль с возрастом. Профиль null только при отсутствии соответствующей роли; роль без профиля — ошибка целостности. |
 | `OPEN-022` | `PLANNED` | Текущий `ApiError.requestId` создаётся только при формировании ошибки. Полноценный request-wide correlation/trace ID, пробрасываемый через весь запрос, ответы и логи, будет реализован вместе с observability; документация не должна описывать его как уже работающий. |
-| `OPEN-023` | `RESOLVED` | Отдельный журнал команд Identity удалён миграцией V4; ранее применённая V3 сохранена без изменения контрольной суммы. Регистрация использует один `RegisterUserUseCase`; идемпотентность составных регистрации и добавления роли принадлежит Workflows. Схема и срок хранения журнала Workflows отслеживаются в `OPEN-025`. |
+| `OPEN-023` | `RESOLVED` | Отдельный журнал команд Identity удалён миграцией V4; ранее применённая V3 сохранена без изменения контрольной суммы. Регистрация использует один внутренний RegisterUserUseCase. Идемпотентность составных регистрации и добавления роли реализована в Workflows/V8; технические решения зафиксированы в OPEN-025. |
 | `OPEN-024` | `OPEN` | Миграция V3 вводит обязательную `identity_users.birth_date` и успешно применяется к пустой локальной базе. Перед применением к базе с существующими пользователями нужна отдельная согласованная миграция их реальных дат рождения и, позднее, учебных профилей. Автоматически подставлять выдуманные даты или профили нельзя; на заполненной базе V3 сейчас остановится без изменения существующих записей. |
-| `OPEN-025` | `OPEN` | При реализации Workflows определить схему журнала `Idempotency-Key` для регистрации и добавления роли, конкурентное резервирование, формат сохранённого результата, ключ для fingerprint пароля, срок хранения и очистку. Запись журнала и изменения Identity/Tutoring должны фиксироваться одной транзакцией. Архитектурная ответственность Workflows уже согласована; открыты только эти технические детали. |
+| `OPEN-025` | `RESOLVED` | 2026-10-13 пользователь утвердил MVP-механизм Workflows. V8/workflows_operations хранит глобальный UUID key, тип/контекст, HMAC-SHA256 всего канонического запроса (пароль включён, raw payload/password/token не сохраняются), версии 1 и JSON результата. Advisory lock сериализует первый запрос и replay. Journal/User/profiles/verification/delivery коммитятся одной транзакцией. REGISTER сохраняет email/verificationExpiresAt; onboarding — снимок MeResult для точного 201. Ключ отдельный, из конфигурации/.local, не в Git; очистка в MVP не включена. Ротация ключа и будущий retention не реализованы. |
 | `OPEN-026` | `OPEN` | Для родившихся 29 февраля уточнить продуктовую дату смены возраста в невисокосный год: 28 февраля или 1 марта. Текущий `IdentityQuery.findAgesByIds` использует `java.time.Period`, то есть возраст увеличивается 1 марта. До решения это поведение сохраняется и не дублируется в Tutoring. |
 | `OPEN-027` | `RESOLVED` | В сценарии регистрации по ссылке приглашения email адресата предзаполнен и заблокирован в форме. Сервер привязывает приглашение только после подтверждения того же account email в Identity; блокировка поля не служит проверкой владения. Регистрация с другой почтой вне этого сценария разрешена, но исходное приглашение к такому аккаунту не переносится: преподаватель отправляет новое на другой адрес. Ссылка, регистрация и подтверждение email не принимают приглашение автоматически; после появления StudentProfile требуется отдельное действие пользователя. |
-| `OPEN-028` | `OPEN` | До подключения HTTP и отображения фотографий определить формат `photoUrl`: требуется ли абсолютный адрес, какие схемы разрешены, допустима ли пустая строка и нужны ли ограничения длины. В подэтапе 4.2 согласованных ограничений ещё нет: ProfileInputMapper проверяет только синтаксис URI, `null` очищает фото. |
+| `OPEN-028` | `RESOLVED` | 2026-10-13 пользователь утвердил photoUrl: только абсолютный http/https URI с хостом; null очищает фото, пустая строка — ошибка. ProfileInputMapper проверяет правило до изменения профиля. Отдельный произвольный предел длины не вводится; HTTP-тело ограничено на транспортной границе. |
 
 ## Известный долг документации
 
@@ -653,3 +640,17 @@ ACTIVE ID и пакетное вычисление возраста без пе�
   до отдельного обновления модели и экспорта.
 - Файлы исходных спецификаций, переданные вне репозитория, не изменяются
   автоматически. Принятые отклонения от них фиксируются в этом реестре.
+
+
+## Техническая реализация этапа 5 Tutoring
+
+На 2026-10-13 этап 5 завершён; общий прогон backend содержит 421 успешный тест. [ADR durable delivery](tutoring-durable-delivery.md) фиксирует outbox Identity, очередь приглашений Notifications, транзакции, retry и возможное повторное SMTP-письмо после падения между отправкой и ack. Срок хранения журналов/outbox не угадан: MVP не удаляет их автоматически.
+
+Presentation читает собственные api.model только как результаты входных портов Application и переводит их в HTTP DTO; прямые api commands/queries, Domain и repositories запрещены. Эти ограничения проверяются ArchUnit и Spring Modulith.
+
+
+## Завершение Tutoring MVP и отложенный Scheduling
+
+2026-10-13 пользователь утвердил объединение этапов 6–7 и вариант без Scheduling. Регистрация с профилями, добавление роли и /me реализованы; общий прогон backend — 450 тестов без ошибок/пропусков. UnlinkStudentWorkflow, публичный DELETE связи и StudentCardQueryFacade со статистикой отложены до полноценного Scheduling. Их нельзя считать готовыми.
+
+OwnAccountQuery/OwnAccountView предназначены исключительно закрытым account-данным владельца при сборке /me. Дата рождения не передаётся Tutoring и не входит в профиль. Journal onboarding хранит снимок уже выданного владельцу ответа для replay; текущие данные всегда читаются из Identity/Tutoring через GET /me. Ключ workflow fingerprint должен сохраняться вместе с journal; новый ключ меняет сравнение прошлых HMAC.

@@ -2,6 +2,11 @@ package io.github.edtechdevelopment.identity.infrastructure.security.configurati
 
 import io.github.edtechdevelopment.identity.infrastructure.security.authentication.IdentityJwtAuthenticationConverter;
 import io.github.edtechdevelopment.identity.infrastructure.security.request.CookieCredentialOriginFilter;
+import io.github.edtechdevelopment.identity.infrastructure.security.request.TutoringAccountAccessFilter;
+import io.github.edtechdevelopment.identity.api.query.IdentityQuery;
+import org.springframework.beans.factory.ObjectProvider;
+import tools.jackson.databind.ObjectMapper;
+import org.springframework.security.oauth2.server.resource.web.authentication.BearerTokenAuthenticationFilter;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnWebApplication;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -37,7 +42,9 @@ public class SecurityConfiguration {
             AuthenticationEntryPoint authenticationEntryPoint,
             AccessDeniedHandler accessDeniedHandler,
             CorsConfigurationSource corsConfigurationSource,
-            IdentityCorsProperties corsProperties
+            IdentityCorsProperties corsProperties,
+            ObjectProvider<IdentityQuery> identityQueries,
+            ObjectMapper objectMapper
     ) throws Exception {
         CookieCredentialOriginFilter cookieCredentialOriginFilter = new CookieCredentialOriginFilter(
                 corsProperties,
@@ -54,6 +61,8 @@ public class SecurityConfiguration {
                 .logout(logout -> logout.disable())
                 .authorizeHttpRequests(authorize -> authorize
                         .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
+                        .requestMatchers(HttpMethod.GET, "/api/v1/tutoring/subjects",
+                                "/api/v1/tutoring/profiles/teachers/**", "/api/v1/tutoring/profiles/students/**").permitAll()
                         .requestMatchers(
                                 HttpMethod.POST,
                                 REGISTER_ENDPOINT,
@@ -74,7 +83,8 @@ public class SecurityConfiguration {
                         .accessDeniedHandler(accessDeniedHandler)
                         .jwt(jwt -> jwt.jwtAuthenticationConverter(authenticationConverter))
                 )
-                .addFilterBefore(cookieCredentialOriginFilter, CorsFilter.class);
+                .addFilterBefore(cookieCredentialOriginFilter, CorsFilter.class)
+                .addFilterAfter(new TutoringAccountAccessFilter(identityQueries, objectMapper), BearerTokenAuthenticationFilter.class);
 
         return http.build();
     }
@@ -83,8 +93,8 @@ public class SecurityConfiguration {
     CorsConfigurationSource corsConfigurationSource(IdentityCorsProperties properties) {
         CorsConfiguration configuration = new CorsConfiguration();
         configuration.setAllowedOrigins(properties.allowedOrigins());
-        configuration.setAllowedMethods(List.of("GET", "POST", "PATCH", "OPTIONS"));
-        configuration.setAllowedHeaders(List.of(HttpHeaders.AUTHORIZATION, HttpHeaders.CONTENT_TYPE));
+        configuration.setAllowedMethods(List.of("GET", "POST", "PUT", "PATCH", "OPTIONS"));
+        configuration.setAllowedHeaders(List.of(HttpHeaders.AUTHORIZATION, HttpHeaders.CONTENT_TYPE, "Idempotency-Key"));
         configuration.setAllowCredentials(true);
         configuration.setMaxAge(3600L);
 

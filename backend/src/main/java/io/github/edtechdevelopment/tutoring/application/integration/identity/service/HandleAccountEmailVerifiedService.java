@@ -68,6 +68,9 @@ public class HandleAccountEmailVerifiedService implements HandleAccountEmailVeri
     private void attachPendingInvitations(InvitationEmail email, UUID userId, Instant now) {
         List<StudentInvitation> changed = new ArrayList<>();
         for (StudentInvitation invitation : invitations.findPendingByEmailForUpdate(email, now)) {
+            if (invitation.studentUserId() != null) {
+                continue;
+            }
             try {
                 if (invitation.attachStudent(userId, now)) {
                     changed.add(invitation);

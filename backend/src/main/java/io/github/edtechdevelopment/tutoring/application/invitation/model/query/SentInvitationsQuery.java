@@ -25,4 +25,14 @@ public record SentInvitationsQuery(
             throw new IllegalArgumentException("Limit must be between 1 and 100");
         }
     }
+
+    public static SentInvitationsQuery fromStatus(UUID teacherUserId, String status, String cursor, int limit) {
+        return new SentInvitationsQuery(teacherUserId, parseStatus(status), cursor, limit);
+    }
+
+    static InvitationStatus parseStatus(String status) {
+        if (status == null) { return null; }
+        try { return InvitationStatus.valueOf(status); }
+        catch (IllegalArgumentException exception) { throw new IllegalArgumentException("Invitation status is invalid"); }
+    }
 }

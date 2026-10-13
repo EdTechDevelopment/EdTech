@@ -16,7 +16,7 @@
 4. `docs/api/scheduling.openapi.json` определяет уже синхронизированный HTTP-контракт.
 5. `docs/architecture/identity/architecture.vpp` и опубликованный HTML являются историческим снимком модели Identity.
 
-Решения по Tutoring меняют регистрацию, профили и показ возраста. Целевые схемы OpenAPI синхронизированы с ними; существующие HTTP-обработчики Identity ещё предстоит связать с составным Workflows. Не создавай параллельные варианты DTO или enum.
+Решения по Tutoring меняют регистрацию, профили и показ возраста. HTTP-сценарии регистрации, onboarding и /me связаны с Workflows в этапах 6–7; точные реализованные схемы — tutoring.openapi.json и workflows.openapi.json. Не создавай параллельные варианты DTO или enum.
 
 ## Назначение продукта
 
@@ -114,6 +114,7 @@ Scheduling.Lesson participant userId
 
 ```text
 presentation   → application.port.in / command / query / result
+presentation   → own api.model, только когда модель возвращена входным портом Application
 application    → domain
 application    → api
 infrastructure → application.port.out
@@ -131,6 +132,7 @@ application    -X-> presentation / infrastructure
 presentation   -X-> infrastructure / jOOQ repositories
 api            -X-> internal packages of its module
 module A       -X-> internal packages, repositories or tables of module B
+presentation   -X-> domain / own api.command / own api.query
 ```
 
 Пакет `api` должен быть стабильным и небольшим. Domain aggregate, jOOQ record, application command и security component нельзя публиковать как межмодульный контракт.
@@ -182,7 +184,7 @@ Workflow не читает чужие таблицы, не использует 
 
 ### Регистрация
 
-`POST /api/v1/auth/register` принадлежит `workflows.registration.presentation`, поскольку одна операция создаёт User и минимум один профиль.
+`POST /api/v1/auth/register` принадлежит `workflows.presentation.registration`, поскольку одна операция создаёт User и минимум один профиль.
 
 ```text
 RegistrationController
@@ -424,3 +426,15 @@ architecture tests
 - внешняя система трассировки и metrics storage.
 
 До принятия решения используй конфигурацию и интерфейсы, не зашивай случайный выбор в domain-модель.
+
+
+## Реализованная доставка Tutoring, 2026-10-13
+
+Для AccountEmailVerifiedEvent Identity использует durable outbox. Публикация происходит после исходного commit в новой транзакции диспетчера; синхронный listener Tutoring атомарно фиксирует receipt и привязку с published_at. Notifications принимает заявку приглашения в общей транзакции, а SMTP выполняет отдельно после commit. [ADR](../decisions/tutoring-durable-delivery.md) описывает retry и возможную повторную отправку после сбоя SMTP/ack.
+
+
+## Завершённый MVP Tutoring/Workflows, 2026-10-13
+
+RegistrationWorkflow, RoleOnboardingWorkflow и MeQueryFacade реализованы и прошли сквозные HTTP/SQL, concurrency и rollback tests. Workflows хранит только собственный журнал операций (V8); команды вызывают публичный Java API модулей. Собственные account-данные читаются через отдельный OwnAccountQuery только для владельца /me; Tutoring не получает дату рождения. Снимок onboarding HTTP-результата хранится для точного replay, а актуальные account/profile данные остаются у Identity/Tutoring.
+
+Пользователь отложил Scheduling, unlink и составную статистику. Их требования в этом документе являются будущими критериями, а не уже работающими endpoint. Реализованный backend test run: 450 тестов без ошибок/пропусков.

@@ -16,4 +16,8 @@ public record IncomingInvitationsQuery(
         Objects.requireNonNull(studentUserId, "Student user id must not be null");
         SentInvitationsQuery.validatePage(cursor, limit);
     }
+
+    public static IncomingInvitationsQuery fromStatus(UUID studentUserId, String status, String cursor, int limit) {
+        return new IncomingInvitationsQuery(studentUserId, SentInvitationsQuery.parseStatus(status), cursor, limit);
+    }
 }

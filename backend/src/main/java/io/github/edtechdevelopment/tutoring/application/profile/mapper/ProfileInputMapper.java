@@ -108,7 +108,12 @@ public final class ProfileInputMapper {
             return null;
         }
         try {
-            return URI.create(value);
+            URI uri = URI.create(value);
+            if (!uri.isAbsolute() || uri.getHost() == null
+                    || !("http".equalsIgnoreCase(uri.getScheme()) || "https".equalsIgnoreCase(uri.getScheme()))) {
+                throw invalidField(type, "photoUrl");
+            }
+            return uri;
         } catch (IllegalArgumentException ignored) {
             throw invalidField(type, "photoUrl");
         }

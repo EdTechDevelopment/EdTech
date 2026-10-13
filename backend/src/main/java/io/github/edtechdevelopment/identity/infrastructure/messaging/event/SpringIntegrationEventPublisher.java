@@ -14,14 +14,16 @@ import java.util.Objects;
 public final class SpringIntegrationEventPublisher implements IntegrationEventPublisher {
 
     private final ApplicationEventPublisher eventPublisher;
+    private final AccountEmailEventOutbox outbox;
 
-    public SpringIntegrationEventPublisher(ApplicationEventPublisher eventPublisher) {
+    public SpringIntegrationEventPublisher(ApplicationEventPublisher eventPublisher, AccountEmailEventOutbox outbox) {
         this.eventPublisher = Objects.requireNonNull(eventPublisher, "Application event publisher must not be null");
+        this.outbox = Objects.requireNonNull(outbox, "Account email event outbox must not be null");
     }
 
     @Override
     public void publish(AccountEmailVerifiedEvent event) {
-        eventPublisher.publishEvent(Objects.requireNonNull(event, "Account email verified event must not be null"));
+        outbox.save(Objects.requireNonNull(event, "Account email verified event must not be null"));
     }
 
     @Override

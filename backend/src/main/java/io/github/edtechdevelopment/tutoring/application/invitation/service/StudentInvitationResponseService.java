@@ -14,6 +14,7 @@ import io.github.edtechdevelopment.tutoring.application.invitation.port.in.Rejec
 import io.github.edtechdevelopment.tutoring.application.invitation.port.out.StudentInvitationRepository;
 import io.github.edtechdevelopment.tutoring.application.profile.port.out.StudentProfileRepository;
 import io.github.edtechdevelopment.tutoring.application.relationship.port.out.TeacherStudentRepository;
+import io.github.edtechdevelopment.tutoring.application.relationship.exception.RelationshipAlreadyExistsException;
 import io.github.edtechdevelopment.tutoring.domain.invitation.model.InvitationStatus;
 import io.github.edtechdevelopment.tutoring.domain.invitation.model.StudentInvitation;
 import io.github.edtechdevelopment.tutoring.domain.relationship.model.TeacherStudent;
@@ -76,7 +77,12 @@ public class StudentInvitationResponseService implements AcceptStudentInvitation
         invitation.accept(command.studentUserId(), now);
         TeacherStudent relationship = TeacherStudent.create(invitation.teacherUserId(), command.studentUserId(), now);
         invitations.update(invitation);
-        relationships.insert(relationship);
+        try {
+            relationships.insert(relationship);
+        } catch (RelationshipAlreadyExistsException exception) {
+            throw new InvitationResponseConflictException(command.invitationId(),
+                    InvitationResponseConflictException.Reason.ALREADY_LINKED);
+        }
 
         InvitationAcceptedResult result = new InvitationAcceptedResult(
                 invitation.id(), relationship.teacherUserId(), relationship.studentUserId(), relationship.createdAt());
@@ -102,7 +108,7 @@ public class StudentInvitationResponseService implements AcceptStudentInvitation
         invitation.reject(command.studentUserId(), now);
         invitations.update(invitation);
 
-        InvitationRejectedResult result = new InvitationRejectedResult(invitation.id(), invitation.status());
+        InvitationRejectedResult result = new InvitationRejectedResult(invitation.id(), invitation.status().name());
         idempotency.complete(command.operationId(), command.studentUserId(), REJECT_OPERATION,
                 fingerprint, result, now);
         return result;
